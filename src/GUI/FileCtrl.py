@@ -42,7 +42,7 @@ import os
 import shutil
 import sys
 import GuiPages
-# import Bin2Tiff
+import Bin2Tiff
 import Felix_gui
 import datetime
 
@@ -150,7 +150,6 @@ def RunFelix(parent, CIFPath, OutputPath):
   # Bin2Tiff.convert(dir, '8', 'tif', '1')
 
   # parent.main.viewer.onView(dir)
-  # parent.Close(True)
 
 
 def InpCreate(parent):

@@ -42,7 +42,6 @@ import os
 import shutil
 import sys
 import GuiPages
-#import Bin2Tiff
 import FileCtrl
 import wx.lib.wxpTag
 import wikistrings
@@ -972,44 +971,44 @@ class optionPanel(wx.Panel):
     self.OutputPath = FileCtrl.OutputDirSelect(self)
 
 
-# class ViewerPanel(wx.Panel):
-#
-#   def __init__(self, parent):
-#     wx.Panel.__init__(self, parent)
-#     self.PhotoMaxSize = 300
-#     self.createWidgets()
-#
-#   def createWidgets(self):
-#     img = wx.EmptyImage(300, 300, False)
-#     self.imageCtrl = wx.StaticBitmap(self, wx.ID_ANY,
-#                                      wx.BitmapFromImage(img))
-#     self.mainSizer = wx.BoxSizer(wx.VERTICAL)
-#     self.mainSizer.Add(self.imageCtrl, 0, wx.ALL | wx.EXPAND, 5)
-#
-#     self.SetSizer(self.mainSizer)
-#
-#     self.Layout()
-#
-#   def onView(self, dir):
-#     filepath = dir + "/f-0010-T01000-P00539-P00539-WI-M.tif"
-#     img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
-#     # scale the image, preserving the aspect ratio
-#     W = img.GetWidth()
-#     H = img.GetHeight()
-#     if W > H:
-#       NewW = self.PhotoMaxSize
-#       NewH = self.PhotoMaxSize * H / W
-#     else:
-#       NewH = self.PhotoMaxSize
-#       NewW = self.PhotoMaxSize * W / H
-#     img = img.Scale(NewW, NewH)
-#
-#     self.imageCtrl.SetBitmap(wx.BitmapFromImage(img))
-#     self.Refresh()
-#
-#     for f in dir:
-#        if os.path.splitext(f)[-1].lower() == '.tif':
-#            count += 1
+class ViewerPanel(wx.Panel):
+
+  def __init__(self, parent):
+    wx.Panel.__init__(self, parent)
+    self.PhotoMaxSize = 300
+    self.createWidgets()
+
+  def createWidgets(self):
+    img = wx.EmptyImage(300, 300, False)
+    self.imageCtrl = wx.StaticBitmap(self, wx.ID_ANY,
+                                     wx.BitmapFromImage(img))
+    self.mainSizer = wx.BoxSizer(wx.VERTICAL)
+    self.mainSizer.Add(self.imageCtrl, 0, wx.ALL | wx.EXPAND, 5)
+
+    self.SetSizer(self.mainSizer)
+
+    self.Layout()
+
+  def onView(self, dir):
+    filepath = dir + "/f-0010-T01000-P00539-P00539-WI-M.tif"
+    img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
+    # scale the image, preserving the aspect ratio
+    W = img.GetWidth()
+    H = img.GetHeight()
+    if W > H:
+      NewW = self.PhotoMaxSize
+      NewH = self.PhotoMaxSize * H / W
+    else:
+      NewH = self.PhotoMaxSize
+      NewW = self.PhotoMaxSize * W / H
+    img = img.Scale(NewW, NewH)
+
+    self.imageCtrl.SetBitmap(wx.BitmapFromImage(img))
+    self.Refresh()
+
+    for f in dir:
+       if os.path.splitext(f)[-1].lower() == '.tif':
+           count += 1
 
 class WikiPanel(wx.html.HtmlWindow):
   def __init__(self, parent):

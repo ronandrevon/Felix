@@ -42,7 +42,6 @@ import os
 import shutil
 import sys
 import GuiPages
-#import Bin2Tiff
 import FileCtrl
 
 
@@ -58,7 +57,6 @@ class Notebook(wx.Notebook):
     self.page4 = GuiPages.crystalPanel(self, WikiObj)
     self.page5 = GuiPages.microscopePanel(self, WikiObj)
     self.page6 = GuiPages.imagePanel(self, WikiObj)
-    #self.wiki = GuiPages.WikiPanel(self)
 
 
     self.AddPage(self.page1, "Flags")
@@ -67,17 +65,16 @@ class Notebook(wx.Notebook):
     self.AddPage(self.page4, "Crystal")
     self.AddPage(self.page5, "Microscope")
     self.AddPage(self.page6, "Image")
-    #self.AddPage(self.wiki, "wiki")
 
 class WikiPreviewNotebook(wx.Notebook):
   def __init__(self, parent):
     wx.Notebook.__init__(self, parent, wx.ID_ANY)
 
     self.wikitext = GuiPages.WikiPanel(self)
-    #self.viewer = GuiPages.ViewerPanel(self)
+    self.viewer = GuiPages.ViewerPanel(self)
 
     self.AddPage(self.wikitext, "Wiki")
-    #self.AddPage(self.viewer, "Image Preview")
+    self.AddPage(self.viewer, "Image Preview")
 
 class MainFrame(wx.Frame):
 
