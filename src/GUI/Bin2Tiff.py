@@ -55,23 +55,6 @@ inputBits = [None, '8', '32']
 
 
 def convert(location, bits, type, recursNo):
-  #nArgs = len(argv)
-  # if nArgs < 1:
-  #     print 'bin2tiff.py <input file/folder> -t \
-  #            <output type (tiff/png)> -r <recursion depth>'
-  #     return
-  #
-  # if argv[0] in ('-h', '--help'):
-  #     print "Program to convert the \'.bin\' output from FelixSim 1.7 to image format"
-  #     print "First or last argument MUST be path or file"
-  #     print "Options:"
-  #     print "\t --type (-t) specifies output format"
-  #     print "\t\t Supports \'tif\' or \'png\' (default \'tif\')"
-  #     print "\t --bits (-b) specifies bit depth for tiff files"
-  #     print "\t\t Supports \'8\' or \'32\' (default \'32\')"
-  #     print "\t --recursion (-r) specifies how deep in the file structure to search"
-  #     print "\t\t (default \'0\')"
-  #     return
 
   if os.path.exists(location):
     print("Found input " + location),
