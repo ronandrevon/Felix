@@ -127,9 +127,11 @@ def RunFelix(parent, CIFPath, OutputPath):
     os.system("../../felixsim > ../../../logs/" + logname)  # single core
   else:
     os.system("mpirun -n " + str(NumberofCores) +
-              " ../../felixsim  > ../../../logs" + logname)  # parallel
+              " ../../felixsim  > ../../../logs/" + logname)  # parallel
 
   print "Files after run: " + str(os.listdir(workingDir))
+
+  Bin2Tiff.convert(workingDir, '8', 'tif', '1')
 
   shutil.copytree(workingDir, OutputDirectory)
   os.rename(OutputDirectory + "/felix.cif", OutputDirectory + "/" + cfilename)
@@ -146,8 +148,6 @@ def RunFelix(parent, CIFPath, OutputPath):
 
   return
 
-  # os.chdir("../")
-  # Bin2Tiff.convert(dir, '8', 'tif', '1')
 
   # parent.main.viewer.onView(dir)
 
