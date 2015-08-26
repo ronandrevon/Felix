@@ -94,7 +94,7 @@ class MainFrame(wx.Frame):
     # add the widgets to the sizers
     sizerv.Add(self.notebook, 0, wx.ALL, 5)
     sizerv.Add(self.option, 0, wx.ALL | wx.CENTER, 5)
-    sizerh.Add(sizerv, 2)
+    sizerh.Add(sizerv, 0)
     sizerh.Add(self.wiki, 1, wx.ALL | wx.EXPAND, 5)
 
 

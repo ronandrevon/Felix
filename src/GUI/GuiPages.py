@@ -977,20 +977,49 @@ class ViewerPanel(wx.Panel):
     wx.Panel.__init__(self, parent)
     self.PhotoMaxSize = 300
     self.createWidgets()
+    self.fileNamePaths = []
 
   def createWidgets(self):
     img = wx.EmptyImage(300, 300, False)
     self.imageCtrl = wx.StaticBitmap(self, wx.ID_ANY,
                                      wx.BitmapFromImage(img))
     self.mainSizer = wx.BoxSizer(wx.VERTICAL)
-    self.mainSizer.Add(self.imageCtrl, 0, wx.ALL | wx.EXPAND, 5)
+    self.mainSizer.Add(self.imageCtrl, 0, wx.ALL | wx.EXPAND | wx.CENTER, 5)
+
+    self.imageSlider = wx.Slider(self, id=wx.ID_ANY, value=0, minValue=0, maxValue=1)
+    self.mainSizer.Add(self.imageSlider, 0, wx.ALL | wx.EXPAND | wx.CENTER, 5)
+    self.imageSlider.Bind(wx.EVT_SLIDER, self.onViewWrapper)
+    self.imageSlider.Enable(False)
 
     self.SetSizer(self.mainSizer)
 
     self.Layout()
 
-  def onView(self, dir):
-    filepath = dir + "/f-0010-T01000-P00539-P00539-WI-M.tif"
+  def onViewWrapper(self, event):
+    print "On view name paths:"
+    print self.fileNamePaths
+    sliderVal = self.imageSlider.GetValue()
+    print sliderVal
+    if self.imageSlider.GetMax() > 1:
+      self.onView(self.fileNamePaths[sliderVal])
+    return
+
+  def onRun(self, dir):
+    self.fileNamePaths = list(FileCtrl.PathFinder(dir))
+    imageNo = len(self.fileNamePaths)
+    if imageNo > 1:
+      self.imageSlider.SetMax(imageNo)
+      self.imageSlider.Enable(True)
+    if imageNo == 1:
+      self.imageSlider.SetMax(imageNo)
+      self.imageSlider.SetValue(0)
+      self.imageSlider.Enable(False)
+    self.onView(self.fileNamePaths[0])
+    return
+
+
+  def onView(self, path):
+    filepath = path
     img = wx.Image(filepath, wx.BITMAP_TYPE_ANY)
     # scale the image, preserving the aspect ratio
     W = img.GetWidth()
@@ -1005,10 +1034,6 @@ class ViewerPanel(wx.Panel):
 
     self.imageCtrl.SetBitmap(wx.BitmapFromImage(img))
     self.Refresh()
-
-    for f in dir:
-       if os.path.splitext(f)[-1].lower() == '.tif':
-           count += 1
 
 class WikiPanel(wx.html.HtmlWindow):
   def __init__(self, parent):

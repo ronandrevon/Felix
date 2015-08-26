@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
 # felixsim
 #
@@ -16,7 +16,7 @@
 # Build:   :BUILD:
 # Author:  :AUTHOR:
 #
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #
 #  This file is part of felixsim.
 #
@@ -33,7 +33,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with felixsim.  If not, see <http://www.gnu.org/licenses/>.
 #
-#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 import wx
 import wx.lib.agw.floatspin as FS
@@ -45,6 +45,7 @@ import GuiPages
 import Bin2Tiff
 import Felix_gui
 import datetime
+import glob
 
 
 # Class defining gui which selects where the user wants to save the input file
@@ -78,7 +79,7 @@ def RunFelix(parent, CIFPath, OutputPath):
                   wx.OK | wx.ICON_ERROR)
     CIFPath = OnCif(parent)
 
-  if CIFPath !=None and os.path.exists(CIFPath) == False:
+  if CIFPath != None and os.path.exists(CIFPath) == False:
     wx.MessageBox('.cif file not found, please load a .cif file', 'Error',
                   wx.OK | wx.ICON_ERROR)
     CIFPath = OnCif(parent)
@@ -136,20 +137,34 @@ def RunFelix(parent, CIFPath, OutputPath):
   shutil.copytree(workingDir, OutputDirectory)
   os.rename(OutputDirectory + "/felix.cif", OutputDirectory + "/" + cfilename)
 
+  os.chdir(OutputDirectory)
+
   if os.path.exists(workingDir):
     shutil.rmtree(workingDir)
 
   os.chdir(currentDirectory)
 
+  parent.main.wiki.felixStatus = 0
+
+  parent.main.wiki.viewer.onRun(OutputDirectory)
+
+  parent.main.wiki.SetSelection(1)
+
   wx.MessageBox('Felixsim successfully run!',
                 'Info', wx.OK | wx.ICON_INFORMATION)
-
-  parent.main.wiki.felixStatus = 0
 
   return
 
 
-  # parent.main.viewer.onView(dir)
+def PathFinder(OutputDirectory):
+
+  fileNames = []
+  for dirpath, dirnames, filenames in os.walk(OutputDirectory):
+    for filename in [f for f in filenames if f.endswith(".tif")]:
+      print os.path.join(dirpath, filename)
+      fileNames.append(os.path.join(dirpath, filename))
+
+  return fileNames
 
 
 def InpCreate(parent):
@@ -162,9 +177,7 @@ def InpCreate(parent):
   InputSaveDialog = wx.FileDialog(parent, "Save Input file", "", "felix.inp",
                                   "Inp Files (*.inp)|*.inp", wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
 
-  InputSaveDialog.ShowModal()
-
-  if InputSaveDialog == wx.ID_CANCEL:
+  if InputSaveDialog.ShowModal() == wx.ID_CANCEL:
     return
 
   User_InpSavePath, User_InpSaveName = os.path.split(InputSaveDialog.GetPath())
@@ -180,8 +193,11 @@ def WriteInputFile(dir, parent, name):
 
   FelixInpFilename = dir + "/" + name
 
-  if os.path.exists(FelixInpFilename):
-    os.remove(FelixInpFilename)
+  # count = 0
+  # OriginalInpName = FelixInpFilename
+  # while os.path.exists(FelixInpFilename):
+  #   count = count + 1
+  #   FelixInpFilenamey = OriginalInpName + "(" + str(count) + ")"
 
   inpfile = open(FelixInpFilename, "wb")
 
@@ -714,10 +730,8 @@ def OnCif(parent):
   CIFFileDialog = wx.FileDialog(parent, "Load CIF file", "", "",
                                 "CIF files (*.cif)|*.cif", wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
 
-  CIFFileDialog.ShowModal()
-
   # If the User selects cancel
-  if CIFFileDialog == wx.ID_CANCEL:
+  if CIFFileDialog.ShowModal() == wx.ID_CANCEL:
     return
 
   # get the filename and path from user
@@ -734,10 +748,9 @@ def OutputDirSelect(parent):
   fileDirectory, fileName = os.path.split(filePath)
   OutputDirDialog = wx.DirDialog(
       parent, "Select output directory")
-  OutputDirDialog.ShowModal()
 
   # If the User selects cancel
-  if OutputDirDialog == wx.ID_CANCEL:
+  if OutputDirDialog.ShowModal() == wx.ID_CANCEL:
     return
 
   # get the filename and path from user
