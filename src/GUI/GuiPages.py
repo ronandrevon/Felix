@@ -975,12 +975,13 @@ class ViewerPanel(wx.Panel):
 
   def __init__(self, parent):
     wx.Panel.__init__(self, parent)
-    self.PhotoMaxSize = 300
+    self.PhotoMaxSize = 500
     self.createWidgets()
     self.fileNamePaths = []
 
   def createWidgets(self):
-    img = wx.EmptyImage(300, 300, False)
+    img = wx.EmptyImage(500, 500, False)
+    img.Replace(0,0,0,255,255,255)
     self.imageCtrl = wx.StaticBitmap(self, wx.ID_ANY,
                                      wx.BitmapFromImage(img))
     self.mainSizer = wx.BoxSizer(wx.VERTICAL)
@@ -996,21 +997,20 @@ class ViewerPanel(wx.Panel):
     self.Layout()
 
   def onViewWrapper(self, event):
-    print "On view name paths:"
-    print self.fileNamePaths
     sliderVal = self.imageSlider.GetValue()
-    print sliderVal
     if self.imageSlider.GetMax() > 1:
       self.onView(self.fileNamePaths[sliderVal])
     return
 
   def onRun(self, dir):
+    if self.fileNamePaths:
+      del self.fileNamePaths[:]
     self.fileNamePaths = list(FileCtrl.PathFinder(dir))
-    imageNo = len(self.fileNamePaths)
+    imageNo = len(self.fileNamePaths) - 1
     if imageNo > 1:
       self.imageSlider.SetMax(imageNo)
       self.imageSlider.Enable(True)
-    if imageNo == 1:
+    if imageNo == 0:
       self.imageSlider.SetMax(imageNo)
       self.imageSlider.SetValue(0)
       self.imageSlider.Enable(False)

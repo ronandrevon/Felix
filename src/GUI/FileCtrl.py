@@ -111,7 +111,7 @@ def RunFelix(parent, CIFPath, OutputPath):
   InpName = "felix.inp"
   WriteInputFile(workingDir, parent, InpName)
   wx.MessageBox('Files created successfully, click okay to run Felix', 'Info',
-                wx.OK | wx.CANCEL | wx.ICON_INFORMATION)
+                wx.OK | wx.ICON_INFORMATION)
 
   # Get Value of mpicores
   NumberofCores = parent.MPICores.GetValue()
