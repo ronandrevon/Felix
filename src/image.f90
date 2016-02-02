@@ -68,9 +68,9 @@ SUBROUTINE ImageInitialisation( IErr )
 
   DO ind=1,nReflections
      Rhklpositions(ind,1) = &
-          RgVecMatT(ind,1)/RMinimumGMag
+          RgPoolT(ind,1)/RMinimumGMag
      Rhklpositions(ind,2) = &
-          RgVecMatT(ind,2)/RMinimumGMag
+          RgPoolT(ind,2)/RMinimumGMag
   ENDDO
   
   ! size of final image

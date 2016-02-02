@@ -40,11 +40,9 @@
 SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
   USE MyNumbers
-  
   USE CConst; USE IConst; USE RConst
   USE IPara; USE RPara; USE SPara; USE CPara
   USE BlochPara
-
   USE IChannels
 
   USE MPI
@@ -56,30 +54,25 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   ! local variable definitions
   !--------------------------------------------------------------------
   
-  INTEGER(IKIND) :: &
-       IErr,ind,jnd,knd,pnd,&
+  INTEGER(IKIND) :: IErr,ind,jnd,knd,pnd,&
        IThicknessIndex,ILocalPixelCountMin, ILocalPixelCountMax,&
-       IIterationFLAG
-  INTEGER(IKIND) :: &
-       IAbsorbTag = 0
-  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: &
-       IDisplacements,ICount
-  LOGICAL,INTENT(IN) :: &
-       LInitialSimulationFLAG !If function is being called during initialisation
-  REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: &
-       RIndividualReflectionsRoot,&
+       IIterationFLAG,IVariableType
+  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IDisplacements,ICount
+  LOGICAL,INTENT(IN) :: LInitialSimulationFLAG 
+  REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RIndividualReflectionsRoot,&
        RFinalMontageImageRoot
-  COMPLEX(CKIND),DIMENSION(:,:,:), ALLOCATABLE :: &
-       CAmplitudeandPhaseRoot 
+  COMPLEX(CKIND),DIMENSION(:,:,:), ALLOCATABLE :: CAmplitudeandPhaseRoot 
 
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
      PRINT*,"Felix function"
   END IF
 
-  CALL CountTotalAtoms(IErr)
+  IF ((IVariableType.EQ.2).OR.(LInitialSimulationFLAG.EQV..TRUE.)) THEN
+    CALL CountTotalAtoms(IErr)!Generates full set of atoms from basis
+  END IF
   
   IDiffractionFLAG = 0
-
+!RBx PRINT*,"Initial Sim:",LInitialSimulationFLAG
   !-------------------------------------------------------------------- 
   !Setup Experimental Variables
   !--------------------------------------------------------------------
@@ -90,30 +83,18 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
      RETURN
   END IF
   
-  
   !--------------------------------------------------------------------
   ! Setup Image
   !--------------------------------------------------------------------
-
-
   CALL ImageSetup( IErr )
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error in ImageSetup()"
      RETURN
   END IF
 
- 
   !--------------------------------------------------------------------
   ! MAIN section
   !--------------------------------------------------------------------
- 
-!!$  Structure Factors must be calculated without absorption for refinement to work
-
-  !RB IF(IAbsorbFLAG.NE.0) THEN 
-  !RB   IAbsorbFLAG = 0 ! Non-absorpative structure factor calculation
-  !RB   IAbsorbTAG = 1 ! Remember that IAbsorbFLAG was 1
-  !RB END IF
-  
   CALL StructureFactorSetup(IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error ",IErr,"in StructureFactorSetup()"
@@ -122,7 +103,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
   !RB IF(IAbsorbTAG.NE.0) IAbsorbFLAG = 1 !Reset IAbsorbFLAG to 1
 
-  IF((IRefineModeSelectionArray(1).EQ.1).AND.(LInitialSimulationFLAG.NEQV..TRUE.)) THEN
+  IF((IVariableType.EQ.1).AND.(LInitialSimulationFLAG.NEQV..TRUE.)) THEN!Ug refinement RBx
      
      CALL ApplyNewStructureFactors(IErr)
      IF( IErr.NE.0 ) THEN
@@ -348,12 +329,11 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
      
      RIndividualReflections = RIndividualReflectionsRoot
   END IF
-  
+ 
   !--------------------------------------------------------------------
   ! free memory
-  !--------------------------------------------------------------------
-  
-  !Dellocate Global Variables
+  !--------------------------------------------------------------------  
+  !Dellocate felixfunction Variables
   
   DEALLOCATE(RMask,STAT=IErr)       
   IF( IErr.NE.0 ) THEN
@@ -536,10 +516,10 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
      RETURN
   END IF
        
-  DEALLOCATE(RgVecMatT,STAT=IErr)
+  DEALLOCATE(RgPoolT,STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error ", IErr, &
-          " in Deallocation RgVecMatT"
+          " in Deallocation RgPoolT"
      RETURN
   END IF
        

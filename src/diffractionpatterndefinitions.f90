@@ -124,11 +124,11 @@ SUBROUTINE ReflectionDetermination( IErr )
 
   END IF
 
-  ALLOCATE(RgVecMatT(SIZE(RHKL,DIM=1),THREEDIM), &
+  ALLOCATE(RgPoolT(SIZE(RHKL,DIM=1),THREEDIM), &
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"DiffractionPatternDefinitions(", my_rank, ") error ", IErr, &
-          " in ALLOCATE() of DYNAMIC variables RgVecMatT(HKL)"
+          " in ALLOCATE() of DYNAMIC variables RgPoolT(HKL)"
      RETURN
   END IF
 
@@ -167,18 +167,18 @@ SUBROUTINE ReflectionDetermination( IErr )
   DO ind=1,SIZE(RHKL,DIM=1)
      WRITE(Sind,'(I10.1)')ind
      DO jnd=1,THREEDIM
-        RgVecMatT(ind,jnd)= &
+        RgPoolT(ind,jnd)= &
              RHKL(ind,1)*RarVecM(jnd) + &
              RHKL(ind,2)*RbrVecM(jnd) + &
              RHKL(ind,3)*RcrVecM(jnd)
-        RgDummyVecMat(ind,jnd)=RgVecMatT(ind,jnd)
+        RgDummyVecMat(ind,jnd)=RgPoolT(ind,jnd)
      ENDDO
      CALL Message("ReflectionDetermination",IMoreInfo,IErr, &
           MessageVariable = "RHKL(h,k,l)", &
           RVector = RHKL(ind,:))
 
-     IF((RgVecMatT(ind,3).GT.TINY.OR.RgVecMatT(ind,3).LT.-TINY).AND.ICutOff.NE.0) THEN
-        RGzUnitVec=ABS(RgVecMatT(ind,3))
+     IF((RgPoolT(ind,3).GT.TINY.OR.RgPoolT(ind,3).LT.-TINY).AND.ICutOff.NE.0) THEN
+        RGzUnitVec=ABS(RgPoolT(ind,3))
         ICutOff=0
      END IF
   ENDDO
@@ -243,13 +243,13 @@ SUBROUTINE ReflectionDetermination( IErr )
 
 !!$     Loop through the Laue Zones (first negative: -1,-2,...,minLaueZone,
 !!$     Then positive values,0,1,..,MaxLauezone) 
-!!$     Identify which values in RgVecMat are quantised in Gz, ie all -1 Laue zones
+!!$     Identify which values in RgPool are quantised in Gz, ie all -1 Laue zones
 !!$     have the same gz vector component in the microscope frame
 !!$     ZerothlaueZoneLevel indicates the index which corresponds to the zeroth order
 !!$     LaueZone
 
 !!$     Find the magnitude from the central K-Vector in the ideal Bragg case, this is just the
-!!$     square root of x and y components squared of RgVecMat (the x and y component)
+!!$     square root of x and y components squared of RgPool (the x and y component)
 
   IF(RAcceptanceAngle.NE.ZERO.AND.IZOLZFLAG.EQ.0) THEN
      INumtotalReflections=0
@@ -261,9 +261,9 @@ SUBROUTINE ReflectionDetermination( IErr )
 
         DO jnd=1,SIZE(RHKL,DIM=1)
            WRITE(Sjnd,'(I10.1)')jnd
-           IF(RgVecMatT(jnd,3).GE.(RLaueZoneGz-TINY).AND. &
-                RgVecMatT(jnd,3).LE.(RLaueZoneGz+TINY)) THEN
-              RgVecMagLaue(jnd,ind)=SQRT((RgVecMatT(jnd,1)**2)+(RgVecMatT(jnd,2)**2))              
+           IF(RgPoolT(jnd,3).GE.(RLaueZoneGz-TINY).AND. &
+                RgPoolT(jnd,3).LE.(RLaueZoneGz+TINY)) THEN
+              RgVecMagLaue(jnd,ind)=SQRT((RgPoolT(jnd,1)**2)+(RgPoolT(jnd,2)**2))              
               IF(ind.LT.IZerothLaueZoneLevel) THEN
                  CALL Message("ReflectionDetermination", IMoreInfo+IDEBUG,IErr, &
                       MessageVariable="Negative Laue Zone Reciprocal Vector" &
@@ -281,8 +281,8 @@ SUBROUTINE ReflectionDetermination( IErr )
 
            CALL Message("ReflectionDetermination", IMoreInfo+IDEBUG,IErr, &
                 MessageVariable="Reciprocal Vector" &
-                //",RgVecMatT"//"("//TRIM(ADJUSTL(Sjnd))//",3)", &
-                RVariable=RgVecMatT(jnd,3))
+                //",RgPoolT"//"("//TRIM(ADJUSTL(Sjnd))//",3)", &
+                RVariable=RgPoolT(jnd,3))
         END DO
 
         !At each Laue Zone, determine the magnitude from Kz-Gz, ie. from the K Vector 
@@ -367,7 +367,7 @@ SUBROUTINE ReflectionDetermination( IErr )
 !!$  Calculate all gvectors magnitudes (x,y,z componenents) from the origin
 
   DO ind=1,SIZE(RHKL,DIM=1)
-     RgVecMag(ind)= SQRT(DOT_PRODUCT(RgVecMatT(ind,:),RgVecMatT(ind,:)))
+     RgVecMag(ind)= SQRT(DOT_PRODUCT(RgPoolT(ind,:),RgPoolT(ind,:)))
   ENDDO
 
 
@@ -565,7 +565,7 @@ SUBROUTINE DiffractionPatternCalculation (IErr)
   RNormDirM = RNormDirM/sqrt(DOT_PRODUCT(RNormDirM,RNormDirM))
   
   DO ind =1,SIZE(RHKL,DIM=1)
-     RgVecVec(ind) = DOT_PRODUCT(RgVecMatT(ind,:),RNormDirM)
+     RgVecVec(ind) = DOT_PRODUCT(RgPoolT(ind,:),RNormDirM)
   END DO
   
   CALL Message("DiffractionPatternCalculation",IInfo,IErr, &

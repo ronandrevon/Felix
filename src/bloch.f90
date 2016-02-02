@@ -599,11 +599,11 @@ SUBROUTINE DeviationParameterCalculation(IErr)
      ! DevPara used to be called Sg in the book
      
      RDevPara(knd)= &
-          -( RBigK + DOT_PRODUCT(RgVecMatT(knd,:),RTiltedK(:)) /RBigK) + &
+          -( RBigK + DOT_PRODUCT(RgPoolT(knd,:),RTiltedK(:)) /RBigK) + &
           SQRT( &
-          ( RBigK**2 + DOT_PRODUCT(RgVecMatT(knd,:),RTiltedK(:)) )**2 /RBigK**2 - &
+          ( RBigK**2 + DOT_PRODUCT(RgPoolT(knd,:),RTiltedK(:)) )**2 /RBigK**2 - &
           (RgVecMag(knd)**2 + &
-          TWO* DOT_PRODUCT(RgVecMatT(knd,:),RTiltedK(:))) &
+          TWO* DOT_PRODUCT(RgPoolT(knd,:),RTiltedK(:))) &
           )
   END DO
 

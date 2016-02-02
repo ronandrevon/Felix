@@ -56,15 +56,15 @@ PROGRAM Felixrefine
   IMPLICIT NONE
 
   INTEGER(IKIND) :: IHours,IMinutes,ISeconds,IErr,IMilliSeconds,IIterationFLAG,&
-       ind,IIterationCount
+       ind,IIterationCount,IVariableType
   REAL(RKIND) :: StartTime, CurrentTime, Duration, TotalDurationEstimate,&
        RFigureOfMerit,SimplexFunction  
-  INTEGER(IKIND) :: IStartTime, ICurrentTime ,IRate
+  INTEGER(IKIND) :: IStartTime,ICurrentTime,IRate
   INTEGER(IKIND),DIMENSION(IRefinementVariableTypes) :: INoofelementsforeachrefinementtype!XX
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RSimplexVolume
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RSimplexFoM,RIndependentVariableValues
   REAL(RKIND) :: RBCASTREAL,RStandardDeviation,RMean
-
+  LOGICAL :: LInitialSimulationFLAG
   CHARACTER*40 my_rank_string ,SPrintString
 
   !-------------------------------------------------------------------
@@ -216,11 +216,13 @@ PROGRAM Felixrefine
   
   IIterationCount = 0
 
+  LInitialSimulationFLAG = .TRUE. !This is only true for the first simulation
   CALL SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariableValues,IIterationCount,RStandardDeviation,RMean,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in SimplexInitialisation()"
      GOTO 9999
   END IF
+  LInitialSimulationFLAG = .FALSE. !This is only true for the first simulation
      
   !--------------------------------------------------------------------
   ! Apply Simplex Method
@@ -582,7 +584,7 @@ SUBROUTINE RankSymmetryRelatedStructureFactor(IErr)
   IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
      PRINT*,"RankSymmetryRelatedStructureFactor(",my_rank,")"
   END IF
-  
+PRINT*,"RBy"!RBy
   ALLOCATE(ISymmetryRelations(nReflections,nReflections), &
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
@@ -628,7 +630,6 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   IMPLICIT NONE
 
   INTEGER(IKIND) :: IErr,ind,jnd,IExitFLAG
-  LOGICAL :: LInitialSimulationFLAG = .TRUE. ! Its value is meaningless :)
   REAL(RKIND),DIMENSION(IIndependentVariables+1,IIndependentVariables),INTENT(OUT) :: RSimplexVolume
   REAL(RKIND),DIMENSION(IIndependentVariables+1),INTENT(OUT) :: RSimplexFoM
   REAL(RKIND) :: SimplexFunction,RSimplexDummy
@@ -637,6 +638,7 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   REAL(RKIND),INTENT(OUT) :: RStandardDeviation,RMean
   REAL(RKIND) :: RStandardError,RStandardTolerance
   CHARACTER*200 :: SPrintString
+  LOGICAL :: LInitialSimulationFLAG
 
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
      PRINT*,"SimplexInitialisation(",my_rank,")"
@@ -1029,14 +1031,10 @@ SUBROUTINE OutofUnitCellCheck(IVariableID,RProposedMovement,RCorrectedMovement,I
 
   IMPLICIT NONE
   
-  INTEGER(IKIND) :: &
-       ind,IErr,IVariableID,IAtomID,IVectorID
-  REAL(RKIND),DIMENSION(THREEDIM) :: &
-       RProposedAtomicCoordinate,RDummyMovement
-  REAL(RKIND),INTENT(IN) :: &
-       RProposedMovement
-  REAL(RKIND),INTENT(OUT) :: &
-       RCorrectedMovement
+  INTEGER(IKIND) :: ind,IErr,IVariableID,IAtomID,IVectorID
+  REAL(RKIND),DIMENSION(THREEDIM) :: RProposedAtomicCoordinate,RDummyMovement
+  REAL(RKIND),INTENT(IN) :: RProposedMovement
+  REAL(RKIND),INTENT(OUT) :: RCorrectedMovement
   
   IVectorID = IIterativeVariableUniqueIDs(IVariableID,3)
   
@@ -1076,12 +1074,10 @@ SUBROUTINE ApplyNewStructureFactors(IErr)
 !!$  % to Ug Matrix
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
-  USE MyNumbers
-  
+  USE MyNumbers 
   USE CConst; USE IConst; USE RConst
   USE IPara; USE RPara; USE SPara; USE CPara
   USE BlochPara
-
   USE IChannels
 
   USE MPI
@@ -1095,7 +1091,8 @@ SUBROUTINE ApplyNewStructureFactors(IErr)
 !!$  Dummy Matrix to contain new iterative values
   
    CUgMatDummy = CZERO
-
+!PRINT*,"SymRe to come "
+!PRINT*,"SymRel1,1 ",IsymmetryRelations(1,1)!RBx
 !!$  Populate Ug Matrix with new iterative elements, maintain Hermiticity
   DO ind = 1,INoofUgs
      WHERE(ISymmetryRelations.EQ.ISymmetryStrengthKey(ind))

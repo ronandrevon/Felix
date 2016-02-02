@@ -437,11 +437,11 @@ PROGRAM felixsim
   
   !Dellocate Global Variables  
 
-  DEALLOCATE(RgVecMatT,STAT=IErr)
+  DEALLOCATE(RgPoolT,STAT=IErr)
   IF( IErr.NE.0 ) THEN
 
      PRINT*,"felixsim(", my_rank, ") error ", IErr, &
-          " Deallocating RgVecMatT"
+          " Deallocating RgPoolT"
      GOTO 9999
 
   ENDIF
