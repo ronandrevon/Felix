@@ -43,11 +43,9 @@ SUBROUTINE SortHKL( RHKLarray, N,IErr )
 
   USE MyNumbers
   USE WriteToScreen
-    
   USE CConst; USE IConst
   USE IPara; USE RPara
   USE WriteToScreen
-
   USE IChannels
 
   USE MPI
@@ -112,14 +110,10 @@ SUBROUTINE SortHKL( RHKLarray, N,IErr )
 
 END SUBROUTINE SortHKL
 
-!---------------------------------------------------------------------
-SUBROUTINE CONVERTAtomName2Number(name, number, IErr)
+!!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!!$  %
+SUBROUTINE CONVERTAtomName2Number(name, number, IErr)
 !!$  %    Converts atomic symbols to atomic numbers, used to read cif file
-!!$  %
-!!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   
   USE WriteToScreen
   USE IPara
@@ -159,18 +153,17 @@ SUBROUTINE CONVERTAtomName2Number(name, number, IErr)
 
 END SUBROUTINE CONVERTAtomName2Number
 
+!!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-!---------------------------------------------------------------------
 SUBROUTINE CountTotalAtoms(IErr)
 
   USE MyNumbers
   USE WriteToScreen
-
   USE CConst; USE IConst
   USE IPara; USE RPara; USE CPara; USE SPara
   USE IChannels
-  USE BlochPara
   
+  !USE BlochPara
   
   USE MPI
   USE MyMPI
@@ -184,16 +177,14 @@ SUBROUTINE CountTotalAtoms(IErr)
      
   ITotalAtoms = 0
 
-  ALLOCATE(RFullAtomicFracCoordVec( &
-       SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1),&
+  ALLOCATE(RFullAtomicFracCoordVec(SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1),&
        THREEDIM), &
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"CountTotalAtoms(", my_rank, ") error ", IErr, " in ALLOCATE()"
      RETURN
   ENDIF
-  ALLOCATE(SFullAtomicNameVec( &
-       SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)), &
+  ALLOCATE(SFullAtomicNameVec(SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)), &
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"CountTotalAtoms(", my_rank, ") error ", IErr, " in ALLOCATE()"
@@ -206,12 +197,9 @@ SUBROUTINE CountTotalAtoms(IErr)
        MessageVariable = "Size of RFullAtomicFracCoordVec", &
        IVariable = SIZE(RFullAtomicFracCoordVec,1))
 
-  DO ind=1, SIZE(RSymVec,DIM=1)
-     
+  DO ind=1, SIZE(RSymVec,DIM=1) 
      DO jnd=1, SIZE(RAtomSiteFracCoordVec,DIM=1)
-       
-        Ifullind= SIZE(RSymVec,1)*(jnd-1) + ind
-        
+        Ifullind = SIZE(RSymVec,1)*(jnd-1) + ind       
         RFullAtomicFracCoordVec(Ifullind,:)= &
              MATMUL(RSymMat(ind,:,:),RAtomSiteFracCoordVec(jnd,:)) &
              + RSymVec(ind,:)
@@ -224,9 +212,7 @@ SUBROUTINE CountTotalAtoms(IErr)
                    RFullAtomicFracCoordVec(Ifullind,knd)+1.D0
            ENDIF
         ENDDO
-        
      ENDDO
-     
   ENDDO
 
   DO ind = 1,SIZE(RFullAtomicFracCoordVec,DIM=1)
@@ -246,7 +232,7 @@ SUBROUTINE CountTotalAtoms(IErr)
   CALL Message("CountTotalAtoms",IMoreInfo,IErr, MessageVariable = "ITotalAtoms", &
        IVariable = ITotalAtoms)
 
-  ALLOCATE(MNP(1000,THREEDIM),STAT=IErr)
+  ALLOCATE(MNP(1000,THREEDIM),STAT=IErr)!RB why 1000???
   IF( IErr.NE.0 ) THEN
      PRINT*,"CountTotalAtoms(", my_rank, ") error ", IErr, " in ALLOCATE()"
      RETURN
@@ -265,12 +251,9 @@ SUBROUTINE CountTotalAtoms(IErr)
   
   Iuniind = 1
   
-  IF(ITotalAtoms.EQ.0)THEN
-     
-     DO ind=2,SIZE(RFullAtomicFracCoordVec,1)
-        
-        DO jnd=1,Iuniind
-           
+  IF(ITotalAtoms.EQ.0)THEN  
+     DO ind=2,SIZE(RFullAtomicFracCoordVec,1)      
+        DO jnd=1,Iuniind     
            IF ( RFullAtomicFracCoordVec(ind,1) .EQ. MNP(jnd,1) .AND. &
                 RFullAtomicFracCoordVec(ind,2) .EQ. MNP(jnd,2) .AND. &
                 RFullAtomicFracCoordVec(ind,3) .EQ. MNP(jnd,3) .AND. &
@@ -286,12 +269,9 @@ SUBROUTINE CountTotalAtoms(IErr)
            Iuniind=Iuniind+1
            MNP(Iuniind,:)= RFullAtomicFracCoordVec(ind,:)
            SMNP(Iuniind)= SFullAtomicNameVec(ind)
-        ENDIF
-        
+        ENDIF 
      ENDDO
-     
      ITotalAtoms = Iuniind
-     
   END IF
   
   CALL Message("CountTotalAtoms",IMoreInfo,IErr,MessageVariable = "ITotalAtoms",IVariable=ITotalAtoms)

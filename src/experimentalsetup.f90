@@ -42,32 +42,18 @@ SUBROUTINE ExperimentalSetup (IErr)
   USE WriteToScreen
   USE MyNumbers
   USE IConst
-  
   USE IPara; USE RPara; USE SPara; USE CPara
  
   USE MyMPI
   
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: &
-       IErr
+  INTEGER(IKIND) :: IErr
 
   CALL Message("ExperimentalSetup",IMust,IErr)
   
   !--------------------------------------------------------------------
-  ! Allocate Crystallography Variables
-  !--------------------------------------------------------------------
-
-  ALLOCATE(RrVecMat(ITotalAtoms,THREEDIM),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"ExperimentalSetup(", my_rank, ") error ", IErr, " in ALLOCATE of RrVecMat"
-     RETURN
-  ENDIF
-  
-  !--------------------------------------------------------------------
   ! microscopy settings
-  !--------------------------------------------------------------------
-
   CALL MicroscopySettings( IErr )
   IF( IErr.NE.0 ) THEN
      PRINT*,"ExperimentalSetup(", my_rank, ") error",IErr, &
@@ -78,8 +64,6 @@ SUBROUTINE ExperimentalSetup (IErr)
 
   !--------------------------------------------------------------------
   ! crystallography settings
-  !-------------------------------------------------------------------
-
   CALL CrystallographyInitialisation( IErr )
   IF( IErr.NE.0 ) THEN
      PRINT*,"ExperimentalSetup(", my_rank, ") error", IErr, &
@@ -90,8 +74,6 @@ SUBROUTINE ExperimentalSetup (IErr)
 
   !--------------------------------------------------------------------
   ! diffraction initialization
-  !--------------------------------------------------------------------
-
   CALL DiffractionPatternInitialisation( IErr )
   IF( IErr.NE.0 ) THEN
      PRINT*,"ExperimentalSetup(", my_rank, ") error",IErr, &

@@ -58,16 +58,11 @@ SUBROUTINE ReadInpFile( IErr )
   IMPLICIT NONE
 
 
-  INTEGER(IKIND) :: &
-       IErr, ILine,ind,IPos,IPos1,IPos2
-  REAL(RKIND) :: &
-       ROfIter
-  CHARACTER*200 ::&
-       SImageMode,SElements,SRefineMode,SStringFromNumber,SRefineYESNO,&
+  INTEGER(IKIND) :: IErr, ILine,ind,IPos,IPos1,IPos2
+  REAL(RKIND) :: ROfIter
+  CHARACTER*200 :: SImageMode,SElements,SRefineMode,SStringFromNumber,SRefineYESNO,&
        SAtomicSites,SFormatString,SLengthofNumberString
-  CHARACTER*200 :: &
-       SDirectionX,SIncidentBeamDirection,SNormalDirectionX
-  
+  CHARACTER*200 :: SDirectionX,SIncidentBeamDirection,SNormalDirectionX
 
   OPEN(UNIT= IChInp, ERR= 120, FILE= "felix.inp",&
        STATUS= 'OLD')
@@ -76,23 +71,19 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! introductory comment lines
-
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
   ! ----------------------------------------------------------------------
   ! BLOCH method input
-
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)') 
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
   ! ----------------------------------------------------------------------
   ! control flags
-
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
-  
   ILine= ILine+1
   READ(IChInp,10,ERR=20,END=30) IWriteFLAG
 
@@ -179,7 +170,6 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! beam details
-  
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
@@ -190,7 +180,6 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! beam selection criteria
-  
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
@@ -216,7 +205,6 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! crystal settings
-  
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1
@@ -232,7 +220,6 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! microscopy settings
-
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
@@ -275,14 +262,12 @@ SUBROUTINE ReadInpFile( IErr )
 
   ! ----------------------------------------------------------------------
   ! Title Space
-  
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
   ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
 
   ! ----------------------------------------------------------------------
   ! Image Output Options
-
   ILine= ILine+1
   READ(IChInp,15,ERR=20,END=30) RInitialThickness
   CALL Message ("ReadInpFile",IInfo,IErr,MessageVariable ="RInitialThickness",RVariable=RInitialThickness)
@@ -304,14 +289,12 @@ SUBROUTINE ReadInpFile( IErr )
 
      !-----------------------------------------------------------------------
      ! felixrefine Input
-     
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      
      !-----------------------------------------------------------------------
      ! Refinement Specific Flags
-     
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      
      ILine= ILine+1
@@ -348,7 +331,6 @@ SUBROUTINE ReadInpFile( IErr )
      !Check if user has requested Ug refinement and anything else which isnt possible
         
      IF(IRefineModeSelectionArray(1).EQ.1.AND.SUM(IRefineModeSelectionArray).GT.1) THEN         
-!!$        CALL Message ("ReadInpFile",IMust,IErr,MessageVariable ="Structure factors must be refined seperately")
         IF(my_rank.EQ.0) THEN
            PRINT*,"Structure factors must be refined seperately"
         END IF
@@ -383,7 +365,6 @@ SUBROUTINE ReadInpFile( IErr )
      
      !-----------------------------------------------------------------------
      ! Iterative Structural input
-
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
@@ -401,7 +382,7 @@ SUBROUTINE ReadInpFile( IErr )
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
      
      ILine= ILine+1
-     READ(IChInp,10,ERR=20,END=30) IPrint
+     READ(IChInp,10,ERR=20,END=30) IPrint!The gap between outputs
      CALL Message ("ReadInpFile",IInfo,IErr,MessageVariable ="IPrint",IVariable = IPrint)
 
      ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
@@ -426,7 +407,6 @@ SUBROUTINE ReadInpFile( IErr )
   CLOSE(IChInp, ERR=130)
   
   ! check the parameters for validity
-   
   RETURN
   
   !	error in OPEN detected
@@ -459,13 +439,8 @@ SUBROUTINE ReadInpFile( IErr )
   RETURN
 !changed name from input to readinputparameters  
 END SUBROUTINE ReadInpFile
-   
 
-! -----------------------------------------------------------------------
-!
-!
-!	IErr	error code
-! ----------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE ReadScaFile( IErr )
 
@@ -492,7 +467,9 @@ SUBROUTINE ReadScaFile( IErr )
 
   
 END SUBROUTINE ReadScaFile
-  
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE ReadHklFile(IErr)
 
   USE WriteToScreen
@@ -609,7 +586,9 @@ SUBROUTINE ReadHklFile(IErr)
 
   RETURN
 END SUBROUTINE ReadHklFile
-  
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE DetermineRefineableAtomicSites(SAtomicSites,IErr)
 
   USE MyNumbers
@@ -684,13 +663,15 @@ SUBROUTINE DetermineRefineableAtomicSites(SAtomicSites,IErr)
   
 END SUBROUTINE DetermineRefineableAtomicSites
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE ReadExperimentalImages(IErr)
 
  USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
   USE IPara; USE RPara; USE SPara; USE CPara
-  USE BlochPara
+  !USE BlochPara
 
   USE IChannels
 
@@ -766,5 +747,4 @@ SUBROUTINE ReadExperimentalImages(IErr)
   END IF
 
 END SUBROUTINE ReadExperimentalImages
-
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

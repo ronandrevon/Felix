@@ -148,163 +148,102 @@ MODULE IPara
   USE IConst 
   
   !Write Out
-  
-  INTEGER(IKIND) :: &
-       IMAXRBuffer,  IMAXCBuffer     
+  INTEGER(IKIND) :: IMAXRBuffer,  IMAXCBuffer     
   
   !Input Flags
-
-  INTEGER(IKIND) :: &
-       IWriteFLAG,IDebugFLAG,IScatterFactorMethodFLAG, &
-       IMaskFLAG, IVolumeFLAG, &
-       IZolzFLAG,IAbsorbFLAG, IAnisoDebyeWallerFactorFlag, &
+  INTEGER(IKIND) :: IWriteFLAG,IDebugFLAG,IScatterFactorMethodFLAG, &
+       IMaskFLAG,IVolumeFLAG, &
+       IZolzFLAG,IAbsorbFLAG,IAnisoDebyeWallerFactorFlag, &
        IImageFLAG,IBeamConvergenceFLAG,  &
        IPseudoCubicFLAG,IXDirectionFLAG,IDevFLAG, &
        IRefineModeFLAG,ISoftwareMode,IHKLSelectFLAG,IPrint,IRefineSwitch,&
        IWeightingFLAG,IContinueFLAG,ICorrelationFLAG,IImageProcessingFLAG
 
   !Minimum Reflections etc
-  INTEGER(IKIND) :: &
-       IMinReflectionPool,IMinStrongBeams,IMinWeakBeams
+  INTEGER(IKIND) :: IMinReflectionPool,IMinStrongBeams,IMinWeakBeams
 
   !OtherFLAGS
-
-  INTEGER(IKIND) :: &
-       IDiffractionFLAG=0
+  INTEGER(IKIND) :: IDiffractionFLAG=0
 
   !Disk Radius
-
-  INTEGER(IKIND) :: &
-       IPixelCount
+  INTEGER(IKIND) :: IPixelCount
   
   !Crystal Settings
-
-  INTEGER(IKIND) :: &
-       ITotalAtoms
+  INTEGER(IKIND) :: ITotalAtoms
 
   ! Name2Atom index
-  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: &
-       IAtomNumber,IAtoms
+  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IAtomNumber,IAtoms
 
   !Microscope Settings
-
-  INTEGER(IKIND) :: &
-       IIncidentBeamDirectionX, IIncidentBeamDirectionY, &
+  INTEGER(IKIND) :: IIncidentBeamDirectionX, IIncidentBeamDirectionY, &
        IIncidentBeamDirectionZ, &
        IXDirectionX, IXDirectionY, IXDirectionZ, &
        INormalDirectionX,INormalDirectionY,INormalDirectionZ
 
   !Iterative Ug
-
-  INTEGER(IKIND) :: &
-       INoofUgs
+  INTEGER(IKIND) :: INoofUgs
 
   !LACBED Input
-
-  INTEGER(IKIND) :: &
-       IReflectOut
+  INTEGER(IKIND) :: IReflectOut
 
   !Beams from selection criteria
-
-  INTEGER(IKIND) :: &  
-       nReflections,nStrongBeams,nWeakBeams,nBeams,IHKLMAXValue
-  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: &
-       IAnisotropicDWFTensor, IAnisoDWFT
+  INTEGER(IKIND) :: nReflections,nStrongBeams,nWeakBeams,nBeams,IHKLMAXValue
+  INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IAnisotropicDWFTensor, IAnisoDWFT
 
   !Main
-
-  INTEGER(IKIND) :: &
-       IPixelTotal, INAtomsUnitCell,IPixelComputed
-
-  INTEGER, DIMENSION(2) :: & 
-       IImageSizeXY
+  INTEGER(IKIND) :: IPixelTotal, INAtomsUnitCell,IPixelComputed
+  INTEGER, DIMENSION(2) :: IImageSizeXY
 
   !Refinement FLAGS
-  INTEGER(IKIND) :: &
-       IImageOutputFLAG
+  INTEGER(IKIND) :: IImageOutputFLAG
   
   !LACBED
-
   INTEGER(IKIND),DIMENSION(:,:), ALLOCATABLE :: &
        ILACBEDStrongBeamList, IPixelLocation, ISymmetryRelations
   INTEGER(IKIND),DIMENSION(:), ALLOCATABLE :: &
        InBeams,IStrongBeamList,IOutputReflections,ISymmetryStrengthKey
 
   !inpcif
-
-  INTEGER(IKIND) :: &
-      ISymCount
-  
+  INTEGER(IKIND) :: ISymCount
   INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: &
        IFullAtomNumber, IFullAnisotropicDWFTensor
-
-  INTEGER(IKIND) :: &
-       IPixelCountTotal
+  INTEGER(IKIND) :: IPixelCountTotal
 
   !LACBED Writing
-
-  INTEGER(IKIND) :: &
-       ISeperateFolderFlag
+  INTEGER(IKIND) :: ISeperateFolderFlag
+  
   ! Thickness loop Variables
-
-  INTEGER(IKIND) :: &
-       IThicknessCount
-
-  INTEGER(IKIND),DIMENSION(:,:),ALLOCATABLE :: &
-       IPixelLocations
+  INTEGER(IKIND) :: IThicknessCount
+  INTEGER(IKIND),DIMENSION(:,:),ALLOCATABLE :: IPixelLocations
 
   !Refine Parameters
-
-  INTEGER(IKIND) :: &
-       IFluxIterationSteps,IElements
-
-  INTEGER(IKIND), DIMENSION(2) :: &
-       IOffset
-
-  INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: &
-       IElementList
+  INTEGER(IKIND) :: IFluxIterationSteps,IElements
+  INTEGER(IKIND), DIMENSION(2) :: IOffset
+  INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: IElementList
 
   !Ug Calculation
+   INTEGER(IKIND) :: ICurrentAtom,IAtom
 
-   INTEGER(IKIND) :: &
-        ICurrentAtom,IAtom
-
-   !Refine Mode Binary Selection
-   
-   INTEGER(IKIND),DIMENSION(IRefinementVariableTypes) :: &
-        IRefineModeSelectionArray
+   !Refine Mode Binary Selection 
+   INTEGER(IKIND),DIMENSION(IRefinementVariableTypes) :: IRefineModeSelectionArray
 
    !List of Atomic Sites for Refinement
-
-   INTEGER(IKIND),DIMENSION(:),ALLOCATABLE :: &
-        IAtomicSitesToRefine
+   INTEGER(IKIND),DIMENSION(:),ALLOCATABLE :: IAtomicSitesToRefine
 
    !Simplex Variables
-
-   INTEGER(IKIND) :: &
-        IIndependentVariables
+   INTEGER(IKIND) :: IIndependentVariables
 
    !Iterative Ids
-
-   INTEGER(IKIND),DIMENSION(:,:),ALLOCATABLE :: &
-        IIterativeVariableUniqueIDs
+   INTEGER(IKIND),DIMENSION(:,:),ALLOCATABLE :: IIterativeVariableUniqueIDs
 
    ! Refinement Vectors
-
-   INTEGER(IKIND) :: &
-        IAllowedVectors
-
-   INTEGER(IKIND),DIMENSION(:),ALLOCATABLE :: &
-        IAllowedVectorIDs
-
-   INTEGER(IKIND) :: & 
-        IFelixCount,IPreviousPrintedIteration,IStandardDeviationCalls
+   INTEGER(IKIND) :: IAllowedVectors
+   INTEGER(IKIND),DIMENSION(:),ALLOCATABLE :: IAllowedVectorIDs
+   INTEGER(IKIND) :: IFelixCount,IPreviousPrintedIteration,IStandardDeviationCalls
    
    !Message Counter (Avoid subroutines printing out 
    !entering message more than once)
-
-   INTEGER(IKIND) :: &
-        IMessageCounter=0
+   INTEGER(IKIND) :: IMessageCounter=0
 
 END MODULE IPara
 
@@ -535,18 +474,11 @@ END MODULE CPara
 MODULE SPara
   USE MyNumbers
   
-  CHARACTER*1 :: &
-       SSpaceGroupName
-  CHARACTER*10 :: &
-       SSpaceGrp
-  CHARACTER*2, DIMENSION(:), ALLOCATABLE :: &
-       SFullAtomicNameVec
-  
-  CHARACTER*2, DIMENSION(:), ALLOCATABLE :: &
-       SAtomName, SMNP
-
-  CHARACTER*1,DIMENSION(:),ALLOCATABLE :: &
-       SWyckoffSymbols
+  CHARACTER*1 :: SSpaceGroupName
+  CHARACTER*10 :: SSpaceGrp
+  CHARACTER*2, DIMENSION(:), ALLOCATABLE :: SFullAtomicNameVec 
+  CHARACTER*2, DIMENSION(:), ALLOCATABLE :: SAtomName, SMNP
+  CHARACTER*1,DIMENSION(:),ALLOCATABLE :: SWyckoffSymbols
   
 END MODULE SPara
 

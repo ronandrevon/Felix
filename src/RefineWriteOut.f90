@@ -167,20 +167,16 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
   INTEGER(IKIND) :: IErr,IIterationCount,IThickness
   INTEGER(IKIND),INTENT(IN) :: IThicknessIndex,IExitFLAG
   CHARACTER*200 :: path
-  
-  IF(IExitFLAG.EQ.1.OR.(IIterationCount.GE.(IPreviousPrintedIteration+IPrint))) THEN
+!RBx PRINT*,"RBx rwo170, IIterationCount,IPreviousPrintedIteration,IExitFLAG:",IIterationCount,IPreviousPrintedIteration ,IExitFLAG
+  IF((IExitFLAG.EQ.1).OR. &
+  (IIterationCount.GE.(IPreviousPrintedIteration+IPrint)).OR. &
+  IIterationCount.EQ.0) THEN!RBx
      
 
      IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!RB in nm 
      
-!RB     WRITE(path,"(A10,I5.5,A3,I1.1,I1.1,I1.1,I1.1,A2,I5.5,A2,I5.5,A2,I5.5)") &    
      WRITE(path,"(A10,I4.4,A1,I3.3,A3,I3.3,A1,I3.3)") &
           "Iteration",IIterationCount,&
-!RB          "-f-",&
-!RB          IScatterFactorMethodFLAG, &
-!RB          IZolzFLAG, &
-!RB          IAbsorbFLAG, &
-!RB          IAnisoDebyeWallerFactorFlag,&
           "_",IThickness,&
           "nm_",2*IPixelcount,&
           "x",2*IPixelcount

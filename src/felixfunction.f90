@@ -37,7 +37,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !!$REAL(RKIND) FUNCTION FelixFunction(IIterationFLAG,IErr)
-SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
+SUBROUTINE FelixFunction(IInitialSimulationFLAG,IErr)
 
   USE MyNumbers
   USE CConst; USE IConst; USE RConst
@@ -58,7 +58,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
        IThicknessIndex,ILocalPixelCountMin, ILocalPixelCountMax,&
        IIterationFLAG,IVariableType
   INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IDisplacements,ICount
-  LOGICAL,INTENT(IN) :: LInitialSimulationFLAG 
+  INTEGER(IKIND),INTENT(INOUT) :: IInitialSimulationFLAG 
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RIndividualReflectionsRoot,&
        RFinalMontageImageRoot
   COMPLEX(CKIND),DIMENSION(:,:,:), ALLOCATABLE :: CAmplitudeandPhaseRoot 
@@ -67,16 +67,22 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
      PRINT*,"Felix function"
   END IF
 
-  IF ((IVariableType.EQ.2).OR.(LInitialSimulationFLAG.EQV..TRUE.)) THEN
-    CALL CountTotalAtoms(IErr)!Generates full set of atoms from basis
+  IF ((IVariableType.EQ.2).OR.(IInitialSimulationFLAG.EQ.1)) THEN
+    CALL CountTotalAtoms(IErr)!Generates full set of atoms from basis, runs every time for atom position refinement, only the first time for everything else
   END IF
   
   IDiffractionFLAG = 0
-!RBx PRINT*,"Initial Sim:",LInitialSimulationFLAG
+  
+  !--------------------------------------------------------------------
+  ! Allocate Crystallography Variables
+  ALLOCATE(RrVecMat(ITotalAtoms,THREEDIM),STAT=IErr)
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"ExperimentalSetup(", my_rank, ") error ", IErr, " in ALLOCATE of RrVecMat"
+     RETURN
+  ENDIF
+  
   !-------------------------------------------------------------------- 
   !Setup Experimental Variables
-  !--------------------------------------------------------------------
-
   CALL ExperimentalSetup (IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error in ExperimentalSetup()"
@@ -85,7 +91,6 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   
   !--------------------------------------------------------------------
   ! Setup Image
-  !--------------------------------------------------------------------
   CALL ImageSetup( IErr )
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error in ImageSetup()"
@@ -94,36 +99,31 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
   !--------------------------------------------------------------------
   ! MAIN section
-  !--------------------------------------------------------------------
   CALL StructureFactorSetup(IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"Felixfunction(", my_rank, ") error ",IErr,"in StructureFactorSetup()"
      RETURN
   END IF
-
-  !RB IF(IAbsorbTAG.NE.0) IAbsorbFLAG = 1 !Reset IAbsorbFLAG to 1
-
-  IF((IVariableType.EQ.1).AND.(LInitialSimulationFLAG.NEQV..TRUE.)) THEN!Ug refinement RBx
-     
+PRINT*,"RBx Hello1"
+  !IF(IVariableType.EQ.1) THEN!.AND.(IInitialSimulationFLAG.NE.1)) THEN! it is a Ug refinement RBx    
      CALL ApplyNewStructureFactors(IErr)
+	 PRINT*,"Applying new Ug's"
      IF( IErr.NE.0 ) THEN
         PRINT*,"Felixfunction(", my_rank, ") error ", IErr, &
              " in ApplyNewStructureFactors()"
         RETURN
-     END IF
-     
-  END IF
-
-  IF(IAbsorbFLAG.NE.0) THEN
-     
+     END IF   
+  !END IF
+PRINT*,"RBx Hello2"
+  IF(IAbsorbFLAG.NE.0) THEN 
      CALL StructureFactorsWithAbsorptionDetermination(IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"Felixfunction(", my_rank, ") error ",IErr,&
              "in StructureFactorsWithAbsorptionDetermination()"
         RETURN
      END IF
-
-  END IF     
+  END IF
+  
   !--------------------------------------------------------------------
   ! reserve memory for effective eigenvalue problem
   !--------------------------------------------------------------------
@@ -413,7 +413,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
      RETURN  
   END IF
   
-  IF((my_rank.NE.0).AND.(LInitialSimulationFLAG.NEQV..TRUE.)) THEN     
+  IF((my_rank.NE.0).AND.(IInitialSimulationFLAG.NE.1)) THEN     
      DEALLOCATE(Rhkl,STAT=IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"Felixfunction(", my_rank, ") error ", IErr, &
@@ -678,7 +678,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
 
   IF(my_rank.eq.0) THEN
 !RB     PRINT*,"Thicknesses",RReflectionThickness
-!RB     PRINT*,"Correlation",RCrossCorrelation
+!RB     PRINT*,"RBx ff680 Correlation",RCrossCorrelation
 !RB     PRINT*,"Thickness Final",IThicknessCountFinal
      WRITE(SPrintString,FMT='(A18,I4,A10)') "Specimen thickness ",NINT(RThickness)," Angstroms"
      PRINT*,TRIM(ADJUSTL(SPrintString))
@@ -686,7 +686,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
 !     PRINT*,"Specimen thickness",NINT(RThickness),"Angstroms"
   END IF
 
-  IF (RCrossCorrelation.NE.RCrossCorrelation) THEN!RB what?
+  IF (RCrossCorrelation.NE.RCrossCorrelation) THEN!RB wtf?
      IErr = 1
   END IF
 
@@ -712,12 +712,13 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariableValues,IIterationCount,
   INTEGER(IKIND) :: IErr,IExitFLAG,IThickness
   REAL(RKIND),DIMENSION(IIndependentVariables),INTENT(INOUT) :: RIndependentVariableValues
   INTEGER(IKIND),INTENT(IN) :: IIterationCount
-  LOGICAL :: LInitialSimulationFLAG = .FALSE.
+  !RBx LOGICAL :: LInitialSimulationFLAG = .FALSE.
+  INTEGER(IKIND) :: IInitialSimulationFLAG = 0
   
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
      PRINT*,"SimplexFunction(",my_rank,")"
   END IF
-  
+!RBx PRINT*,"RBx simplex function ff720, IIterationCount,IExitFLAG:",IIterationCount ,IExitFLAG
 
   IF(IRefineModeSelectionArray(1).EQ.1) THEN     
      CALL UpdateStructureFactors(RIndependentVariableValues,IErr)
@@ -733,8 +734,6 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariableValues,IIterationCount,
              " in UpdateVariables"
         RETURN
      END IF
-!RB     WHERE(RAtomSiteFracCoordVec.LT.0) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec+ONE
-!RB     WHERE(RAtomSiteFracCoordVec.GT.1) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec-ONE
   END IF
   WHERE(RAtomSiteFracCoordVec.LT.0) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec+ONE
   WHERE(RAtomSiteFracCoordVec.GT.1) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec-ONE
@@ -748,13 +747,13 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariableValues,IIterationCount,
      END IF
   END IF
 
-  CALL FelixFunction(LInitialSimulationFLAG,IErr) ! Simulate !!  
+  CALL FelixFunction(IInitialSimulationFLAG,IErr) ! Simulate !!  
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexFunction(", my_rank, ") error ", IErr, &
           " in FelixFunction"
      RETURN
   END IF
-
+!RBx PRINT*,"RBx simplex function ff755, IIterationCount,IExitFLAG:",IIterationCount ,IExitFLAG
   IF(my_rank.EQ.0) THEN   
      CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr) 
      IF( IErr.NE.0 ) THEN
@@ -762,7 +761,7 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariableValues,IIterationCount,
              " in CreateImagesAndWriteOutput"
         RETURN
      ENDIF
-     
+!RBx PRINT*,"RBx ff763, IIterationCount,RCrossCorrelation:",IIterationCount ,RCrossCorrelation    
      SimplexFunction = RCrossCorrelation     
   END IF
 
@@ -812,7 +811,7 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
   IMPLICIT NONE
   
   INTEGER(IKIND) :: IErr,IThicknessIndex,IIterationCount,IExitFLAG
-  
+!RB PRINT*,"RB ff813 IThicknessIndex,IIterationCount,IExitFLAG=",IThicknessIndex,IIterationCount,IExitFLAG   
   ALLOCATE(RMask(2*IPixelCount,2*IPixelCount),&
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
@@ -843,7 +842,7 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
   ENDIF
   
 !!$     OUTPUT -------------------------------------
-  
+!RBx PRINT*,"RB ff844 IExitFLAG=",IExitFLAG  
   CALL WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFLAG,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"CreateImagesAndWriteOutput(", my_rank, ") error ", IErr, &
@@ -977,14 +976,12 @@ SUBROUTINE PrintVariables(IErr)
   CHARACTER*200 :: SPrintString
 
   RCrystalVector = [RLengthX,RLengthY,RLengthZ]
-
   DO ind = 1,IRefinementVariableTypes
      IF (IRefineModeSelectionArray(ind).EQ.1) THEN
         SELECT CASE(ind)
         CASE(1)
            WRITE(SPrintString,FMT='(A18,1X,F9.4)') "Current Absorption",RAbsorptionPercentage
            PRINT*,TRIM(ADJUSTL(SPrintString))
-!           PRINT*,"Current Absorption",RAbsorptionPercentage
            PRINT*,"Current Structure Factors"!RB should also put in hkl here
            DO jnd = 2,INoofUgs+1!yy since no.1 is 000
    !           RUgAmplitude=( REAL(CSymmetryStrengthKey(jnd))**2 + AIMAG(CSymmetryStrengthKey(jnd))**2 )**0.5!RB

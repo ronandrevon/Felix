@@ -64,25 +64,21 @@ PROGRAM Felixrefine
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RSimplexVolume
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RSimplexFoM,RIndependentVariableValues
   REAL(RKIND) :: RBCASTREAL,RStandardDeviation,RMean
-  LOGICAL :: LInitialSimulationFLAG
+  INTEGER(IKIND) :: IInitialSimulationFLAG = 1 !We haven't yet run a simulation
+  INTEGER(IKIND) :: IExitFLAG = 0 !No need to quit
+  !LOGICAL :: LInitialSimulationFLAG
   CHARACTER*40 my_rank_string ,SPrintString
 
   !-------------------------------------------------------------------
   ! constants
-  !-------------------------------------------------------------------
-
   CALL Init_Numbers
   
   !-------------------------------------------------------------------
   ! set the error value to zero, will change upon error
-  !-------------------------------------------------------------------
-
   IErr=0
 
   !--------------------------------------------------------------------
   ! MPI initialization
-  !--------------------------------------------------------------------
-
   ! Initialise MPI  
   CALL MPI_Init(IErr)  
   IF( IErr.NE.0 ) THEN
@@ -105,9 +101,7 @@ PROGRAM Felixrefine
   END IF
 
   !--------------------------------------------------------------------
-  ! protocal feature startup
-  !--------------------------------------------------------------------
-  
+  ! Startup print
   IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
      PRINT*,"--------------------------------------------------------------"
      PRINT*,"Felixrefine: ", RStr
@@ -119,15 +113,12 @@ PROGRAM Felixrefine
 
   !--------------------------------------------------------------------
   ! timing startup
-  !--------------------------------------------------------------------
-
   CALL SYSTEM_CLOCK(count_rate=IRate)
   CALL SYSTEM_CLOCK(IStarttime)
 
   !--------------------------------------------------------------------
   ! INPUT section 
-  !--------------------------------------------------------------------
-  
+  !--------------------------------------------------------------------  
   ISoftwareMode =2 ! felixrefinemode
 
   !Read from input files
@@ -137,8 +128,8 @@ PROGRAM Felixrefine
      GOTO 9999
   END IF  
   
-  ALLOCATE(RImageExpi(2*IPixelCount,2*IPixelCount,IReflectOut),&
-       STAT=IErr)  
+  !allocation--------------------------------------------------------------------   
+  ALLOCATE(RImageExpi(2*IPixelCount,2*IPixelCount,IReflectOut),STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in Allocation()"
      GOTO 9999
@@ -152,28 +143,14 @@ PROGRAM Felixrefine
   
   !--------------------------------------------------------------------
   ! Setup Simplex Variables
-  !--------------------------------------------------------------------
-  
-  IF(IRefineModeSelectionArray(2).EQ.1) THEN 
-     
+  IF(IRefineModeSelectionArray(2).EQ.1) THEN   
      CALL SetupAtomicVectorMovements(IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"felixrefine (", my_rank, ") error in SetupAtomicVectorMovements"
         GOTO 9999
      END IF
-     
   END IF
   
-!!$Calculate Number of Independent Refinement Variables
-  
-!XX  CALL CountRefinementVariables(IErr)
-!XX  IF( IErr.NE.0 ) THEN
-!XX     PRINT*,"felixrefine (", my_rank, ") error in CountRefinementVariables"
-!XX     GOTO 9999
-!XX  END IF
-  !CALL DetermineNumberofRefinementVariablesPerType(INoofelementsforeachrefinementtype,IErr)
-  !IIndependentVariables = SUM(INoofelementsforeachrefinementtype)
-
   CALL AssignIterativeIDs(IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in AssignIterativeIDs()"
@@ -188,17 +165,13 @@ PROGRAM Felixrefine
       PRINT*,TRIM(ADJUSTL(SPrintString))
     END IF
   END IF
-  
+  !allocation--------------------------------------------------------------------  
   ALLOCATE(RIndependentVariableValues(IIndependentVariables),&
        STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in allocation()"
      GOTO 9999
   END IF
-
-  !--------------------------------------------------------------------
-  ! Initialise Simplex
-  !--------------------------------------------------------------------
 
   ALLOCATE(RSimplexVolume(IIndependentVariables+1,IIndependentVariables),&
        STAT=IErr)  
@@ -207,27 +180,34 @@ PROGRAM Felixrefine
      GOTO 9999
   END IF
 
-  ALLOCATE(RSimplexFoM(IIndependentVariables),&
-       STAT=IErr)  
+  ALLOCATE(RSimplexFoM(IIndependentVariables),STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in Allocation()"
      GOTO 9999
   END IF
   
+  !--------------------------------------------------------------------
+  ! Initialise Iteration count
   IIterationCount = 0
-
-  LInitialSimulationFLAG = .TRUE. !This is only true for the first simulation
+  !--------------------------------------------------------------------
+  ! Run iteration zero to set up parameters, note IInitialSimulationFLAG defined as zero at the start of felixrefine
+  CALL FelixFunction(IInitialSimulationFLAG,IErr)
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"FelixFunction(", my_rank, ") error in performing initial simulation in felixrefine"
+     RETURN
+  ENDIF
+  !--------------------------------------------------------------------
+  IInitialSimulationFLAG = 0 !First simulation has been done
+  ! Initialise Simplex
   CALL SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariableValues,IIterationCount,RStandardDeviation,RMean,IErr)
   IF( IErr.NE.0 ) THEN
-     PRINT*,"felixrefine (", my_rank, ") error in SimplexInitialisation()"
+     PRINT*,"felixrefine (", my_rank, ") error in SimplexInitialisation"
      GOTO 9999
   END IF
-  LInitialSimulationFLAG = .FALSE. !This is only true for the first simulation
+  !IIterationCount = 1
      
   !--------------------------------------------------------------------
   ! Apply Simplex Method
-  !--------------------------------------------------------------------
-
   CALL NDimensionalDownhillSimplex(RSimplexVolume,RSimplexFoM,&
        IIndependentVariables+1,&
        IIndependentVariables,IIndependentVariables,&
@@ -237,10 +217,7 @@ PROGRAM Felixrefine
      GOTO 9999
   ENDIF
 
-  !--------------------------------------------------------------------
-  ! Deallocate Memory
-  !--------------------------------------------------------------------
-
+  !deallocation--------------------------------------------------------------------  
   DEALLOCATE(RImageExpi,STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in Deallocation()"
@@ -584,7 +561,7 @@ SUBROUTINE RankSymmetryRelatedStructureFactor(IErr)
   IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
      PRINT*,"RankSymmetryRelatedStructureFactor(",my_rank,")"
   END IF
-PRINT*,"RBy"!RBy
+
   ALLOCATE(ISymmetryRelations(nReflections,nReflections), &
        STAT=IErr)
   IF( IErr.NE.0 ) THEN
@@ -638,17 +615,10 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   REAL(RKIND),INTENT(OUT) :: RStandardDeviation,RMean
   REAL(RKIND) :: RStandardError,RStandardTolerance
   CHARACTER*200 :: SPrintString
-  LOGICAL :: LInitialSimulationFLAG
-
+  
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
      PRINT*,"SimplexInitialisation(",my_rank,")"
   END IF
-      
-  CALL FelixFunction(LInitialSimulationFLAG,IErr)!RB first thing!!
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(", my_rank, ") error in PerformInitialSimulation()"
-     RETURN
-  ENDIF
        
   CALL InitialiseWeightingCoefficients(IErr)
   IF( IErr.NE.0 ) THEN
@@ -657,16 +627,16 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   ENDIF
 
   IF(my_rank.EQ.0) THEN   
-     IThicknessCount= (RFinalThickness- RInitialThickness)/RDeltaThickness + 1
-     IIterationCount = 0; !Initial Simulation is iteration zero
+     IThicknessCount= (RFinalThickness- RInitialThickness)/RDeltaThickness + 1!!RB mixed type R vs I??
      IExitFLAG = 0; ! Do not exit
-     IPreviousPrintedIteration = -IPrint
+!RBx PRINT*,"RB fr641 IExitFLAG=",IExitFLAG 
      CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr) 
      IF( IErr.NE.0 ) THEN
         PRINT*,"SimplexFunction(", my_rank, ") error ", IErr, &
              " in CreateImagesAndWriteOutput"
         RETURN
      ENDIF
+	 IIterationCount=1!RBx increment to avoid attempted overwrite while simplex is set up
   ELSE
      DEALLOCATE(Rhkl,STAT=IErr)  
      IF( IErr.NE.0 ) THEN
@@ -688,7 +658,6 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
         PRINT*,"SimplexInitialisation(", my_rank, ") error in RankSymmetryRelatedStructureFactor()"
         RETURN
      ENDIF
-     
      CALL StructureFactorRefinementSetup(RIndependentVariableValues,IIterationCount,IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"SimplexInitialisation(", my_rank, ") error in StructureFactorRefinementSetup()"
@@ -696,26 +665,24 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
      ENDIF
      
   ENDIF
-!RB     PRINT*,"Deallocating CUgMat,CUgMatNoAbs,CUgMatPrime in felixrefine" NB Also deallocated in felixfunction!!!
+  
+  !deallocation--------------------------------------------------------------------
   DEALLOCATE(RgSumMat,STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixsim(", my_rank, ") error ", IErr, &
           " in Deallocation of RgSumMat"
      RETURN
   ENDIF
-
   DEALLOCATE(CUgMatNoAbs,STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexInitialisation (", my_rank, ") error in Deallocation()"
      RETURN
   ENDIF
-
   DEALLOCATE(CUgMatPrime,STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexInitialisation (", my_rank, ") error in Deallocation()"
      RETURN
   ENDIF
- 
   DEALLOCATE(CUgMat,STAT=IErr)  
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexInitialisation (", my_rank, ") error in Deallocation()"
@@ -723,36 +690,30 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   ENDIF
 
 !!$ RandomSequence
-
   IF(IContinueFLAG.EQ.0) THEN
      IF(my_rank.EQ.0) THEN
-        CALL CreateRandomisedSimplex(RSimplexVolume,&
-             RIndependentVariableValues,IErr)
-
+        CALL CreateRandomisedSimplex(RSimplexVolume,RIndependentVariableValues,IErr)
         CALL MPI_BCAST(RSimplexVolume,(IIndependentVariables+1)*(IIndependentVariables),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
      ELSE
         CALL MPI_BCAST(RSimplexVolume,(IIndependentVariables+1)*(IIndependentVariables),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-
      END IF
 
-     IPreviousPrintedIteration = -IPrint ! Ensures print out on first iteration
+     IPreviousPrintedIteration = 0!-IPrint ! Ensures print out on first iteration
 
-     DO ind = 1,(IIndependentVariables+1)
-        
+     DO ind = 1,(IIndependentVariables+1)      
         IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-           PRINT*,"--------------------------------"
-           WRITE(SPrintString,FMT='(A8,I2,A4,I3)') "Simplex ",ind," of ",IIndependentVariables+1
-           PRINT*,TRIM(ADJUSTL(SPrintString))
- !          PRINT*,"-------- Simplex",ind,"of",IIndependentVariables+1
-           PRINT*,"--------------------------------"
+          PRINT*,"--------------------------------"
+          WRITE(SPrintString,FMT='(A8,I2,A4,I3)') "Simplex ",ind," of ",IIndependentVariables+1
+          PRINT*,TRIM(ADJUSTL(SPrintString))
+          PRINT*,"--------------------------------"
         END IF
-
-        RSimplexDummy = SimplexFunction(RSimplexVolume(ind,:),1,0,IErr)
+!RBx PRINT*,"RBx simplex initialisation fr718, IIterationCount,IPreviousPrintedIteration:",IIterationCount,IPreviousPrintedIteration
+        RSimplexDummy = SimplexFunction(RSimplexVolume(ind,:),IIterationCount,IExitFLAG,IErr)
         IF( IErr.NE.0 ) THEN
            PRINT*,"SimplexInitialisation(", my_rank, ") error in SimplexFunction()"
            RETURN
         ENDIF
-        
+
         RStandardTolerance = RStandardError(RStandardDeviation,RMean,RSimplexDummy,IErr)
         
         RSimplexFoM(ind) =  RSimplexDummy
@@ -761,8 +722,7 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
  !         PRINT*,"--------------------------------"
           WRITE(SPrintString,FMT='(A16,F7.5))') "Figure of merit ",RSimplexFoM(ind)
           PRINT*,TRIM(ADJUSTL(SPrintString))
-!          PRINT*,"-------- Figure of Merit" ,RSimplexFoM(ind)        
- !         PRINT*,"---------------------------------------------------------"
+          PRINT*,"--------------------------------"
         END IF
      END DO
      
@@ -1170,16 +1130,12 @@ SUBROUTINE RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMe
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: &
-       IErr,ind,IIterationCount
+  INTEGER(IKIND) :: IErr,ind,IIterationCount
   REAL(RKIND),DIMENSION(IIndependentVariables+1,IIndependentVariables) :: &
        RSimplexVolume
-  REAL(RKIND),DIMENSION(IIndependentVariables+1) :: &
-       RSimplexFoM
-  REAL(RKIND) :: &
-       RStandardDeviation,RMean
-  CHARACTER*200 :: &
-       CSizeofData,SFormatString,filename
+  REAL(RKIND),DIMENSION(IIndependentVariables+1) :: RSimplexFoM
+  REAL(RKIND) :: RStandardDeviation,RMean
+  CHARACTER*200 :: CSizeofData,SFormatString,filename
 
   WRITE(filename,*) "fr-Simplex.txt"
 

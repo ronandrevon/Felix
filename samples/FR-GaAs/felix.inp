@@ -64,9 +64,9 @@ IAtomicSites              = (1,2)
 
 # Refinement Output
 
-IPrint                    = 10
+IPrint                    = 3
 
 # Simplex Initialisation
 
-RSimplexLengthScale       = 1.0 
-RExitCriteria             = 0.0001
+RSimplexLengthScale       = 5.0 
+RExitCriteria             = 0.00001
