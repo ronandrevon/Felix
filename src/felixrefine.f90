@@ -54,12 +54,12 @@ PROGRAM Felixrefine
   IMPLICIT NONE
 
   INTEGER(IKIND) :: IHours,IMinutes,ISeconds,IErr,IMilliSeconds,IIterationFLAG,&
-       ind,jnd,knd,ICalls,IIterationCount,ICutOff,IHOLZgPoolMag,IBSMaxLocGVecAmp,&
+       ind,jnd,knd,ICalls,ICutOff,IHOLZgPoolMag,IBSMaxLocGVecAmp,&
 	   ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,INhkl,&
 	   INumInitReflections,IZerothLaueZoneLevel,INumFinalReflections
   REAL(RKIND) :: StartTime, CurrentTime, Duration, TotalDurationEstimate,&
        RFigureOfMerit,SimplexFunction,RHOLZAcceptanceAngle,RLaueZoneGz
-  INTEGER(IKIND) :: IStartTime, ICurrentTime ,IRate
+  INTEGER(IKIND) :: IStartTime, ICurrentTime ,IRate,IIterationCount
   INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: IOriginGVecIdentifier
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RSimplexVolume
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RSimplexFoM,RIndependentVariableValues
@@ -308,6 +308,7 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
      RgPoolMag(ind)= SQRT(DOT_PRODUCT(RgPoolT(ind,:),RgPoolT(ind,:)))
   ENDDO
 
+  !Calculate limits based on acceptance angles
   IF(RAcceptanceAngle.NE.ZERO.AND.IZOLZFLAG.EQ.1) THEN
      RMaxAcceptanceGVecMag=(RElectronWaveVectorMagnitude*TAN(RAcceptanceAngle*DEG2RADIAN))
      IF(RgPoolMag(IMinReflectionPool).GT.RMaxAcceptanceGVecMag) THEN
@@ -315,7 +316,6 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
      ELSE
         RBSMaxGVecAmp = RgPoolMag(IMinReflectionPool)
      END IF
-
   ELSEIF(RAcceptanceAngle.NE.ZERO.AND.IZOLZFLAG.EQ.0) THEN
      IBSMaxLocGVecAmp=MAXVAL(IOriginGVecIdentifier)
      RBSMaxGVecAmp=RgPoolMag(IBSMaxLocGVecAmp)
@@ -337,8 +337,20 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
      END IF
   ENDDO
   
+!zz calculate some basic parameters
+  ALLOCATE(RgVecVec(INhkl),STAT=IErr)
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"DiffractionPatternDefinitions(",my_rank,")error allocating RgVecVec"
+     RETURN
+  END IF
+  CALL DiffractionPatternCalculation(IErr)
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"felixrefine(",my_rank,")error in DiffractionPatternCalculation"
+     GOTO 9999
+  END IF
+  
 !zz temp deallocation to get it to work
-DEALLOCATE(Rhkl,RgPoolMagLaue)!,RgPoolMag
+DEALLOCATE(RgPoolMagLaue)!,Rhkl,RgPoolMag
 IF (RAcceptanceAngle.NE.ZERO.AND.IZOLZFLAG.EQ.0) THEN
   DEALLOCATE(IOriginGVecIdentifier)
     PRINT*,"felixrefine deallocating IOriginGVecIdentifier"
@@ -463,7 +475,10 @@ DEALLOCATE(IAnisoDWFT,IAtoms,ROcc,RDWF)!RgPoolT,
      PRINT*,"felixrefine(",my_rank,") error in ImageSetup"
      RETURN
   END IF 
-  
+  PRINT*,"RB INoOfLacbedPatterns,IThicknessCount,IPixelTotal",INoOfLacbedPatterns,IThicknessCount,IPixelTotal
+  IThicknessCount= (RFinalThickness- RInitialThickness)/RDeltaThickness + 1
+  ALLOCATE(ROutputReflections(INoOfLacbedPatterns,IThicknessCount,IPixelTotal),STAT=IErr)
+ 
   !--------------------------------------------------------------------
   ! Allocate memory for deviation parameter and bloch calc in main loop
   !--------------------------------------------------------------------
@@ -509,20 +524,21 @@ DEALLOCATE(IAnisoDWFT,IAtoms,ROcc,RDWF)!RgPoolT,
   
   IIterationCount = 0
 
-  CALL SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariableValues,IIterationCount,RStandardDeviation,RMean,IErr)
+  CALL SimplexInitialisation(IIterationCount,RSimplexVolume,RSimplexFoM,RIndependentVariableValues,RStandardDeviation,RMean,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine(",my_rank,")error in SimplexInitialisation"
      GOTO 9999
   END IF
-    PRINT*,"Simplex Initialisation complete"   
+  IIterationCount = 1!We have done one simulation, hooray
+  PRINT*,"RB Figures of merit",RSimplexFoM
+  
   !--------------------------------------------------------------------
   ! Apply Simplex Method
   !--------------------------------------------------------------------
-
-  CALL NDimensionalDownhillSimplex(RSimplexVolume,RSimplexFoM,&
+  CALL NDimensionalDownhillSimplex(IIterationCount,RSimplexVolume,RSimplexFoM,&
        IIndependentVariables+1,&
        IIndependentVariables,IIndependentVariables,&
-       RExitCriteria,IIterationCount,RStandardDeviation,RMean,IErr)
+       RExitCriteria,RStandardDeviation,RMean,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine(",my_rank,")error in NDimensionalDownhillSimplex()"
      GOTO 9999
@@ -754,7 +770,7 @@ END SUBROUTINE RefinementVariableSetup
  
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE StructureFactorRefinementSetup(RIndependentVariableValues,IIterationCount,IErr)
+SUBROUTINE StructureFactorRefinementSetup(RIndependentVariableValues,IErr)
   
   USE MyNumbers
   
@@ -771,10 +787,9 @@ SUBROUTINE StructureFactorRefinementSetup(RIndependentVariableValues,IIterationC
   
   INTEGER(IKIND) :: IErr,ind
   REAL(RKIND),DIMENSION(IIndependentVariables),INTENT(OUT) :: RIndependentVariableValues
-  INTEGER(IKIND),INTENT(IN) :: IIterationCount
   CHARACTER*200 :: SPrintString
 
-  IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
+  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.20) THEN
      PRINT*,"StructureFactorRefinementSetup(",my_rank,")"
   END IF
 
@@ -875,8 +890,8 @@ END SUBROUTINE RankSymmetryRelatedStructureFactor
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariableValues,&
-     IIterationCount,RStandardDeviation,RMean,IErr)
+SUBROUTINE SimplexInitialisation(IIterationCount,RSimplexVolume,RSimplexFoM,RIndependentVariableValues,&
+     RStandardDeviation,RMean,IErr)
   
   USE MyNumbers
   
@@ -891,13 +906,12 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: IErr,ind,jnd,IExitFLAG
+  INTEGER(IKIND) :: IIterationCount,IErr,ind,jnd,IExitFLAG
   LOGICAL :: LInitialSimulationFLAG = .TRUE. ! Its value is meaningless :) RB thanks, that's helpful, honestly;
   REAL(RKIND),DIMENSION(IIndependentVariables+1,IIndependentVariables),INTENT(OUT) :: RSimplexVolume
   REAL(RKIND),DIMENSION(IIndependentVariables+1),INTENT(OUT) :: RSimplexFoM
   REAL(RKIND) :: SimplexFunction,RSimplexDummy
   REAL(RKIND),DIMENSION(IIndependentVariables),INTENT(INOUT) :: RIndependentVariableValues
-  INTEGER(IKIND),INTENT(INOUT) :: IIterationCount
   REAL(RKIND),INTENT(OUT) :: RStandardDeviation,RMean
   REAL(RKIND) :: RStandardError,RStandardTolerance
   CHARACTER*200 :: SPrintString
@@ -905,36 +919,38 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
      PRINT*,"SimplexInitialisation(",my_rank,")"
   END IF
-
-  CALL FelixFunction(LInitialSimulationFLAG,IErr)!RB first thing!!
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(",my_rank,")error in FelixFunction"
-     RETURN
-  ENDIF
-
-  CALL InitialiseWeightingCoefficients(IErr)
+  
+  CALL InitialiseWeightingCoefficients(IErr)!is required before cross correlation is calculated
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexInitialisation(",my_rank,")error in InitialiseWeightingCoefficients"
      RETURN
   ENDIF
 
+ !RB baseline simulation 
+  CALL FelixFunction(IIterationCount,LInitialSimulationFLAG,IErr)!RB RIndividualReflections allocated in here for core zero
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"SimplexInitialisation(",my_rank,")error in FelixFunction"
+     RETURN
+  ENDIF
+PRINT*,"RB FelixFunction done"  
   IF(my_rank.EQ.0) THEN   !RB isn't thickness count calculated somewhere else too?
-     IThicknessCount= (RFinalThickness- RInitialThickness)/RDeltaThickness + 1
+     !IThicknessCount= (RFinalThickness- RInitialThickness)/RDeltaThickness + 1
      IExitFLAG = 0; ! Do not exit
-     IPreviousPrintedIteration = -IPrint
-     CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr) 
+     CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)!RB RIndividualReflections deallocated in here for core zero 
      IF( IErr.NE.0 ) THEN
         PRINT*,"SimplexInitialisation(",my_rank,")error in CreateImagesAndWriteOutput"
         RETURN
      ENDIF
-  ELSE
-     DEALLOCATE(Rhkl,STAT=IErr)  !zz why deallocate depending upon processor rank?
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SimplexInitialisation(",my_rank,") error deallocating Rhkl"
-        RETURN
-     ENDIF
+  !ELSE
+     !DEALLOCATE(Rhkl,STAT=IErr)  !zz why deallocate depending upon processor rank?
+     !IF( IErr.NE.0 ) THEN
+     !   PRINT*,"SimplexInitialisation(",my_rank,") error deallocating Rhkl"
+     !   RETURN
+     !ENDIF
   END IF
-    PRINT*,"RB FelixFunction finished"
+  IPreviousPrintedIteration = 0!We have written one simulation in the Iter0000 folder
+  
+  
   CALL RefinementVariableSetup(RIndependentVariableValues,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"SimplexInitialisation(", my_rank, ") error in RefinementVariableSetup()"
@@ -942,14 +958,13 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
   ENDIF
   
   IF(IRefineModeSelectionArray(1).EQ.1) THEN
-     
-     CALL RankSymmetryRelatedStructureFactor(IErr)
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SimplexInitialisation(", my_rank, ") error in RankSymmetryRelatedStructureFactor()"
-        RETURN
-     ENDIF
-     
-     CALL StructureFactorRefinementSetup(RIndependentVariableValues,IIterationCount,IErr)
+!     CALL RankSymmetryRelatedStructureFactor(IErr)     !RB already done in felixrefine
+!     IF( IErr.NE.0 ) THEN
+!        PRINT*,"SimplexInitialisation(", my_rank, ") error in RankSymmetryRelatedStructureFactor()"
+!        RETURN
+!     ENDIF
+    PRINT*,"RB StructureFactorRefinementSetup"
+     CALL StructureFactorRefinementSetup(RIndependentVariableValues,IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"SimplexInitialisation(", my_rank, ") error in StructureFactorRefinementSetup()"
         RETURN
@@ -957,38 +972,37 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
      
   ENDIF
 
-!RB     PRINT*,"Deallocating CUgMat,CUgMatNoAbs,CUgMatPrime in felixrefine" NB Also deallocated in felixfunction!!!
-  DEALLOCATE(RgSumMat,STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating RgSumMat"
-     RETURN
-  ENDIF
-  DEALLOCATE(CUgMatNoAbs,STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMatNoAbs"
-     RETURN
-  ENDIF
-  DEALLOCATE(CUgMatPrime,STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMatPrime"
-     RETURN
-  ENDIF
-  DEALLOCATE(CUgMat,STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMat"
-     RETURN
-  ENDIF
+!RB now deallocated in felixrefine
+!  DEALLOCATE(RgSumMat,STAT=IErr)
+!  IF( IErr.NE.0 ) THEN
+!!     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating RgSumMat"
+ !    RETURN
+!  ENDIF
+!  DEALLOCATE(CUgMatNoAbs,STAT=IErr)  
+!  IF( IErr.NE.0 ) THEN
+!     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMatNoAbs"
+!     RETURN
+!  ENDIF
+!  DEALLOCATE(CUgMatPrime,STAT=IErr)  
+!  IF( IErr.NE.0 ) THEN
+!     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMatPrime"
+!     RETURN
+!  ENDIF
+!  DEALLOCATE(CUgMat,STAT=IErr)  
+!  IF( IErr.NE.0 ) THEN
+!     PRINT*,"SimplexInitialisation(",my_rank,") error deallocating CUgMat"
+!     RETURN
+!  ENDIF
 !!$ RandomSequence
   IF(IContinueFLAG.EQ.0) THEN
      IF(my_rank.EQ.0) THEN
-        CALL CreateRandomisedSimplex(RSimplexVolume,&
-             RIndependentVariableValues,IErr)
+        CALL CreateRandomisedSimplex(RSimplexVolume,RIndependentVariableValues,IErr)
         CALL MPI_BCAST(RSimplexVolume,(IIndependentVariables+1)*(IIndependentVariables),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
      ELSE
         CALL MPI_BCAST(RSimplexVolume,(IIndependentVariables+1)*(IIndependentVariables),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
      END IF
 
-     IPreviousPrintedIteration = -IPrint ! Ensures print out on first iteration
+     !IPreviousPrintedIteration = -IPrint ! Ensures print out on first iteration
 
      DO ind = 1,(IIndependentVariables+1)
         
@@ -998,7 +1012,7 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
            PRINT*,TRIM(ADJUSTL(SPrintString))
            PRINT*,"--------------------------------"
         END IF
-        RSimplexDummy = SimplexFunction(RSimplexVolume(ind,:),1,0,IErr)
+        RSimplexDummy = SimplexFunction(IIterationCount,RSimplexVolume(ind,:),1,0,IErr)
         IF( IErr.NE.0 ) THEN
            PRINT*,"SimplexInitialisation(", my_rank, ") error in SimplexFunction()"
            RETURN
@@ -1006,27 +1020,24 @@ SUBROUTINE SimplexInitialisation(RSimplexVolume,RSimplexFoM,RIndependentVariable
         RStandardTolerance = RStandardError(RStandardDeviation,RMean,RSimplexDummy,IErr)
         
         RSimplexFoM(ind) =  RSimplexDummy
-  PRINT*,"Figure of merit",ind,":", RSimplexFoM(ind)
         
-!        IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
+        IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
  !         PRINT*,"--------------------------------"
           WRITE(SPrintString,FMT='(A16,F7.5))') "Figure of merit ",RSimplexFoM(ind)
           PRINT*,TRIM(ADJUSTL(SPrintString))
  !         PRINT*,"---------------------------------------------------------"
-!        END IF
-        PRINT*,"boo!4",ind
+        END IF
      END DO
 
   ELSE
     
-     CALL RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMean,IIterationCount,IErr)
+     CALL RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMean,IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"SimplexInitialisation (", my_rank, ") error in RecoverSavedSimplex()"
         RETURN
      ENDIF
      
   END IF
- 
        
 END SUBROUTINE SimplexInitialisation
 
@@ -1307,7 +1318,6 @@ END SUBROUTINE OutofUnitCellCheck
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE ApplyNewStructureFactors(IErr)
-
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!$  % Subroutine to place iteratively determined Structure factors
 !!$  % to Ug Matrix
@@ -1333,7 +1343,7 @@ SUBROUTINE ApplyNewStructureFactors(IErr)
   
    CUgMatDummy = CZERO
 
-!!$  Populate Ug Matrix with new iterative elements, maintain Hermiticity
+   !!$  Populate Ug Matrix with new iterative elements, maintain Hermiticity
   DO ind = 1,INoofUgs
      WHERE(ISymmetryRelations.EQ.IEquivalentUgKey(ind))
         CUgMatDummy = CUgToRefine(ind)
@@ -1389,7 +1399,7 @@ END SUBROUTINE CreateIdentityMatrix
 
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMean,IIterationCount,IErr)
+SUBROUTINE RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMean,IErr)
 
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!$  % This Subroutine reads the fr-simplex.txt file from a previous
@@ -1410,16 +1420,12 @@ SUBROUTINE RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMe
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: &
-       IErr,ind,IIterationCount
+  INTEGER(IKIND) :: IErr,ind
   REAL(RKIND),DIMENSION(IIndependentVariables+1,IIndependentVariables) :: &
        RSimplexVolume
-  REAL(RKIND),DIMENSION(IIndependentVariables+1) :: &
-       RSimplexFoM
-  REAL(RKIND) :: &
-       RStandardDeviation,RMean
-  CHARACTER*200 :: &
-       CSizeofData,SFormatString,filename
+  REAL(RKIND),DIMENSION(IIndependentVariables+1) :: RSimplexFoM
+  REAL(RKIND) :: RStandardDeviation,RMean
+  CHARACTER*200 :: CSizeofData,SFormatString,filename
 
   WRITE(filename,*) "fr-Simplex.txt"
 
@@ -1433,7 +1439,7 @@ SUBROUTINE RecoverSavedSimplex(RSimplexVolume,RSimplexFoM,RStandardDeviation,RMe
      READ(IChOutSimplex,FMT=SFormatString) RSimplexVolume(ind,:),RSimplexFoM(ind)
   END DO
     
-  READ(IChOutSimplex,FMT="(2(1F6.3,1X),I5.1,I5.1,A1)") RStandardDeviation,RMean,IStandardDeviationCalls,IIterationCount
+  READ(IChOutSimplex,FMT="(2(1F6.3,1X),I5.1,I5.1,A1)") RStandardDeviation,RMean,IStandardDeviationCalls
 
   CLOSE(IChOutSimplex)
 

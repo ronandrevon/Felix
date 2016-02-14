@@ -331,6 +331,7 @@ MODULE RPara
   !WaveFunction Arrays
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RWaveIntensity,RFullWaveIntensity
   REAL(RKIND), DIMENSION(:,:,:), ALLOCATABLE :: RIndividualReflections
+  REAL(RKIND), DIMENSION(:,:,:), ALLOCATABLE :: ROutputReflections
 
   !Refinement Variables
   REAL(RKIND), DIMENSION(:,:),ALLOCATABLE :: RImageIn

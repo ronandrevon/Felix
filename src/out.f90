@@ -35,26 +35,16 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 ! $Id: out.f90,v 1.59 2014/04/28 12:26:19 phslaz Exp $
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 !---------------------------------------------------------------------
 !This file contains all the output subroutines
 !---------------------------------------------------------------------
 
-
-
-! --------------------------------------------------------------------
-! OpenData
-! --------------------------------------------------------------------
-
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 
-  USE MyNumbers
-  USE WriteToScreen
-
-  USE IConst; USE RConst
-  USE IPara; USE RPara
+  USE MyNumbers; USE WriteToScreen
+  USE IConst; USE RConst; USE IPara; USE RPara
   USE IChannels
 
   USE MPI
@@ -62,57 +52,38 @@ SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 
   IMPLICIT NONE
 
-  CHARACTER*27 :: &
-       surname, surnamelength
-  CHARACTER*2 :: &
-       prefix,postfix
-  INTEGER(IKIND) :: &
-       IChOutWrite, IErr
-  CHARACTER*34 :: &
-       filename
-  INTEGER(IKIND) :: &
-       index
+  INTEGER(IKIND) :: IChOutWrite, IErr
+  CHARACTER*27 :: surname, surnamelength
+  CHARACTER*2 :: prefix,postfix
+  CHARACTER*34 :: filename
+
 
  ! CALL Message("OpenData",IMust,IErr)
   IF((IWriteFLAG.GE.2.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-
      PRINT*,"OpenData()"
-
   END IF
   
   WRITE(surnamelength,*) LEN_TRIM(surname)
-
   WRITE(filename,"(A2,A2,A1,A"//TRIM(surnamelength)//",A4)") "F-",prefix,"-",surname,".txt"
 
-!  CALL Message("OpenData",IAllInfo,IErr,MessageVariable = "filename", & 
-!       MessageString = filename)
-
   IF(IWriteFLAG.GE.10) THEN
-     
      PRINT*,filename
-
   END IF
 
   IF (IWriteFLAG.GE.10) THEN
      SELECT CASE(IChOutWrite)
      CASE(IChOutWF)
-        PRINT*, "OpenData: opening channel", IChOutWF, &
-             "for WAVE FUNCTIONS (WF*.txt)"
+        PRINT*, "OpenData: opening channel", IChOutWF,"for WAVE FUNCTIONS (WF*.txt)"
      CASE(IChOutWI)
-        PRINT*, "OpenData: opening channel", IChOutWI, &
-             "for WAVE INTENSITIES (WI*.txt)"
+        PRINT*, "OpenData: opening channel", IChOutWI,"for WAVE INTENSITIES (WI*.txt)"
      CASE(IChOutEV)
-        PRINT*, "OpenData: opening channel", IChOutEV, &
-             "for EIGENVALUES of UgMat (EV*.txt)"
+        PRINT*, "OpenData: opening channel", IChOutEV,"for EIGENVALUES of UgMat (EV*.txt)"
      CASE(IChOutEX)
-        PRINT*, "OpenData: opening channel", IChOutEX, &
-             "for EIGENVECTORS of UgMat (EX*.txt)"
+        PRINT*, "OpenData: opening channel", IChOutEX,"for EIGENVECTORS of UgMat (EX*.txt)"
      CASE(IChOutUM)
-        PRINT*, "OpenData: opening channel", IChOutUM, &
-             "for UgMat (UM*.txt)"
+        PRINT*, "OpenData: opening channel", IChOutUM,"for UgMat (UM*.txt)"
      CASE DEFAULT
-        PRINT*, "OpenData: opening UNKNOWN", IChOutWrite, &
-             "channel "
+        PRINT*, "OpenData: opening UNKNOWN", IChOutWrite,"channel "
      END SELECT
   END IF
 
@@ -127,18 +98,14 @@ SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
   RETURN
   
 END SUBROUTINE OpenData
-  
-! --------------------------------------------------------------------
-! OpenData
-! --------------------------------------------------------------------
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE OpenImageForReadIn(IErr,filename)
 
   USE MyNumbers
 
-  USE IConst; USE RConst
-  USE IPara; USE RPara
+  USE IConst; USE RConst; USE IPara; USE RPara
   USE IChannels
 
   USE MPI
@@ -151,17 +118,10 @@ SUBROUTINE OpenImageForReadIn(IErr,filename)
   CHARACTER*34 filename
 
   IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-
      PRINT*,"OpenImageForReadIn()"
-
   END IF
-
-  !filename = "Felix.img"
-
-  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-     
+  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN 
      PRINT*,filename
-
   END IF
 
   OPEN(UNIT= IChInImage, ERR= 10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
@@ -176,14 +136,12 @@ SUBROUTINE OpenImageForReadIn(IErr,filename)
   
 END SUBROUTINE OpenImageForReadIn
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE ReadImageForRefinement(IErr)
 
-  USE MyNumbers
-
-  USE IConst; USE RConst
-  USE IPara; USE RPara
-  USE IChannels
-
+  USE MyNumbers; USE IChannels
+  USE IConst; USE RConst; USE IPara; USE RPara
   USE MPI
   USE MyMPI
 
@@ -205,20 +163,12 @@ SUBROUTINE ReadImageForRefinement(IErr)
   
 END SUBROUTINE ReadImageForRefinement
 
-! --------------------------------------------------------------------
-! Open Reflection Image
-! --------------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImageSizeX,ind)
+SUBROUTINE OpenReflectionImage(IChOutWrite,surname,IErr,IReflectWriting,IImageSizeX,ind)
 
-  USE MyNumbers
-  USE WriteToScreen
-
-  USE IConst
-  USE RConst
-  
-  USE IPara
-  USE RPara
+  USE MyNumbers; USE WriteToScreen
+  USE IConst; USE RConst; USE IPara; USE RPara
 
   USE MPI
   USE MyMPI
@@ -228,21 +178,21 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
 
   CHARACTER(*) :: surname
   CHARACTER*20 :: prefix,postfix,h,k,l
-  INTEGER(IKIND) :: IChOutWrite, IErr,IReflectWriting,IImageSizeX
+  INTEGER(IKIND) :: IChOutWrite, IErr,IReflectWriting,IImageSizeX,ind
   CHARACTER*250 filename
   CHARACTER*40 fileext
   CHARACTER*60 Simagesize
-  INTEGER index,ind
 
-  !!$  Only Prints out this message once when iterating (i.e. when in 1st iteration)
-
+  !!$  Only Prints this message in 1st iteration
   IF (IMessageCounter.LT.1) THEN
      CALL Message("OpenReflectionImage",IMust,IErr)
       CALL Message("OpenReflectionImage",IMust+IDebug,IErr,&
           MessageString = "is looping. Dependent on ImageFLAG also (called more than once while looping)")
      IMessageCounter = IMessageCounter +1
   END IF
-  
+!PRINT*,"RB in OpenReflectionImage"
+!PRINT*,"RB Rhkl",Rhkl(IReflectWriting,:)
+
   SELECT CASE(IChOutWrite)
   CASE(MontageOut)
   CASE DEFAULT
@@ -316,7 +266,6 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
   CALL Message("OpenReflectionImage",IInfo,IErr, MessageVariable = "filename", &
        MessageString = filename)
 
-
   OPEN(UNIT=IChOutWrite, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
        ACCESS='DIRECT',IOSTAT=Ierr,RECL=IImageSizeX*8)
   RETURN
@@ -328,20 +277,12 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
   
 END SUBROUTINE OpenReflectionImage
 
-!-----------------------------------------------------------------
-! Write Reflection Images
-!-----------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY,knd)
 
-  USE MyNumbers
-  USE WriteToScreen
-
-  USE IConst
-  USE RConst
-  
-  USE IPara
-  USE RPara
+  USE MyNumbers; USE WriteToScreen
+  USE IConst; USE RConst; USE IPara; USE RPara
 
   USE MPI
   USE MyMPI
@@ -354,7 +295,6 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
   INTEGER ind,knd, IChOutWrite
   CHARACTER*100 SFormatString
 
-
   IF (IMessageCounter.LT.2) THEN
      CALL Message("WriteReflectionImage",IMust,IErr)
      CALL Message("WriteReflectionImage",IMust+IDebug,IErr, &
@@ -365,7 +305,6 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
   DO ind = 1,(IImageSizeY)
      WRITE(IChOutWrite,rec=ind) data(ind,:)
   END DO
-
 
   RETURN
   ! error in WRITE detected
@@ -380,16 +319,14 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
 
 END SUBROUTINE WriteReflectionImage
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE WriteCif(IErr)
 
   USE MyNumbers
   USE WriteToScreen
 
-  USE IConst
-  USE RConst
-  
-  USE IPara
-  USE RPara
+  USE IConst; USE RConst; USE IPara; USE RPara
 
   USE MPI
   USE MyMPI
@@ -398,14 +335,11 @@ SUBROUTINE WriteCif(IErr)
 
   INCLUDE       'ciftbx-f90.cmn'
 
-  INTEGER(IKIND) :: &
-       IErr
+  INTEGER(IKIND) :: IErr
   REAL(RKIND),DIMENSION(SIZE(RAtomSiteFracCoordVec,DIM=1),SIZE(RAtomSiteFracCoordVec,DIM=2)) :: &
        ROutputData
-  REAL(RKIND),DIMENSION(2,3) :: &
-       RUnitCellParameters
-  LOGICAL :: &
-       f1
+  REAL(RKIND),DIMENSION(2,3) :: RUnitCellParameters
+  LOGICAL :: f1
 
   IF(.NOT.dict_('cif_core.dic','valid')) THEN
      PRINT*,"Requested Core Dictionary not Present"
@@ -420,9 +354,11 @@ SUBROUTINE WriteCif(IErr)
   call close_
 
 END SUBROUTINE WriteCif
-  
-!Write out the sample input file, when none provided
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE WriteOutInputFile (IErr)
+!Write out the sample input file, when none provided
   
   USE WriteToScreen
   USE MyNumbers
@@ -441,14 +377,12 @@ SUBROUTINE WriteOutInputFile (IErr)
   
   IMPLICIT NONE
 
-  INTEGER(IKIND):: &
-       IErr
+  INTEGER(IKIND):: IErr
 
 !!$  IF(ISoftwareMode.LT.2) THEN
      CALL Message("WriteOutInputFile",IMust,IErr)
      
-     OPEN(UNIT= IChInp,FILE= "felix.inp.sample",&
-       STATUS= 'UNKNOWN')
+     OPEN(UNIT= IChInp,FILE= "felix.inp.sample",STATUS= 'UNKNOWN')
      
      CALL WriteToScreenandFile(ADJUSTL("# Input file for felixsim/draw/refine version :VERSION: Build :BUILD:"),IErr)
      CALL WriteToScreenandFile(ADJUSTL("# ------------------------------------"),IErr)
@@ -532,7 +466,7 @@ SUBROUTINE WriteOutInputFile (IErr)
 END SUBROUTINE WriteOutInputFile
 
 SUBROUTINE WriteToScreenandFile(SStringtoWrite,IErr)
-  
+!Another completely pointless subroutine  
   USE WriteToScreen
   USE MyNumbers
   
@@ -550,10 +484,8 @@ SUBROUTINE WriteToScreenandFile(SStringtoWrite,IErr)
   
   IMPLICIT NONE
 
-  INTEGER(IKIND):: &
-       IErr
-  CHARACTER(*) :: &
-       SStringtoWrite
+  INTEGER(IKIND):: IErr
+  CHARACTER(*) :: SStringtoWrite
 
   PRINT*,TRIM(ADJUSTL(SStringtoWrite))
   WRITE(UNIT=IChInp,FMT='(A)') TRIM(ADJUSTL(SStringtoWrite))

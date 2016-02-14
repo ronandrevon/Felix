@@ -1,4 +1,4 @@
-SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RStandardDeviation,RMean,IErr)
+SUBROUTINE NDimensionalDownhillSimplex(IIterationCount,RSimplexVolume,y,mp,np,ndim,ftol,RStandardDeviation,RMean,IErr)
 
   USE MyNumbers
     
@@ -10,17 +10,16 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RSt
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: iter,mp,ndim,np,NMAX,ITMAX,IErr
-  REAL(RKIND) :: ftol,RSimplexVolume(mp,np),y(mp),SimplexFunction,SimplexExtrapolate,RSendPacket(ndim+2),RExitFlag
-  PARAMETER (NMAX=1000,ITMAX=50000)
-
-  INTEGER(IKIND) :: i,ihi,ilo,inhi,j,m,n,IExitFlag
   REAL(RKIND) :: rtol,sum,swap,ysave,ytry,psum(ndim),amotry,&
        RStandardDeviation,RMean,RStandardError,RStandardTolerance
+  REAL(RKIND) :: ftol,RSimplexVolume(mp,np),y(mp),SimplexFunction,SimplexExtrapolate,RSendPacket(ndim+2),RExitFlag
+  INTEGER(IKIND) :: mp,ndim,np,NMAX,ITMAX,IErr
+  INTEGER(IKIND) :: i,ihi,ilo,inhi,j,m,n,IExitFlag,IIterationCount
   CHARACTER*200 :: SPrintString
-
+  PARAMETER (NMAX=1000,ITMAX=50000)
+PRINT*,"RB IIterationCount",IIterationCount
   IF(my_rank.EQ.0) THEN
-     PRINT*,"Beginning Simplex",IErr
+     PRINT*,"Beginning Simplex"
      
 1    DO n = 1,ndim
         sum = 0
@@ -66,38 +65,39 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RSt
            RSimplexVolume(ilo,n)=swap
         END DO
         psum = RESHAPE(RSimplexVolume(MAXLOC(y),:),SHAPE(psum)) ! psum = simplex point with highest correlation
-        RSendPacket = [-10000.0_RKIND, psum, REAL(iter,RKIND)]
+        RSendPacket = [-10000.0_RKIND, psum, REAL(IIterationCount,RKIND)]
         CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-        ytry = SimplexFunction(psum,iter,1,IErr)
+        ytry = SimplexFunction(psum,IIterationCount,1,IErr)
+		PRINT*,"RB IIterationCount,ytry",IIterationCount,ytry
         RETURN
      END IF
      
-     IF (iter.GE.ITMAX) THEN
+     IF (IIterationCount.GE.ITMAX) THEN
         psum = RESHAPE(RSimplexVolume(MAXLOC(y),:),SHAPE(psum)) ! psum = simplex point with highest correlation
         IErr = 1
-        RSendPacket = [-10000.0_RKIND, psum, REAL(iter,RKIND)]
+        RSendPacket = [-10000.0_RKIND, psum, REAL(IIterationCount,RKIND)]
         CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
         PRINT*,"Simplex halted after",ITMAX,"iterations"
         RETURN
      END IF
      
-     !CALL SaveSimplex(RSimplexVolume,y,np,RStandardDeviation,RMean,iter,IErr)
+     !CALL SaveSimplex(RSimplexVolume,y,np,RStandardDeviation,RMean,IErr)
     
      PRINT*,"--------------------------------"
-     WRITE(SPrintString,FMT='(A10,I4,A18,F7.5))') "Iteration ",iter,", figure of merit ",ytry
+     WRITE(SPrintString,FMT='(A10,I4,A18,F7.5))') "Iteration ",IIterationCount,", figure of merit ",ytry
      PRINT*,TRIM(ADJUSTL(SPrintString))
-!     PRINT*,"Iteration",iter,"Figure of Merit",ytry
+!     PRINT*,"Iteration",IIterationCount,"Figure of Merit",ytry
      PRINT*,"--------------------------------"
 
-     iter=iter+2
+     IIterationCount=IIterationCount+2
     
-     ytry = SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,-1.0D0,iter,IErr)
+     ytry = SimplexExtrapolate(IIterationCount,RSimplexVolume,y,psum,mp,np,ndim,ihi,-1.0D0,IErr)
      
      IF (ytry.LE.y(ilo).OR.my_rank.NE.0) THEN
-        ytry = SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,2.0D0,iter,IErr)
+        ytry = SimplexExtrapolate(IIterationCount,RSimplexVolume,y,psum,mp,np,ndim,ihi,2.0D0,IErr)
      ELSEIF (ytry.GE.y(inhi)) THEN
         ysave=y(ihi)
-        ytry=SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,0.5D0,iter,IErr)
+        ytry=SimplexExtrapolate(IIterationCount,RSimplexVolume,y,psum,mp,np,ndim,ihi,0.5D0,IErr)
         IF(ytry.GE.ysave) THEN
            
            PRINT*,"-----------------------------------------------------"
@@ -113,17 +113,17 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RSt
                     psum(j)=0.5*(RSimplexVolume(i,j)+RSimplexVolume(ilo,j))
                     RSimplexVolume(i,j)=psum(j)
                  ENDDO
-                 RSendPacket = [10000.0_RKIND, psum, REAL(iter,RKIND)]
+                 RSendPacket = [10000.0_RKIND, psum, REAL(IIterationCount,RKIND)]
                  CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-                 y(i)=SimplexFunction(psum,iter,0,IErr)
+                 y(i)=SimplexFunction(psum,0,IErr)
               ENDIF
            ENDDO
-           iter=iter+ndim
+           IIterationCount=IIterationCount+ndim
            GOTO 1
         ENDIF
      ELSE
 
-        iter=iter-1
+        IIterationCount=IIterationCount-1
      ENDIF
      GOTO 2
      
@@ -132,8 +132,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RSt
      DO
         CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
         
-        RExitFlag = RSendPacket(1)
-                        
+        RExitFlag = RSendPacket(1)                       
         IF(RExitFlag.LT.ZERO) THEN
            IExitFLAG = 1
         ELSE
@@ -141,10 +140,9 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVolume,y,mp,np,ndim,ftol,iter,RSt
         END IF
            
         psum = RSendPacket(2:(ndim+1))
-        iter = NINT(RSendPacket(ndim+2),KIND=IKIND)
-
-        ytry = SimplexFunction(psum,iter,IExitFLAG,IErr) ! Doesnt matter what this result is
-
+        IIterationCount = NINT(RSendPacket(ndim+2),KIND=IKIND)
+        ytry = SimplexFunction(IIterationCount,psum,IExitFLAG,IErr) ! Doesnt matter what this result is
+PRINT*,"RB XIIterationCount,ytry",IIterationCount,ytry
         IF(IExitFLAG.EQ.1) RETURN
         
      END DO
@@ -155,7 +153,7 @@ END SUBROUTINE NDimensionalDownhillSimplex
 
 !!$----------------------------------------------------------------------------
 
-REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,fac,iter,IErr)
+REAL(RKIND) FUNCTION SimplexExtrapolate(IIterationCount,RSimplexVolume,y,psum,mp,np,ndim,ihi,fac,IErr)
 
   USE MyNumbers
     
@@ -167,7 +165,7 @@ REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,fac
 
   IMPLICIT NONE
   
-  INTEGER(IKIND) :: ihi,mp,ndim,np,NMAX,IErr,iter,j
+  INTEGER(IKIND) :: ihi,mp,ndim,np,NMAX,IErr,j,IIterationCount
   REAL(RKIND) :: fac,RSimplexVolume(mp,np),psum(np),y(mp),SimplexFunction,RSendPacket(ndim+2)
   REAL(RKIND) :: fac1,fac2,ytry,ptry(ndim)
   PARAMETER(NMAX=1000)
@@ -177,10 +175,10 @@ REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVolume,y,psum,mp,np,ndim,ihi,fac
   DO j=1,ndim
      ptry(j)=psum(j)*fac1-RSimplexVolume(ihi,j)*fac2
   ENDDO
-  RSendPacket = [10000.0_RKIND, ptry, REAL(iter,RKIND)]
+  RSendPacket = [10000.0_RKIND, ptry, REAL(IIterationCount,RKIND)]
   CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
   
-  ytry=SimplexFunction(ptry,iter,0,IErr)
+  ytry=SimplexFunction(IIterationCount,ptry,0,IErr)
   
   IF (ytry.LT.y(ihi)) THEN
      y(ihi)=ytry

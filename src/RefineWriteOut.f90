@@ -52,8 +52,7 @@ SUBROUTINE WriteOutVariables(IIterationCount,IErr)
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: IErr,ind,IStart,IEnd,jnd,ITotalOutputVariables
-  INTEGER(IKIND),INTENT(IN) :: IIterationCount
+  INTEGER(IKIND) :: IErr,ind,IStart,IEnd,jnd,IIterationCount,ITotalOutputVariables
   CHARACTER*200 :: SFormat,STotalOutputVariables
   INTEGER(IKIND),DIMENSION(IRefinementVariableTypes) :: IOutputVariables
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RDataOut
@@ -167,9 +166,8 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
   INTEGER(IKIND) :: IErr,IIterationCount,IThickness
   INTEGER(IKIND),INTENT(IN) :: IThicknessIndex,IExitFLAG
   CHARACTER*200 :: path
-  
-  IF(IExitFLAG.EQ.1.OR.(IIterationCount.GE.(IPreviousPrintedIteration+IPrint))) THEN
-     
+ !PRINT*,"RB boo writing IIterationCount,IPrint",IIterationCount,IPrint
+  IF(IExitFLAG.EQ.1.OR.(IIterationCount.GE.(IPreviousPrintedIteration-IPrint))) THEN    
 
      IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!RB in nm 
      
@@ -362,21 +360,23 @@ SUBROUTINE WriteIterationImages(path,IThicknessIndex,IErr)
         PRINT*,"WriteIterationImages(", my_rank, ") error in OpenReflectionImage()"
         RETURN
      ENDIF
-     
+!PRINT*,"RB IThicknessIndex",IThicknessIndex
      RImage = ZERO
      DO jnd = 1,IPixelTotal
         gnd = IPixelLocations(jnd,1)
         hnd = IPixelLocations(jnd,2)
-        RImage(gnd,hnd) = RIndividualReflections(ind,IThicknessIndex,jnd)
+        RImage(gnd,hnd) = ROutputReflections(ind,IThicknessIndex,jnd)
      END DO
-     
+!PRINT*,"RB about to WriteReflectionImage"     
+!     CALL WriteReflectionImage(IChOutWIImage,&
+!          ONE,IErr,2*IPixelCount,2*IPixelCount,2_IKIND)       
      CALL WriteReflectionImage(IChOutWIImage,&
           RImage,IErr,2*IPixelCount,2*IPixelCount,2_IKIND)       
      IF( IErr.NE.0 ) THEN
         PRINT*,"WriteIterationImages(", my_rank, ") error in WriteReflectionImage()"
         RETURN
      ENDIF
-     
+!PRINT*,"RB finished WriteReflectionImage"     
      CLOSE(IChOutWIImage,IOSTAT=IErr)       
      IF( IErr.NE.0 ) THEN
         PRINT*,"WriteIterationImages(", my_rank, ") error Closing Reflection Image()"
