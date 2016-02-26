@@ -11,7 +11,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
   IMPLICIT NONE
 
   INTEGER(IKIND) :: iter,mp,ndim,np,NMAX,ITMAX,IErr
-  REAL(RKIND) :: ftol,RSimplexVariable(mp,np),y(mp),SimplexFunction,SimplexExtrapolate,RSendPacket(ndim+2),RExitFlag
+  REAL(RKIND) :: ftol,RSimplexVariable(mp,np),y(mp),SimplexExtrapolate,RSendPacket(ndim+2),RExitFlag
   PARAMETER (NMAX=1000,ITMAX=50000)
 
   INTEGER(IKIND) :: i,ihi,ilo,inhi,j,m,n,IExitFlag
@@ -64,7 +64,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
         psum = RESHAPE(RSimplexVariable(MAXLOC(y),:),SHAPE(psum)) ! psum = simplex point with highest correlation
         RSendPacket = [-10000.0_RKIND, psum, REAL(iter,RKIND)]
         CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-        ytry = SimplexFunction(psum,iter,1,IErr)
+        CALL SimplexFunction(ytry,psum,iter,1,IErr)
         RETURN
      END IF
      
@@ -116,7 +116,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
                  ENDDO
                  RSendPacket = [10000.0_RKIND, psum, REAL(iter,RKIND)]
                  CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-                 y(i)=SimplexFunction(psum,iter,0,IErr)
+                 CALL SimplexFunction(y(i),psum,iter,0,IErr)
               ENDIF
            ENDDO
            iter=iter+ndim
@@ -127,8 +127,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
      ENDIF
      GOTO 2
   ELSE
-     DO!We have reached the exit criteria, finish off
-        RSendPacket = [-10000.0_RKIND, psum, REAL(iter,RKIND)]!RB added this line but no idea what I'm doing 
+     DO!Cores other than zero wait for IExitFLAG=1 before continuing
         CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
         RExitFlag = RSendPacket(1)                
         IF(RExitFlag.LT.ZERO) THEN
@@ -138,7 +137,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
         END IF
         psum = RSendPacket(2:(ndim+1))
         iter = NINT(RSendPacket(ndim+2),KIND=IKIND)
-        ytry = SimplexFunction(psum,iter,IExitFLAG,IErr) ! Doesnt matter what this result is
+        CALL SimplexFunction(ytry,psum,iter,IExitFLAG,IErr) ! Doesnt matter what this result is
         IF(IExitFLAG.EQ.1) RETURN
      END DO
 
@@ -161,7 +160,7 @@ REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVariable,y,psum,mp,np,ndim,ihi,f
   IMPLICIT NONE
   
   INTEGER(IKIND) :: ihi,mp,ndim,np,NMAX,IErr,iter,j
-  REAL(RKIND) :: fac,RSimplexVariable(mp,np),psum(np),y(mp),SimplexFunction,RSendPacket(ndim+2)
+  REAL(RKIND) :: fac,RSimplexVariable(mp,np),psum(np),y(mp),RSendPacket(ndim+2)
   REAL(RKIND) :: fac1,fac2,ytry,ptry(ndim)
   PARAMETER(NMAX=1000)
   CHARACTER*200 :: SPrintString
@@ -174,7 +173,7 @@ REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVariable,y,psum,mp,np,ndim,ihi,f
   RSendPacket = [10000.0_RKIND, ptry, REAL(iter,RKIND)]
   CALL MPI_BCAST(RSendPacket,ndim+2,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
   
-  ytry=SimplexFunction(ptry,iter,0,IErr)
+  CALL SimplexFunction(ytry,ptry,iter,0,IErr)
   
   IF (ytry.LT.y(ihi)) THEN
      y(ihi)=ytry

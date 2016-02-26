@@ -258,7 +258,7 @@ END SUBROUTINE CalculateFigureofMeritandDetermineThickness
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitFLAG,IErr)
+SUBROUTINE SimplexFunction(ytry,RIndependentVariable,IIterationCount,IExitFLAG,IErr)
 
   USE MyNumbers
   
@@ -275,6 +275,7 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitF
   
   INTEGER(IKIND) :: IErr,IExitFLAG,IThickness
   REAL(RKIND),DIMENSION(INoOfVariables),INTENT(INOUT) :: RIndependentVariable
+  REAL(RKIND) :: ytry
   INTEGER(IKIND),INTENT(IN) :: IIterationCount
   LOGICAL :: LInitialSimulationFLAG = .FALSE.
   
@@ -319,10 +320,11 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitF
         RETURN
      ENDIF
 !This is the key parameter!!!****     
-     SimplexFunction = RCrossCorrelation     
+!     SimplexFunction = RCrossCorrelation     
+     ytry = RCrossCorrelation     
   END IF
 
-END FUNCTION SimplexFunction
+END SUBROUTINE SimplexFunction
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -471,10 +473,11 @@ SUBROUTINE PrintVariables(IErr)
         CASE(1)
            WRITE(SPrintString,FMT='(A18,1X,F5.2)') "Current Absorption",RAbsorptionPercentage
            PRINT*,TRIM(ADJUSTL(SPrintString))
-           PRINT*,"Current Structure Factors : amplitude, phase (deg)"!RB should also put in hkl here
+           PRINT*,"Current Structure Factors"!RB should also put in hkl here
            DO jnd = 2,INoofUgs+1!yy since no.1 is 000
-              WRITE(SPrintString,FMT='(2(1X,F7.3),2X,A1,1X,F6.3,1X,F6.2)') CUgToRefine(jnd),":",&
-			  ABS(CUgToRefine(jnd)),180*ATAN2(AIMAG(CUgToRefine(jnd)),REAL(CUgToRefine(jnd)))/PI
+   !           RUgAmplitude=( REAL(CUgToRefine(jnd))**2 + AIMAG(CUgToRefine(jnd))**2 )**0.5!RB
+   !           RUgPhase=ATAN2(AIMAG(CUgToRefine(jnd)),REAL(CUgToRefine(jnd)))*180/PI!RB
+              WRITE(SPrintString,FMT='(2(1X,F9.4))') CUgToRefine(jnd)
               PRINT*,TRIM(ADJUSTL(SPrintString))
            END DO           
 
