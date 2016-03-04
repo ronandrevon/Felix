@@ -55,9 +55,9 @@ PROGRAM Felixrefine
 
   INTEGER(IKIND) :: IHours,IMinutes,ISeconds,IErr,IMilliSeconds,IIterationFLAG,&
        ind,jnd,knd,ICalls,IIterationCount,ICutOff,IHOLZgPoolMag,IBSMaxLocGVecAmp,&
-	   ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,INhkl,Iuid,&
-	   INumInitReflections,IZerothLaueZoneLevel,INumFinalReflections
-  INTEGER(IKIND) :: IStartTime, ICurrentTime ,IRate
+	   ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,INhkl,Iuid,IFinishFLAG,&
+	   INumInitReflections,IZerothLaueZoneLevel,INumFinalReflections,IThicknessIndex
+  INTEGER(IKIND) :: IStartTime,ICurrentTime,IRate
   INTEGER(IKIND),DIMENSION(2) :: ILoc
   INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: IOriginGVecIdentifier
   REAL(RKIND) :: StartTime,CurrentTime,Duration,&
@@ -70,6 +70,8 @@ PROGRAM Felixrefine
   CHARACTER*40 :: my_rank_string
   CHARACTER*20 :: Sind
   CHARACTER*200 :: SPrintString
+  LOGICAL :: LInitialSimulationFLAG = .TRUE.
+
   !-------------------------------------------------------------------
   ! constants
   CALL Init_Numbers
@@ -259,10 +261,10 @@ PROGRAM Felixrefine
   
   CALL GMatrixInitialisation (IErr)
   CALL StructureFactorInitialisation (IErr)
-    DO ind =1,6
-     WRITE(SPrintString,FMT='(10(1X,F5.2))') CUgMatNoAbs(ind,1:5)
-     PRINT*,TRIM(ADJUSTL(SPrintString))
-    END DO
+ !   DO ind =1,6
+ !    WRITE(SPrintString,FMT='(10(1X,F5.2))') CUgMatNoAbs(ind,1:5)
+ !    PRINT*,TRIM(ADJUSTL(SPrintString))
+ !   END DO
   DEALLOCATE(RgMatMag,STAT=IErr)
   DEALLOCATE(RgMatMat,STAT=IErr)
   
@@ -320,15 +322,117 @@ PROGRAM Felixrefine
   END IF
   
   ALLOCATE(RIndependentVariable(INoOfVariables),STAT=IErr)
+    !Fill up the IndependentVariable list with CUgMatNoAbs components
+    jnd=1
+    DO ind = 2,INoofUgs+1!start from 2 since the first one is the inner potential
+      IF ( ABS(REAL(CUgToRefine(ind),RKIND)).GE.RTolerance ) THEN
+        RIndependentVariable(jnd) = REAL(CUgToRefine(ind),RKIND)
+        jnd=jnd+1
+	  END IF
+      IF ( ABS(AIMAG(CUgToRefine(ind))).GE.RTolerance ) THEN
+        RIndependentVariable(jnd) = AIMAG(CUgToRefine(ind))
+        jnd=jnd+1
+      END IF
+    END DO
+    RIndependentVariable(jnd) = RAbsorptionPercentage!RB absorption always included in structure factor refinement as last variable
 
-
-
-
+  ALLOCATE(RSimplexVariable(INoOfVariables+1,INoOfVariables), STAT=IErr)  
+  ALLOCATE(RSimplexFoM(INoOfVariables+1),STAT=IErr) 
   
+  ! Setup Images for output
+  ALLOCATE(RhklPositions(nReflections,2),STAT=IErr)
+  CALL ImageSetup(IErr)
+  ALLOCATE(RSimulatedPatterns(INoOfLacbedPatterns,IThicknessCount,IPixelTotal),STAT=IErr)
+  RSimulatedPatterns = ZERO
+  
+  !For Bloch wave calculation
+  ALLOCATE(RDevPara(nReflections),STAT=IErr)
+  ALLOCATE(IStrongBeamList(nReflections),STAT=IErr)
+  ALLOCATE(IWeakBeamList(nReflections),STAT=IErr)
+  ALLOCATE(CFullWaveFunctions(nReflections),STAT=IErr)
+  ALLOCATE(RFullWaveIntensity(nReflections),STAT=IErr)
+  
+  !===========================================CORE SPECIFIC
+  !Allocations for the pixels to be calculated by this core  
+  ILocalPixelCountMin= (IPixelTotal*(my_rank)/p)+1
+  ILocalPixelCountMax= (IPixelTotal*(my_rank+1)/p) 
+  ALLOCATE(RIndividualReflections(INoOfLacbedPatterns,IThicknessCount,&
+         (ILocalPixelCountMax-ILocalPixelCountMin)+1),STAT=IErr)
+  ALLOCATE(IDisplacements(p),ICount(p),STAT=IErr)
+  DO ind = 1,p
+     IDisplacements(ind) = (IPixelTotal*(ind-1)/p)*INoOfLacbedPatterns*IThicknessCount
+     ICount(ind) = (((IPixelTotal*(ind)/p) - (IPixelTotal*(ind-1)/p)))*INoOfLacbedPatterns*IThicknessCount    
+  END DO
+  !===========================================CORE SPECIFIC  
+  
+  IIterationCount = 0  
+  
+  CALL FelixFunction(LInitialSimulationFLAG,IErr)
+  
+  ALLOCATE(RWeightingCoefficients(INoOfLacbedPatterns),STAT=IErr)
+  RWeightingCoefficients = ONE
+   
+  !>>>>>>>>>>Core 0 only
+  IF(my_rank.EQ.0) THEN   
+    IFinishFLAG=0
+    IPreviousPrintedIteration = -IPrint!RB ensuring baseline simulation is printed
+    CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
+	CALL WriteIterationOutput(IIterationCount,IThicknessIndex,IFinishFLAG,IErr)
+	CALL CreateRandomisedSimplex(RSimplexVariable,RIndependentVariable,IErr)
+  END IF
+  !>>>>>>>>>>>
+
+  !+++++++++++++++++++++++++++++++++++++++++++MPI_BCAST
+  CALL MPI_BCAST(RSimplexVariable,(INoOfVariables+1)*(INoOfVariables),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+  
+  DO ind = 1,(INoOfVariables+1)
+    IF(my_rank.EQ.0) THEN
+      PRINT*,"--------------------------------"
+      WRITE(SPrintString,FMT='(A8,I2,A4,I3)') "Simplex ",ind," of ",INoOfVariables+1
+      PRINT*,TRIM(ADJUSTL(SPrintString))
+      PRINT*,"--------------------------------"
+    END IF
+	CALL UpdateStructureFactors(RSimplexVariable(ind,:),IErr)
+    IF(my_rank.EQ.0) THEN	
+	  CALL PrintVariables(IErr)
+    END IF	
+    CALL FelixFunction(LInitialSimulationFLAG,IErr)	
+    CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
+	RSimplexFoM(ind)=RCrossCorrelation
+	CALL WriteIterationOutput(IIterationCount,IThicknessIndex,IFinishFLAG,IErr)
+	
+  END DO
+  
+  
+  
+  
+  
+  
+  IIterationCount = 1   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+		 
   !**********************************  
    
   !--------------------------------------------------------------------
   ! tidy up
+  DEALLOCATE(RFullWaveIntensity,STAT=IErr)
+  DEALLOCATE(CFullWaveFunctions,STAT=IErr)
+  DEALLOCATE(IWeakBeamList,STAT=IErr)
+  DEALLOCATE(IStrongBeamList,STAT=IErr)
+  DEALLOCATE(RDevPara,STAT=IErr)
+  DEALLOCATE(RSimulatedPatterns,STAT=IErr)
+  DEALLOCATE(RhklPositions,STAT=IErr)
+  DEALLOCATE(RSimplexFoM,STAT=IErr) 
+  DEALLOCATE(RSimplexVariable,STAT=IErr)  
   DEALLOCATE(RIndependentVariable,STAT=IErr)
   DEALLOCATE(CUgToRefine,STAT=IErr)  
   DEALLOCATE(IEquivalentUgKey,STAT=IErr)
