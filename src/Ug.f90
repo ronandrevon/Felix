@@ -36,7 +36,7 @@ SUBROUTINE GMatrixInitialisation (IErr)
 
 !!$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !!$%
-!!$%   Creates a matrix of every inter G vector (i.e. g1-g2) and
+!!$%   Creates a matrix of every inter g-vector (i.e. g1-g2) and
 !!$%   their magnitudes 
 !!$%
 !!$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -244,8 +244,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
            END IF
            CVgij = CVgij + RAtomicFormFactor * &
                 EXP(-CIMAGONE* &
-                DOT_PRODUCT(RgMatMat(ind,jnd,:), RrVecMat(lnd,:)) &
-                )
+                DOT_PRODUCT(RgMatMat(ind,jnd,:), RAtomCoordinate(lnd,:))  )
         ENDDO
 
   CUgMatNoAbs(ind,jnd)=((((TWOPI**2)* RRelativisticCorrection) / &!Ug
@@ -262,26 +261,14 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   DO ind=1,nReflections!Ug now halve the diagonal again
      CUgMatNoAbs(ind,ind)=CUgMatNoAbs(ind,ind)-RMeanInnerCrystalPotential!Ug
   ENDDO
+  
+  !Proportional absorption
+  CUgMat = CUgMatNoAbs+CUgMatNoAbs*EXP(CIMAGONE*PI/2)*(RAbsorptionPercentage/100_RKIND)
   	 
   RMeanInnerPotentialVolts = RMeanInnerCrystalPotential*(((RPlanckConstant**2)/ &
        (TWO*RElectronMass*RElectronCharge*TWOPI**2))*&
        RAngstromConversion*RAngstromConversion)
-
-  CALL Message("StructureFactorInitialisation",IMoreInfo,IErr, &
-       MessageVariable = "RMeanInnerCrystalPotential", &
-       RVariable = RMeanInnerCrystalPotential)
-  CALL Message("StructureFactorInitialisation",IMoreInfo,IErr, &
-       MessageVariable = "RMeanInnerPotentialVolts", &
-       RVariable = RMeanInnerPotentialVolts)
-
-  !--------------------------------------------------------------------
-  ! high-energy approximation (not HOLZ compatible)
-  !--------------------------------------------------------------------
-
   RBigK= SQRT(RElectronWaveVectorMagnitude**2 + RMeanInnerCrystalPotential)
-
-  CALL Message("StructureFactorInitialisation",IInfo,IErr, &
-       MessageVariable = "RBigK", RVariable = RBigK)
 
 END SUBROUTINE StructureFactorInitialisation
 

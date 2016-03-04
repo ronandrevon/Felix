@@ -718,15 +718,12 @@ SUBROUTINE ReadExperimentalImages(IErr)
 
   IF (INegError.NE.0) THEN
      IErr = 1
-     PRINT*,"No. of Images with Negative Values",INegError
+     PRINT*,"There are images with Negative Values",INegError
   END IF
 
-  IF(my_rank.EQ.0) THEN
-    IF( IErr.EQ.0 ) THEN
-     WRITE(SPrintString,FMT='(I3,A40)') INoOfLacbedPatterns," experimental images successfully loaded"
-     PRINT*,TRIM(ADJUSTL(SPrintString))
-!        PRINT*, INoOfLacbedPatterns,"experimental images successfully loaded"
-    END IF
+  IF ( (my_rank.EQ.0).AND.(IErr.EQ.0) ) THEN
+    WRITE(SPrintString,FMT='(I3,A40)') INoOfLacbedPatterns," experimental images successfully loaded"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
   END IF
 
 END SUBROUTINE ReadExperimentalImages
