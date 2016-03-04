@@ -58,7 +58,7 @@ PROGRAM Felixrefine
 	   ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,INhkl,&
 	   INumInitReflections,IZerothLaueZoneLevel,INumFinalReflections
   REAL(RKIND) :: StartTime, CurrentTime, Duration, TotalDurationEstimate,&
-       RFigureOfMerit,SimplexFunction,RHOLZAcceptanceAngle,RLaueZoneGz
+       RFigureOfMerit,RHOLZAcceptanceAngle,RLaueZoneGz
   INTEGER(IKIND) :: IStartTime, ICurrentTime ,IRate
   INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: IOriginGVecIdentifier
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RSimplexVariable
@@ -1044,7 +1044,7 @@ SUBROUTINE SimplexInitialisation(RSimplexVariable,RSimplexFoM,RIndependentVariab
   LOGICAL :: LInitialSimulationFLAG = .TRUE.
   REAL(RKIND),DIMENSION(INoOfVariables+1,INoOfVariables),INTENT(OUT) :: RSimplexVariable
   REAL(RKIND),DIMENSION(INoOfVariables+1),INTENT(OUT) :: RSimplexFoM
-  REAL(RKIND) :: SimplexFunction,RSimplexDummy
+  REAL(RKIND) :: RSimplexDummy
   REAL(RKIND),DIMENSION(INoOfVariables),INTENT(INOUT) :: RIndependentVariable
   INTEGER(IKIND),INTENT(INOUT) :: IIterationCount
   REAL(RKIND),INTENT(OUT) :: RStandardDeviation,RMean
@@ -1105,7 +1105,7 @@ SUBROUTINE SimplexInitialisation(RSimplexVariable,RSimplexFoM,RIndependentVariab
            PRINT*,TRIM(ADJUSTL(SPrintString))
            PRINT*,"--------------------------------"
         END IF
-        RSimplexDummy = SimplexFunction(RSimplexVariable(ind,:),1,0,IErr)
+        CALL SimplexFunction(RSimplexDummy,RSimplexVariable(ind,:),1,0,IErr)
         IF( IErr.NE.0 ) THEN
            PRINT*,"SimplexInitialisation(",my_rank,") error in SimplexFunction"
            RETURN
