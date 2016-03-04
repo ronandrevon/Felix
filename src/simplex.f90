@@ -105,7 +105,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
         ytry=SimplexExtrapolate(RSimplexVariable,y,psum,mp,np,ndim,ihi,0.5D0,iter,IErr)
         IF(ytry.GE.ysave) THEN
            PRINT*,"-----------------------------------------------------"
-           PRINT*,"Entering Expansion Phase Expect",ndim+1,"Simulations"
+           PRINT*,"Entering Expansion Phase, Expect",ndim+1,"Simulations"
            PRINT*,"-----------------------------------------------------"
            DO i=1,ndim+1
               PRINT*,"Expansion Simulation",i
