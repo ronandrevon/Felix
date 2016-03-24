@@ -665,6 +665,7 @@ SUBROUTINE ReadExperimentalImages(IErr)
 
   IMPLICIT NONE
   
+  REAL(RKIND) :: RImageLine(2*IPixelCount)
   INTEGER(IKIND) :: ind,jnd,IErr
   INTEGER(IKIND) :: INegError = 0
   CHARACTER*34 :: filename
@@ -680,8 +681,8 @@ SUBROUTINE ReadExperimentalImages(IErr)
 !        RETURN
 !     END IF
 
-    OPEN(UNIT= IChInImage, ERR= 10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*8)
+    OPEN(UNIT= IChInImage, ERR=10, STATUS= 'OLD', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
+       ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8,PAD='YES')
 	   
     ALLOCATE(RImageIn(2*IPixelCount,2*IPixelCount), STAT=IErr)  
     IF( IErr.NE.0 ) THEN
@@ -690,7 +691,8 @@ SUBROUTINE ReadExperimentalImages(IErr)
     ENDIF
     
      DO jnd=1,2*IPixelCount
-        READ(IChInImage,rec=jnd,ERR=10) RImageIn(jnd,:)
+        READ(IChInImage,rec=jnd,ERR=10) RImageLine 
+        RImageIn(jnd,:)=RImageLine
      END DO
 	 
 !     CALL ReadImageForRefinement(IErr)  
