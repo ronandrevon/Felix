@@ -665,8 +665,8 @@ SUBROUTINE ReadExperimentalImages(IErr)
 
   IMPLICIT NONE
   
-  REAL(RKIND) :: RImageLine(2*IPixelCount)
-  INTEGER(IKIND) :: ind,jnd,IErr
+  REAL(RKIND) :: RPixel
+  INTEGER(IKIND) :: ind,jnd,knd,IErr
   INTEGER(IKIND) :: INegError = 0
   CHARACTER*34 :: filename
   CHARACTER*200 :: SPrintString
@@ -682,7 +682,7 @@ SUBROUTINE ReadExperimentalImages(IErr)
 !     END IF
 
     OPEN(UNIT= IChInImage, ERR=10, STATUS= 'OLD', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8,PAD='YES')
+       ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8)
 	   
     ALLOCATE(RImageIn(2*IPixelCount,2*IPixelCount), STAT=IErr)  
     IF( IErr.NE.0 ) THEN
@@ -691,8 +691,10 @@ SUBROUTINE ReadExperimentalImages(IErr)
     ENDIF
     
      DO jnd=1,2*IPixelCount
-        READ(IChInImage,rec=jnd,ERR=10) RImageLine 
-        RImageIn(jnd,:)=RImageLine
+       DO knd=1,2*IPixelCount
+         READ(IChInImage,rec=jnd,ERR=10) RPixel 
+         RImageIn(jnd,knd)=RPixel
+       END DO
      END DO
 	 
 !     CALL ReadImageForRefinement(IErr)  
@@ -737,10 +739,9 @@ SUBROUTINE ReadExperimentalImages(IErr)
   RETURN
 
 10 IErr=1
-    PRINT*,"ReadExperimentalImages(", my_rank, ") error in READ() at record=", &
-         jnd, " of file ", TRIM(filename), " with ind=", ind
+    PRINT*,"ReadExperimentalImages(", my_rank, ")error in READ of",TRIM(ADJUSTL(filename)),",pixel",jnd,knd
     RETURN
 
 END SUBROUTINE ReadExperimentalImages
 
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
