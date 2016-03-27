@@ -36,18 +36,9 @@
 ! $Id: out.f90,v 1.59 2014/04/28 12:26:19 phslaz Exp $
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
 !---------------------------------------------------------------------
 !This file contains all the output subroutines
 !---------------------------------------------------------------------
-
-
-
-! --------------------------------------------------------------------
-! OpenData
-! --------------------------------------------------------------------
-
-
 SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 
   USE MyNumbers
@@ -62,22 +53,15 @@ SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 
   IMPLICIT NONE
 
-  CHARACTER*27 :: &
-       surname, surnamelength
-  CHARACTER*2 :: &
-       prefix,postfix
-  INTEGER(IKIND) :: &
-       IChOutWrite, IErr
-  CHARACTER*34 :: &
-       filename
-  INTEGER(IKIND) :: &
-       index
+  CHARACTER*27 :: surname, surnamelength
+  CHARACTER*2 :: prefix,postfix
+  INTEGER(IKIND) :: IChOutWrite, IErr
+  CHARACTER*34 :: filename
+  INTEGER(IKIND) :: index
 
  ! CALL Message("OpenData",IMust,IErr)
   IF((IWriteFLAG.GE.2.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-
      PRINT*,"OpenData()"
-
   END IF
   
   WRITE(surnamelength,*) LEN_TRIM(surname)
@@ -88,9 +72,7 @@ SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 !       MessageString = filename)
 
   IF(IWriteFLAG.GE.10) THEN
-     
      PRINT*,filename
-
   END IF
 
   IF (IWriteFLAG.GE.10) THEN
@@ -122,86 +104,15 @@ SUBROUTINE OpenData(IChOutWrite, prefix, surname, IErr)
 
   ! error in OPEN detected
 10 PRINT*,"WriteDataC(): ERR in OPEN()"
-  !PRINT*, "file ", filename, " does not exist --- REOPEN not possible!"
   IErr= 1
   RETURN
   
 END SUBROUTINE OpenData
   
-! --------------------------------------------------------------------
-! OpenData
-! --------------------------------------------------------------------
-SUBROUTINE OpenImageForReadIn(IErr,filename)
-!this is redundant
-  USE MyNumbers
-
-  USE IConst; USE RConst
-  USE IPara; USE RPara
-  USE IChannels
-
-  USE MPI
-  USE MyMPI
-
-  IMPLICIT NONE
-
-  INTEGER(KIND=IKIND) IChOutWrite, IErr
-
-  CHARACTER*34 filename
-
-  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-     PRINT*,"OpenImageForReadIn()"
-  END IF
-  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-    PRINT*,filename
-  END IF
-
-  OPEN(UNIT= IChInImage, ERR= 10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*8)
-  RETURN
-
-  ! error in OPEN detected
-10 PRINT*,"OpenImageForReadIn(): ERR in OPEN()"
-  IErr= 1
-  RETURN
-  
-END SUBROUTINE OpenImageForReadIn
-
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-SUBROUTINE ReadImageForRefinement(IErr)
-!this is redundant
-  USE MyNumbers
 
-  USE IConst; USE RConst
-  USE IPara; USE RPara
-  USE IChannels
-
-  USE MPI
-  USE MyMPI
-
-  IMPLICIT NONE
-
-  INTEGER(IKIND) :: IErr,ind
-
-  IF((IWriteFLAG.GE.10.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-     PRINT*,"ReadImageForRefinement()"
-  END IF
-
-  DO ind=1,2*IPixelCount
-     READ(IChInImage,rec=ind,ERR=10) RImageIn(ind,:)
-  END DO
-  RETURN
-
-10 IErr=1
-  PRINT*,"ReadImageForRefinement (", my_rank, ") error in READ()",IErr
-  RETURN
-  
-END SUBROUTINE ReadImageForRefinement
-
-! --------------------------------------------------------------------
-! Open Reflection Image
-! --------------------------------------------------------------------
-SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImageSizeX,ind)
-
+SUBROUTINE OpenReflectionImage(IChOutWrite,surname,IErr,IReflectWriting,IImageSize,ind)
+!this is redundant for felixrefine
   USE MyNumbers
   USE WriteToScreen
 
@@ -219,14 +130,13 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
 
   CHARACTER(*) :: surname
   CHARACTER*20 :: prefix,postfix,h,k,l
-  INTEGER(IKIND) :: IChOutWrite, IErr,IReflectWriting,IImageSizeX
+  INTEGER(IKIND) :: IChOutWrite, IErr,IReflectWriting,IImageSize
   CHARACTER*250 filename
   CHARACTER*40 fileext
   CHARACTER*60 Simagesize
   INTEGER index,ind
 
-  !!$  Only Prints out this message once when iterating (i.e. when in 1st iteration)
-
+  !!$  Only prints this message in 1st iteration
   IF (IMessageCounter.LT.1) THEN
      CALL Message("OpenReflectionImage",IMust,IErr)
       CALL Message("OpenReflectionImage",IMust+IDebug,IErr,&
@@ -235,9 +145,10 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
   END IF
 
   SELECT CASE(IChOutWrite)
-  CASE(MontageOut)
-  CASE DEFAULT
-     IF(IHKLSelectFLAG.EQ.0) THEn
+    CASE(MontageOut)
+	  !do nothing
+    CASE DEFAULT
+     IF(IHKLSelectFLAG.EQ.0) THEN
         WRITE(h,*)  NINT(Rhkl(IReflectWriting,1))
         WRITE(k,*)  NINT(Rhkl(IReflectWriting,2))
         WRITE(l,*)  NINT(Rhkl(IReflectWriting,3))
@@ -248,10 +159,7 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
      END IF
   END SELECT
 
-  WRITE(Simagesize,"(A2,I3.3,A2,I3.3)") &
-       "_",IImageSizeX,&
-       "x",IImageSizeX
-
+  WRITE(Simagesize,"(A1,I3.3,A1,I3.3)") "_",IImageSize,"x",IImageSize
   WRITE(fileext,*) TRIM(ADJUSTL(".bin")) 
   
   SELECT CASE(IChOutWrite)
@@ -308,7 +216,7 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
 
 
   OPEN(UNIT=IChOutWrite, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=IImageSizeX*8)
+       ACCESS='DIRECT',IOSTAT=Ierr,RECL=IImageSize*8)
   RETURN
    
   ! error in OPEN detected
@@ -318,12 +226,10 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
   
 END SUBROUTINE OpenReflectionImage
 
-!-----------------------------------------------------------------
-! Write Reflection Images
-!-----------------------------------------------------------------
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY,knd)
-
+SUBROUTINE WriteReflectionImage(IChOutWrite,RImageToWrite,IImageSize,IErr)
+!this is now redundant for felixrefine
   USE MyNumbers
   USE WriteToScreen
 
@@ -338,10 +244,9 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
 
   IMPLICIT NONE
 
-  INTEGER(KIND=IKIND) IErr,IImageSizeY,IImageSizeX
-  REAL(KIND=RKIND),DIMENSION(IImageSizeX,IImageSizeY) :: data
+  INTEGER(IKIND) :: IErr,IImageSize,ind,IChOutWrite
+  REAL(RKIND),DIMENSION(IImageSize,IImageSize) :: RImageToWrite
   CHARACTER*100 CSizeofData
-  INTEGER ind,knd, IChOutWrite
   CHARACTER*100 SFormatString
 
 
@@ -352,12 +257,13 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
      IMessageCounter = IMessageCounter +1
   END IF
      
-  DO ind = 1,(IImageSizeY)
-     WRITE(IChOutWrite,rec=ind) data(ind,:)
+  DO ind = 1,(IImageSize)
+     WRITE(IChOutWrite,rec=ind) RImageToWrite(ind,:)
   END DO
 
-
   RETURN
+  
+  
   ! error in WRITE detected
 20 PRINT*,"WriteReflectionImage(): ERR in WRITE()",Ierr
   IErr= 1
@@ -369,6 +275,8 @@ SUBROUTINE WriteReflectionImage( IChOutWrite, data, IErr,IImageSizeX,IImageSizeY
   RETURN
 
 END SUBROUTINE WriteReflectionImage
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteCif(IErr)
 

@@ -57,9 +57,9 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   
   INTEGER(IKIND) :: IErr,ind,jnd,knd,pnd,IThicknessIndex,IIterationFLAG
   INTEGER(IKIND) :: IAbsorbTag = 0
-
-  LOGICAL,INTENT(INOUT) :: LInitialSimulationFLAG !If function is being called during initialisation
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImageRoot
+  LOGICAL,INTENT(INOUT) :: LInitialSimulationFLAG !If function is being called during initialisation
+
 
   IF(IWriteFLAG.GE.6.AND.my_rank.EQ.0) THEN
      PRINT*,"Felix function"
@@ -74,7 +74,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
 !Update scattering matrix--------------------------------------------------------------------  
   IF((IRefineModeSelectionArray(1).EQ.1)) THEN!RB Ug refinement, replace selected Ug's
-     !CALL ApplyNewStructureFactors(IErr) !NOW IN SimplexFunction!***
+     !CALL ApplyNewStructureFactors(IErr) !NOW IN SimulateAndFit!***
      !IF( IErr.NE.0 ) THEN
      !  PRINT*,"felixfunction(",my_rank,")error in ApplyNewStructureFactors()"
      !  RETURN
@@ -95,7 +95,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   IMAXCBuffer = 200000!RB what are these?
   IPixelComputed= 0
 
-!Simulation on this core--------------------------------------------------------------------  
+!Simulation (different local pixels for each core)--------------------------------------------------------------------  
   IF(IWriteFLAG.GE.0.AND.my_rank.EQ.0) THEN
     PRINT*,"Bloch wave calculation..."
   END IF
@@ -161,6 +161,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
     DO ind = 1,IThicknessCount
       ICountedPixels = 0
       RSimulatedImage = ZERO
+      !remember dimensions of RSimulatedPatterns(INoOfLacbedPatterns,IThicknessCount,IPixelTotal)
       DO jnd = 1,2*IPixelCount!RB why does this masking have to be done here?
         DO knd = 1,2*IPixelCount
           IF(ABS(RMask(jnd,knd)).GT.TINY) THEN
@@ -194,9 +195,9 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
       CASE(4)!Apply gaussian blur to simulated image
         RExperimentalImage = RImageExpi(:,:,hnd)
         Rradius=0.95_RKIND!!!*+*+ will need to be added as a line in felix.inp +*+*!!!
-        !IF(my_rank.eq.0) THEN
-        !  PRINT*,"Gaussian blur radius =",Rradius
-        !END IF
+        IF(my_rank.EQ.0) THEN
+          PRINT*,"Gaussian blur radius =",Rradius
+        END IF
         CALL BlurG(RSimulatedImage,Rradius,IErr)
           
       END SELECT
@@ -215,8 +216,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
            
       CASE(2) ! Normalised Cross Correlation
         RIndependentCrossCorrelation = ONE-& ! So Perfect Correlation = 0 not 1
-           Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,&
-                (/2*IPixelCount, 2*IPixelCount/),IPixelTotal,IErr)
+           Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,IErr)
            
       END SELECT
                 
@@ -249,7 +249,7 @@ END SUBROUTINE CalculateFigureofMeritandDetermineThickness
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitFLAG,IErr)
+SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,IIterationCount,IExitFLAG,IErr)
 
   USE MyNumbers
   
@@ -265,13 +265,14 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitF
   IMPLICIT NONE
   
   INTEGER(IKIND) :: IErr,IExitFLAG,IThickness,ind,jnd
-  REAL(RKIND),DIMENSION(INoOfVariables),INTENT(INOUT) :: RIndependentVariable
+  REAL(RKIND),DIMENSION(INoOfVariables) :: RIndependentVariable
+  REAL(RKIND) :: RFigureofMerit
   INTEGER(IKIND),INTENT(IN) :: IIterationCount
   COMPLEX(CKIND),DIMENSION(nReflections,nReflections) :: CUgMatDummy
   LOGICAL :: LInitialSimulationFLAG = .FALSE.
   
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
-     PRINT*,"SimplexFunction(",my_rank,")"
+     PRINT*,"SimulateAndFit(",my_rank,")"
   END IF
 
   IF(IRefineModeSelectionArray(1).EQ.1) THEN  !Ug refinement; update structure factors 
@@ -306,11 +307,12 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitF
     WHERE(ABS(CUgMatDummy).GT.TINY)
       CUgMat = CUgMatDummy
     END WHERE
-        RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[
+    RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[
+	PRINT*,"UpdateStructureFactors: absorption=",RAbsorptionPercentage
   ELSE !everything else
      CALL UpdateVariables(RIndependentVariable,IErr)
      IF( IErr.NE.0 ) THEN
-        PRINT*,"SimplexFunction(",my_rank,")error in UpdateVariables"
+        PRINT*,"SimulateAndFit(",my_rank,")error in UpdateVariables"
         RETURN
      END IF
      WHERE(RAtomSiteFracCoordVec.LT.0) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec+ONE
@@ -320,28 +322,28 @@ REAL(RKIND) FUNCTION SimplexFunction(RIndependentVariable,IIterationCount,IExitF
   IF (my_rank.EQ.0) THEN
      CALL PrintVariables(IErr)
      IF( IErr.NE.0 ) THEN
-        PRINT*,"SimplexFunction(",my_rank,")error in PrintVariables"
+        PRINT*,"SimulateAndFit(",my_rank,")error in PrintVariables"
         RETURN
      END IF
   END IF
 
   CALL FelixFunction(LInitialSimulationFLAG,IErr) ! Simulate !!  
   IF( IErr.NE.0 ) THEN
-     PRINT*,"SimplexFunction(",my_rank,")error in FelixFunction"
+     PRINT*,"SimulateAndFit(",my_rank,")error in FelixFunction"
      RETURN
   END IF
 
   IF(my_rank.EQ.0) THEN   
      CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr) 
      IF( IErr.NE.0 ) THEN
-        PRINT*,"SimplexFunction(",my_rank,")error in CreateImagesAndWriteOutput"
+        PRINT*,"SimulateAndFit(",my_rank,")error in CreateImagesAndWriteOutput"
         RETURN
      ENDIF
 !This is the key parameter!!!****     
-     SimplexFunction = RCrossCorrelation     
+     RFigureofMerit = RCrossCorrelation     
   END IF
 
-END FUNCTION SimplexFunction
+END SUBROUTINE SimulateAndFit
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

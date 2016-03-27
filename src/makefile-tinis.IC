@@ -40,7 +40,7 @@ $(info please run: module load intel impi imkl FFTW)
 
 F90 = mpiifort
 FC = mpiifort -fixed
-F90FLAGS = -132 -r8 -u -C -g -traceback # debug
+F90FLAGS = -132 -r8 -u -C -g -traceback -check noarg_temp_created # debug
 #F90FLAGS = -132 -r8 -u -g -p# profiling
 F77FLAGS = -r8 # debug
 

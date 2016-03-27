@@ -665,82 +665,69 @@ SUBROUTINE ReadExperimentalImages(IErr)
 
   IMPLICIT NONE
   
-  REAL(RKIND) :: RPixel
-  INTEGER(IKIND) :: ind,jnd,knd,IErr
+  REAL(RKIND) :: RPixel,RImageLine(2*IPixelCount)
+  INTEGER(IKIND) :: ind,jnd,knd,IErr,IByteSize
   INTEGER(IKIND) :: INegError = 0
   CHARACTER*34 :: filename
   CHARACTER*200 :: SPrintString
 
+  IByteSize=2!2bytes=64-bit input file (NB tinis specifies in bytes, not bits)
+  !NB when this subroutine is working get rid of the pointless variable RImageIn
+  ALLOCATE(RImageIn(2*IPixelCount,2*IPixelCount), STAT=IErr)  
+  IF( IErr.NE.0 ) THEN
+    PRINT*,"ReadExperimentalImages(",my_rank,")error allocating RImageIn"
+    RETURN
+  ENDIF
+  RImageIn=ZERO
+  
   DO ind = 1,INoOfLacbedPatterns
-     
-     WRITE(filename,"(A6,I3.3,A4)") "felix.",ind,".img"
-     
-!     CALL OpenImageForReadIn(IErr,filename)  
-!     IF( IErr.NE.0 ) THEN
-!        PRINT*,"ReadExperimentalImages (", my_rank, ") error in OpenImageForReadIn()"
-!        RETURN
-!     END IF
-
-    OPEN(UNIT= IChInImage, ERR=10, STATUS= 'OLD', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8)
-	   
-    ALLOCATE(RImageIn(2*IPixelCount,2*IPixelCount), STAT=IErr)  
-    IF( IErr.NE.0 ) THEN
-      PRINT*,"ReadExperimentalImages(",my_rank,")error allocating RImageIn"
-      RETURN
-    ENDIF
-    
-     DO jnd=1,2*IPixelCount
-       DO knd=1,2*IPixelCount
-         READ(IChInImage,rec=jnd,ERR=10) RPixel 
-         RImageIn(jnd,knd)=RPixel
-       END DO
-     END DO
-	 
-!     CALL ReadImageForRefinement(IErr)  
-!     IF( IErr.NE.0 ) THEN
-!        PRINT*,"ReadExperimentalImages (", my_rank, ") error in ReadImageForRefinement()"
-!        RETURN
-!     ELSE
-!        IF((IWriteFLAG.GE.6.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
-!           PRINT*,"Image Read In Successful"
-!        END IF
-!     ENDIF
-     
-     IF(MINVAL(RImageIn).LT.ZERO.AND.(my_rank.EQ.0)) THEN
-        PRINT*,"Warning! There are negative values in your experimental images"
-        INegError = INegError + 1
-     END IF
-
-     RImageExpi(:,:,ind) = RImageIn
-     DEALLOCATE(RImageIn, STAT=IErr)  
-     
-     CLOSE(IChInImage,IOSTAT=IErr) 
-     IF( IErr.NE.0 ) THEN
+    WRITE(filename,"(A6,I3.3,A4)") "felix.",ind,".img"
+	!read in, core 0 only
+    IF (my_rank.EQ.0) THEN
+      OPEN(UNIT= IChInImage, ERR=10, STATUS= 'OLD', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
+       ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)!line read
+!       ACCESS='DIRECT',IOSTAT=IErr,RECL=IByteSize)!pixel read
+      DO jnd=1,2*IPixelCount
+!        DO knd=1,2*IPixelCount
+          READ(IChInImage,rec=jnd,ERR=10) RImageLine!line read
+          RImageIn(jnd,:)=RImageLine
+!          READ(IChInImage,rec=10+(jnd-1)*2*IPixelCount+knd,ERR=10) RPixel!pixel read
+!          RImageIn(jnd,knd)=RPixel
+!          PRINT*,jnd,"RPixel(1)",RImageLine(1)
+!        END DO
+	  END DO
+      CLOSE(IChInImage,IOSTAT=IErr) 
+      IF( IErr.NE.0 ) THEN
         PRINT*,"ReadExperimentalImages (", my_rank, ") error in CLOSE()"
         RETURN
-     END IF
-
+      END IF
+    END IF
+	!=====================================send RImageIn out to all cores
+    CALL MPI_BCAST(RImageIn,(2*IPixelCount)*(2*IPixelCount),MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+    !=====================================	
+    IF(MINVAL(RImageIn).LT.ZERO.AND.(my_rank.EQ.0)) THEN
+      PRINT*,"Warning! There are negative values in your experimental images"
+      INegError=INegError+1
+    END IF
+    RImageExpi(:,:,ind) = RImageIn
   END DO
+  DEALLOCATE(RImageIn, STAT=IErr)  
 
   IF (INegError.NE.0) THEN
      IErr = 1
      PRINT*,"No. of Images with Negative Values",INegError
   END IF
 
-  IF(my_rank.EQ.0) THEN
-    IF( IErr.EQ.0 ) THEN
-     WRITE(SPrintString,FMT='(I3,A40)') INoOfLacbedPatterns," experimental images successfully loaded"
-     PRINT*,TRIM(ADJUSTL(SPrintString))
-!        PRINT*, INoOfLacbedPatterns,"experimental images successfully loaded"
-    END IF
+  IF(my_rank.EQ.0.AND.IErr.EQ.0) THEN
+    WRITE(SPrintString,FMT='(I3,A40)') INoOfLacbedPatterns," experimental images successfully loaded"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
   END IF
 
   RETURN
 
 10 IErr=1
-    PRINT*,"ReadExperimentalImages(", my_rank, ")error in READ of",TRIM(ADJUSTL(filename)),",pixel",jnd,knd
-    RETURN
+   PRINT*,"ReadExperimentalImages(", my_rank, ")error reading ",TRIM(ADJUSTL(filename)),", line ",jnd
+   RETURN
 
 END SUBROUTINE ReadExperimentalImages
 

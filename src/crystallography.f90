@@ -200,53 +200,29 @@ SUBROUTINE AllAtomPositions(IErr)
   IMPLICIT NONE
   
   INTEGER(IKIND) :: IErr,ind,jnd,knd,Ifullind,Iuniind
-  REAL(RKIND):: norm
+  REAL(RKIND):: norm,RMNPOut(THREEDIM)
   LOGICAL :: Lunique
   CHARACTER*100 MNPString
   CHARACTER*100 indString
 
   CALL Message("AllAtomPositions",IMust,IErr)
   
-  ALLOCATE(RFullAtomicFracCoordVec( &
-       SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1),THREEDIM),STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE RFullAtomicFracCoordVec"
-     RETURN
-  END IF
-  ALLOCATE(SFullAtomicNameVec( &
-       SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE SFullAtomicNameVec"
-     RETURN
-  END IF
-  ALLOCATE(RFullPartialOccupancy( &
-       SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE RFullPartialOccupancy"
-     RETURN
-  END IF
+  ALLOCATE(RFullAtomicFracCoordVec(SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1),THREEDIM),STAT=IErr)  
+  ALLOCATE(SFullAtomicNameVec(SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
+  ALLOCATE(RFullPartialOccupancy(SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
   ALLOCATE(RFullIsotropicDebyeWallerFactor( &
        SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE RFullIsotropicDebyeWallerFactor"
-     RETURN
-  END IF
   ALLOCATE(IFullAtomicNumber( &
        SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE IFullAtomicNumber"
-     RETURN
-  END IF
   ALLOCATE(IFullAnisotropicDWFTensor( &
        SIZE(RSymVec,1)*SIZE(RAtomSiteFracCoordVec,1)),STAT=IErr)  
   IF( IErr.NE.0 ) THEN
-     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE IFullAnisotropicDWFTensor"
+     PRINT*,"AllAtomPositions(",my_rank,") error in ALLOCATE"
      RETURN
   END IF
   
   DO ind=1, SIZE(RSymVec,DIM=1)  
      DO jnd=1, SIZE(RAtomSiteFracCoordVec,DIM=1)
-	 
         Ifullind= SIZE(RSymVec,1)*(jnd-1) + ind
         RFullAtomicFracCoordVec(Ifullind,:)= &
              MATMUL(RSymMat(ind,:,:),RAtomSiteFracCoordVec(jnd,:)) &
@@ -263,7 +239,6 @@ SUBROUTINE AllAtomPositions(IErr)
                    RFullAtomicFracCoordVec(Ifullind,knd)+1.D0
            END IF
         ENDDO
-        
      ENDDO
   ENDDO
 
@@ -288,33 +263,13 @@ SUBROUTINE AllAtomPositions(IErr)
   CALL Message("CrystalUniqueFractionalAtomicPostitionsCalculation",IMust,IErr)
 
   ALLOCATE(MNP(ITotalAtoms,THREEDIM),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE MNP"
-     RETURN
-  ENDIF
   ALLOCATE(SMNP(ITotalAtoms),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE SMNP"
-     RETURN
-  ENDIF
   ALLOCATE(RDWF(ITotalAtoms),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE RDWF"
-     RETURN
-  ENDIF
   ALLOCATE(ROcc(ITotalAtoms),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE ROcc"
-     RETURN
-  ENDIF
   ALLOCATE(IAtoms(ITotalAtoms),STAT=IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE IAtoms"
-     RETURN
-  ENDIF
   ALLOCATE(IAnisoDWFT(ITotalAtoms),STAT=IErr)
   IF( IErr.NE.0 ) THEN
-     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE IAnisoDWFT"
+     PRINT*,"CrystalUniqueFractionalAtomicPostitionsCalculation(", my_rank, ") error ", IErr, " in ALLOCATE"
      RETURN
   ENDIF
 
@@ -354,8 +309,8 @@ SUBROUTINE AllAtomPositions(IErr)
 
 !!$  Display the above variables to the user - index stored as string for formatting using message subroutine
   DO ind=1,Iuniind     
-
-        WRITE(MNPString,'(3(F5.3,1X))') MNP(ind,:)
+    RMNPout=MNP(ind,:)
+        WRITE(MNPString,'(3(F5.3,1X))') RMNPout
         WRITE(indString,*)ind
         CALL Message("CrystalUniqueFractionalAtomicPostitionsCalculation",IMoreInfo,IErr, &
               MessageVariable = "MNP("//TRIM(ADJUSTL(indString))//",:)",MessageString = MNPString)
