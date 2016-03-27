@@ -88,16 +88,15 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
 	
 	  !make the path/filename
       IF(IHKLSelectFLAG.EQ.0) THEN!don't know what these two cases are?
-        WRITE(h,*)  NINT(Rhkl(IReflectWriting,1))
-        WRITE(k,*)  NINT(Rhkl(IReflectWriting,2))
-        WRITE(l,*)  NINT(Rhkl(IReflectWriting,3))
+        WRITE(h,*)  NINT(Rhkl(ind,1))
+        WRITE(k,*)  NINT(Rhkl(ind,2))
+        WRITE(l,*)  NINT(Rhkl(ind,3))
       ELSE
-        WRITE(h,*)  NINT(Rhkl(IOutPutReflections(IReflectWriting),1))
-        WRITE(k,*)  NINT(Rhkl(IOutPutReflections(IReflectWriting),2))
-        WRITE(l,*)  NINT(Rhkl(IOutPutReflections(IReflectWriting),3))
+        WRITE(h,*)  NINT(Rhkl(IOutPutReflections(ind),1))
+        WRITE(k,*)  NINT(Rhkl(IOutPutReflections(ind),2))
+        WRITE(l,*)  NINT(Rhkl(IOutPutReflections(ind),3))
       END IF
-      WRITE(filename,*) TRIM(ADJUSTL(path,"/",&
-	    TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"))
+      WRITE(filename,*) path,"/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
 
       !write the data	
       OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=filename,FORM='UNFORMATTED',&
