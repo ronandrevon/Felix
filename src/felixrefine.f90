@@ -916,12 +916,12 @@ SUBROUTINE SetupUgsToRefine(IErr)
   Iuid=0_IKIND 
   DO ind = 1,nReflections
      DO jnd = 1,ind
-        IF(ISymmetryRelations(ind,jnd).NE.0) THEN
+        IF(ISymmetryRelations(ind,jnd).NE.0_IKIND) THEN
            CYCLE
         ELSE
            Iuid=Iuid+1_IKIND
            !Ug Fill the symmetry relation matrix with incrementing numbers that have the sign of the imaginary part
-		   WHERE (ABS(RgSumMat-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
+		   WHERE (ABS(ABS(RgSumMat)-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
               ISymmetryRelations = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs)/TINY**2))
            END WHERE
         END IF
