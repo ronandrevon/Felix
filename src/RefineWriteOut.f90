@@ -37,6 +37,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
+!NB core 0 only
 !This code needs to be taken up a subroutine level and combined with CalculateFigureofMeritandDetermineThickness to avoid repeated calculation of the image to output and BlurG
   USE MyNumbers
   
@@ -55,7 +56,7 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
   INTEGER(IKIND),INTENT(IN) :: IThicknessIndex,IExitFLAG
   REAL(RKIND),DIMENSION(2*IPixelCount*2*IPixelCount) :: RImageToWrite
   REAL(RKIND) :: Rradius
-  CHARACTER*200 :: path,h,k,l,SPrintString
+  CHARACTER*200 :: path,h,k,l,SPrintString,filename
   
   IBytesize=8
   
@@ -97,9 +98,12 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
         WRITE(l,*)  NINT(Rhkl(IOutPutReflections(ind),3))
       END IF
       WRITE(filename,*) path,"/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
+	  
+      PRINT*, path,"/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
+	  PRINT*,"RECL=",2*IPixelcount*IBytesize
 
       !write the data	
-      OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=filename,FORM='UNFORMATTED',&
+      OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
          ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelcount*IBytesize)	
       WRITE(IChOutWIImage) RImageToWrite	 
       CLOSE(IChOutWIImage,IOSTAT=IErr) 
@@ -156,7 +160,7 @@ END SUBROUTINE WriteIterationOutput
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteIterationStructure(path,IErr)
-
+!NB core 0 only
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -228,7 +232,7 @@ END SUBROUTINE WriteIterationStructure
 !!$  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteOutVariables(IIterationCount,IErr)
-
+!NB core 0 only
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -337,7 +341,7 @@ END SUBROUTINE WriteOutVariables
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE WriteStructureFactors(path,IErr)
-
+!NB core 0 only
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst

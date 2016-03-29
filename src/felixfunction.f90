@@ -125,7 +125,7 @@ END SUBROUTINE FelixFunction
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr)
-  
+  !NB core 0 only
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -149,7 +149,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
   CHARACTER*200 :: SPrintString
        
   
-  IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
+  IF (IWriteFLAG.GE.10) THEN
      PRINT*,"CalculateFigureofMeritandDetermineThickness(",my_rank,")"
   END IF
 
@@ -195,9 +195,9 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
       CASE(4)!Apply gaussian blur to simulated image
         RExperimentalImage = RImageExpi(:,:,hnd)
         Rradius=0.95_RKIND!!!*+*+ will need to be added as a line in felix.inp +*+*!!!
-        IF(my_rank.EQ.0) THEN
-          PRINT*,"Gaussian blur radius =",Rradius
-        END IF
+       ! IF(my_rank.EQ.0) THEN
+       !   PRINT*,"Gaussian blur radius =",Rradius
+       ! END IF
         CALL BlurG(RSimulatedImage,Rradius,IErr)
           
       END SELECT
@@ -348,7 +348,7 @@ END SUBROUTINE SimulateAndFit
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
-
+!NB core 0 only
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -636,6 +636,7 @@ END SUBROUTINE ConvertVectorMovementsIntoAtomicCoordinates
 
 SUBROUTINE BlurG(RImageToBlur,Rradius,IErr)
   !performs a 2D Gaussian blur on the input image
+  !renormalises the output image to have the same min and max as the input image
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -652,7 +653,11 @@ SUBROUTINE BlurG(RImageToBlur,Rradius,IErr)
   INTEGER(IKIND) :: IErr,ind,jnd,IKernelRadius,IKernelSize
   REAL(RKIND),DIMENSION(:), ALLOCATABLE :: RGauss1D
   REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RImageToBlur,RTempImage,RShiftImage
-  REAL(RKIND) :: Rradius,Rind,Rsum
+  REAL(RKIND) :: Rradius,Rind,Rsum,Rmin,Rmax
+  
+  !get min and max of input image
+  Rmin=MINVAL(RImageToBlur)
+  Rmax=MAXVAL(RImageToBlur)
 
   !set up a 1D kernel of appropriate size  
   IKernelRadius=NINT(3*Rradius)
@@ -661,7 +666,7 @@ SUBROUTINE BlurG(RImageToBlur,Rradius,IErr)
   DO ind=-IKernelRadius,IKernelRadius
     Rind=REAL(ind)
     RGauss1D(ind+IKernelRadius+1)=EXP(-(Rind**2)/((2*Rradius)**2))
-    Rsum=Rsum+EXP(-(Rind**2)/((2*Rradius)**2))
+    Rsum=Rsum+RGauss1D(ind+IKernelRadius+1)
   END DO
   RGauss1D=RGauss1D/Rsum!normalise
   RTempImage=RImageToBlur*0_RKIND;!reset the temp image
@@ -681,7 +686,9 @@ SUBROUTINE BlurG(RImageToBlur,Rradius,IErr)
     END IF
     RTempImage=RTempImage+RShiftImage*RGauss1D(ind+IKernelRadius+1)
   END DO
-  RImageToBlur=RTempImage;!make the 1D blurred image the input for the next direction
+  
+  !make the 1D blurred image the input for the next direction
+  RImageToBlur=RTempImage;
   RTempImage=RImageToBlur*0_RKIND;!reset the temp image
 
   !apply the kernel in direction 2  
@@ -699,9 +706,14 @@ SUBROUTINE BlurG(RImageToBlur,Rradius,IErr)
     END IF
     RTempImage=RTempImage+RShiftImage*RGauss1D(ind+IKernelRadius+1)
   END DO
-  RImageToBlur=RTempImage;
   DEALLOCATE(RGauss1D,STAT=IErr)
 
+  !set intensity range of outpt image to match that of the input image
+  RTempImage=RTempImage-MINVAL(RTempImage)
+  RTempImage=RTempImage*(Rmax-Rmin)/MAXVAL(RTempImage)+Rmin
+  !return the blurred image
+  RImageToBlur=RTempImage;
+  
 END SUBROUTINE BlurG
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
