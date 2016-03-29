@@ -51,10 +51,6 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
   IMPLICIT NONE
 
-  !--------------------------------------------------------------------
-  ! local variable definitions
-  !--------------------------------------------------------------------
-  
   INTEGER(IKIND) :: IErr,ind,jnd,knd,pnd,IThicknessIndex,IIterationFLAG
   INTEGER(IKIND) :: IAbsorbTag = 0
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImageRoot
@@ -124,8 +120,8 @@ END SUBROUTINE FelixFunction
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr)
-  !NB core 0 only
+SUBROUTINE CalculateFigureofMeritandDetermineThickness(IBestThicknessCount,IErr)
+  !NB core 0 only !being made redundant, move to CreateImagesAndWriteOutput
   USE MyNumbers
   
   USE CConst; USE IConst; USE RConst
@@ -141,7 +137,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
 
   INTEGER(IKIND) :: ind,jnd,knd,IErr,ICountedPixels,IThickness,hnd
   INTEGER(IKIND),DIMENSION(INoOfLacbedPatterns) :: IThicknessByReflection
-  INTEGER(IKIND),INTENT(OUT) :: IThicknessCountFinal
+  INTEGER(IKIND),INTENT(OUT) :: IBestThicknessCount
   REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RSimulatedImage,RExperimentalImage
   REAL(RKIND) :: RCrossCorrelationOld,RIndependentCrossCorrelation,RThickness,&
        PhaseCorrelate,Normalised2DCrossCorrelation,ResidualSumofSquares,RThicknessRange,Rradius
@@ -230,8 +226,8 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IThicknessCountFinal,IErr
     RReflectionCrossCorrelations(hnd) = RCrossCorrelationOld
   END DO
   !RB assume that the thickness is given by the mean of individual thicknesses  
-  IThicknessCountFinal = SUM(IThicknessByReflection)/INoOfLacbedPatterns
-  RThickness = RInitialThickness + (IThicknessCountFinal-1)*RDeltaThickness
+  IBestThicknessCount = SUM(IThicknessByReflection)/INoOfLacbedPatterns
+  RThickness = RInitialThickness + (IBestThicknessCount-1)*RDeltaThickness
   RThicknessRange=( MAXVAL(IThicknessByReflection)-MINVAL(IThicknessByReflection) )*&
                   RDeltaThickness
 
@@ -272,7 +268,7 @@ SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,IIterationCount,IE
   LOGICAL :: LInitialSimulationFLAG = .FALSE.
   
   IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
-     PRINT*,"SimulateAndFit(",my_rank,")"
+     PRINT*,"SimulateAndFit"
   END IF
 
   IF(IRefineModeSelectionArray(1).EQ.1) THEN  !Ug refinement; update structure factors 
@@ -308,7 +304,7 @@ SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,IIterationCount,IE
       CUgMat = CUgMatDummy
     END WHERE
     RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[
-	PRINT*,"UpdateStructureFactors: absorption=",RAbsorptionPercentage
+!	PRINT*,"UpdateStructureFactors: absorption=",RAbsorptionPercentage
   ELSE !everything else
      CALL UpdateVariables(RIndependentVariable,IErr)
      IF( IErr.NE.0 ) THEN
@@ -363,16 +359,113 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
   IMPLICIT NONE
   
   INTEGER(IKIND) :: IErr,IThicknessIndex,IIterationCount,IExitFLAG
+!  CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
+  INTEGER(IKIND) :: ind,jnd,knd,hnd,ICountedPixels,IThickness
+  INTEGER(IKIND),DIMENSION(INoOfLacbedPatterns) :: IThicknessByReflection
+  INTEGER(IKIND) :: IBestThicknessCount
+  REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RSimulatedImage,RExperimentalImage
+  REAL(RKIND) :: RCrossCorrelationOld,RIndependentCrossCorrelation,RThickness,&
+       PhaseCorrelate,Normalised2DCrossCorrelation,ResidualSumofSquares,RThicknessRange,Rradius
+  REAL(RKIND),DIMENSION(INoOfLacbedPatterns) :: RReflectionCrossCorrelations,RReflectionThickness
+  CHARACTER*200 :: SPrintString
+  
+  
+!  PRINT*,"CreateImagesAndWriteOutput(",my_rank,")"
 
-  CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"CreateImagesAndWriteOutput(", my_rank, ") error ", IErr, &
-          "Calling function CalculateFigureofMeritandDetermineThickness"
-     RETURN
-  ENDIF
+  RReflectionCrossCorrelations = ZERO
+  DO hnd = 1,INoOfLacbedPatterns
+    RCrossCorrelationOld = 1.0E15 !A large Number
+    RThickness = ZERO
+    DO ind = 1,IThicknessCount
+      ICountedPixels = 0
+      RSimulatedImage = ZERO
+      !remember dimensions of RSimulatedPatterns(INoOfLacbedPatterns,IThicknessCount,IPixelTotal)
+      DO jnd = 1,2*IPixelCount
+        DO knd = 1,2*IPixelCount
+          IF(ABS(RMask(jnd,knd)).GT.TINY) THEN!RB why does this masking have to be done here?
+            ICountedPixels = ICountedPixels+1
+            RSimulatedImage(jnd,knd) = RSimulatedPatterns(hnd,ind,ICountedPixels)
+          END IF
+        END DO
+      END DO
+               
+      SELECT CASE (IImageProcessingFLAG)
+
+      CASE(0)!no processing
+        RExperimentalImage = RImageExpi(:,:,hnd)
+           
+      CASE(1)!square root before perfoming corration
+        RSimulatedImage=SQRT(RSimulatedImage)
+        RExperimentalImage =  SQRT(RImageExpi(:,:,hnd))
+           
+      CASE(2)!log before performing correlation
+        WHERE (RSimulatedImage.GT.TINY**2)
+          RSimulatedImage=LOG(RSimulatedImage)
+        ELSEWHERE
+          RSimulatedImage = TINY**2
+        END WHERE
+        WHERE (RExperimentalImage.GT.TINY**2)
+          RExperimentalImage = LOG(RImageExpi(:,:,hnd))
+        ELSEWHERE
+          RExperimentalImage =  TINY**2
+        END WHERE
+              
+      CASE(4)!Apply gaussian blur to simulated image
+        RExperimentalImage = RImageExpi(:,:,hnd)
+        Rradius=0.95_RKIND!!!*+*+ will need to be added as a line in felix.inp +*+*!!!
+       ! IF(my_rank.EQ.0) THEN
+       !   PRINT*,"Gaussian blur radius =",Rradius
+       ! END IF
+        CALL BlurG(RSimulatedImage,Rradius,IErr)
+          
+      END SELECT
+
+      RIndependentCrossCorrelation = ZERO   
+      SELECT CASE (ICorrelationFLAG)
+         
+      CASE(0) ! Phase Correlation
+        RIndependentCrossCorrelation=ONE-& ! So Perfect Correlation = 0 not 1
+           PhaseCorrelate(RSimulatedImage,RExperimentalImage,&
+           IErr,2*IPixelCount,2*IPixelCount)
+           
+      CASE(1) ! Residual Sum of Squares (Non functional)
+        RIndependentCrossCorrelation = ResidualSumofSquares(&
+                RSimulatedImage,RImageExpi(:,:,hnd),IErr)
+           
+      CASE(2) ! Normalised Cross Correlation
+	    !Make min and max of RSimulatedImage match that of RExperimentalImage
+		RSimulatedImage=RSimulatedImage-MINVAL(RSimulatedImage)+MINVAL(RExperimentalImage)
+        RSimulatedImage=RSimulatedImage*(MAXVAL(RExperimentalImage)-&
+		  MINVAL(RExperimentalImage))/(MAXVAL(RSimulatedImage)-MINVAL(RSimulatedImage))
+ 		RIndependentCrossCorrelation = ONE-& ! So Perfect Correlation = 0 not 1
+           Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,IErr)
+           
+      END SELECT
+                
+      IF(ABS(RIndependentCrossCorrelation).LT.RCrossCorrelationOld) THEN
+        RCrossCorrelationOld = RIndependentCrossCorrelation
+        IThicknessByReflection(hnd) = ind
+        RReflectionThickness(hnd) = RInitialThickness +&
+        IThicknessByReflection(hnd)*RDeltaThickness
+      END IF
+    END DO
+    RReflectionCrossCorrelations(hnd) = RCrossCorrelationOld
+  END DO
+  !RB assume that the thickness is given by the mean of individual thicknesses  
+  IBestThicknessCount = SUM(IThicknessByReflection)/INoOfLacbedPatterns
+  RThickness = RInitialThickness + (IBestThicknessCount-1)*RDeltaThickness
+  RThicknessRange=( MAXVAL(IThicknessByReflection)-MINVAL(IThicknessByReflection) )*&
+                  RDeltaThickness
+  RCrossCorrelation = SUM(RReflectionCrossCorrelations*RWeightingCoefficients)/&
+       REAL(INoOfLacbedPatterns,RKIND)
+
+  WRITE(SPrintString,FMT='(A18,I4,A10)') "Specimen thickness ",NINT(RThickness)," Angstroms"
+  PRINT*,TRIM(ADJUSTL(SPrintString))
+  WRITE(SPrintString,FMT='(A15,I4,A10)') "Thickness range",NINT(RThicknessRange)," Angstroms"
+  PRINT*,TRIM(ADJUSTL(SPrintString))
   
 !!$     OUTPUT -------------------------------------  
-  CALL WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFLAG,IErr)
+  CALL WriteIterationOutput(IIterationCount,IBestThicknessCount,IExitFLAG,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"CreateImagesAndWriteOutput(",my_rank,")error in WriteIterationOutput"
      RETURN

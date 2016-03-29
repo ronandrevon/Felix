@@ -118,7 +118,7 @@ END FUNCTION  PhaseCorrelate
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE ReSortUgs( ISymmetryIntegers,CUgs, N )
+SUBROUTINE ReSortUgs(ISymmetryIntegers,CUgs,N)
   
   USE MyNumbers
   
@@ -153,12 +153,12 @@ SUBROUTINE ReSortUgs( ISymmetryIntegers,CUgs, N )
         CUgSearch = CUgs(L)
         CUgCompare = CUgs(I)
         IF( (ABS(CUgSearch)).GT.(ABS(CUgCompare)) ) THEN!RB sort on modulus ABS
-              Cdummy = CUgs(I)
-              CUgs(I)= CUgs(L)
-              Cugs(L)= Cdummy
-              Idummy = ISymmetryIntegers(I)
-              ISymmetryIntegers(I)= ISymmetryIntegers(L)
-              ISymmetryIntegers(L)= Idummy
+           Cdummy = CUgs(I)
+           CUgs(I)= CUgs(L)
+           Cugs(L)= Cdummy
+           Idummy = ISymmetryIntegers(I)
+           ISymmetryIntegers(I)= ISymmetryIntegers(L)
+           ISymmetryIntegers(L)= Idummy
            I=I-M
            IF(I.GE.1) GOTO 3
         ENDIF
@@ -215,7 +215,8 @@ REAL(RKIND) FUNCTION Normalised2DCrossCorrelation(RImage1,RImage2,IErr)
   INTEGER(IKIND) :: IErr
   REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount),INTENT(IN) :: RImage1,RImage2
   REAL(RKIND) :: RImage1Mean,RImage2Mean,RImage1StandardDeviation,RImage2StandardDeviation,RPixelTotal
-    
+
+  
   RPixelTotal = REAL(2*IPixelCount*2*IPixelCount,RKIND)  
   RImage1Mean = SUM(RImage1)/RPixelTotal
   RImage2Mean = SUM(RImage2)/RPixelTotal

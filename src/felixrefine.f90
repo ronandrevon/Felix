@@ -384,7 +384,8 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
     !The count excludes Ug components that are zero and U(000), the inner potential
 	IUgOffset=1!choose how many Ug's to skip in the refinement, 1 is the inner potential...
 
-    ALLOCATE(ISymmetryRelations(nReflections,nReflections),STAT=IErr)!Matrix with numbers marking equivalent Ug's
+    !Matrix with numbers marking equivalent Ug's
+    ALLOCATE(ISymmetryRelations(nReflections,nReflections),STAT=IErr)
     IF( IErr.NE.0 ) THEN
       PRINT*,"felixrefine(",my_rank,")error allocating ISymmetryRelations"
       GOTO 9999
@@ -600,11 +601,12 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
   !--------------------------------------------------------------------
   ! Perform initial simplex simulations
   DO ind = 1,(INoOfVariables+1)
-    IF((IWriteFLAG.GE.0.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
+    IF(IWriteFLAG.GE.0.AND.my_rank.EQ.0) THEN
        PRINT*,"--------------------------------"
        WRITE(SPrintString,FMT='(A8,I2,A4,I3)') "Simplex ",ind," of ",INoOfVariables+1
        PRINT*,TRIM(ADJUSTL(SPrintString))
        PRINT*,"--------------------------------"
+!	   PRINT*,"RSimplexVariable",ind,":",RSimplexVariable(ind,:)
     END IF
     CALL SimulateAndFit(RSimplexFoM(ind),RSimplexVariable(ind,:),1,0,IErr)
     IF( IErr.NE.0 ) THEN
@@ -908,17 +910,16 @@ SUBROUTINE SetupUgsToRefine(IErr)
      PRINT*,"SetupUgsToRefine(",my_rank,")"
   END IF
 
-!Count equivalent Ugs
-!Equivalent Ug's are identified by the sum of their abs(indices)plus the sum of abs(Ug)'s with no absorption
-!  RgSumMat = RgSumMat+ABS(REAL(CUgMatNoAbs))+ABS(AIMAG(CUgMatNoAbs))!do I need to add RgMatMag here as well, to avoid any ambiguities?
+  !Count equivalent Ugs
+  !Equivalent Ug's are identified by the sum of their abs(indices)plus the sum of abs(Ug)'s with no absorption
   ISymmetryRelations = 0_IKIND 
-  Iuid = 0_IKIND 
+  Iuid=0_IKIND 
   DO ind = 1,nReflections
      DO jnd = 1,ind
         IF(ISymmetryRelations(ind,jnd).NE.0) THEN
            CYCLE
         ELSE
-           Iuid = Iuid + 1_IKIND
+           Iuid=Iuid+1_IKIND
            !Ug Fill the symmetry relation matrix with incrementing numbers that have the sign of the imaginary part
 		   WHERE (ABS(RgSumMat-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
               ISymmetryRelations = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs)/TINY**2))
@@ -933,17 +934,17 @@ SUBROUTINE SetupUgsToRefine(IErr)
   END IF
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Ug matrix:"
-    DO ind =1,20
+    DO ind =1,12
      WRITE(SPrintString,FMT='(12(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:12)
      PRINT*,TRIM(SPrintString)
     END DO
     PRINT*,"RgSum matrix:"
-    DO ind =1,20
+    DO ind =1,12
      WRITE(SPrintString,FMT='(12(2X,F5.2))') RgSumMat(ind,1:12)
      PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
 	PRINT*,"hkl: symmetry matrix"
-    DO ind =1,20
+    DO ind =1,12
      WRITE(SPrintString,FMT='(3(1X,I3),A1,12(2X,I3))') NINT(Rhkl(ind,:)),":",ISymmetryRelations(ind,1:12)
      PRINT*,TRIM(SPrintString)
     END DO
@@ -960,18 +961,45 @@ SUBROUTINE SetupUgsToRefine(IErr)
      ILoc = MINLOC(ABS(ISymmetryRelations-ind))
      IEquivalentUgKey(ind) = ind
      CUgToRefine(ind) = CUgMatNoAbs(ILoc(1),ILoc(2))
+    IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
+	  PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+	  PRINT*,"CUgMatNoAbs",ILoc(1),ILoc(2),":",CUgMatNoAbs(ILoc(1),ILoc(2))
+    END IF
   END DO
+
+  IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
+    PRINT*,"Before sorting:"
+    DO ind = 1,20
+      PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+    END DO
+  END IF 
   
 !Put them in descending order of magnitude  
   CALL ReSortUgs(IEquivalentUgKey,CUgToRefine,Iuid)
 
-!Count the number of Independent Variables
+  IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
+    PRINT*,"After sorting:"
+    DO ind = 1,20
+      PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+    END DO
+  END IF 
+  
+  !Count the number of Independent Variables
   jnd=1
   DO ind = 1+IUgOffset,INoofUgs+IUgOffset !=== temp comment out !=== for real part only***
+    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
+     PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+    end if
     IF ( ABS(REAL(CUgToRefine(ind),RKIND)).GE.RTolerance ) THEN!===
+    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
+	  PRINT*,jnd,"Real"
+    end if
       jnd=jnd+1
 	END IF!===
     IF ( ABS(AIMAG(CUgToRefine(ind))).GE.RTolerance ) THEN!===
+    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
+	  PRINT*,jnd,"Imaginary"
+    end if
       jnd=jnd+1!===
 	END IF!===
   END DO
@@ -1016,8 +1044,7 @@ USE MyNumbers
              RRandomNumbers*RRandomSigns*RSimplexLengthScale
         DEALLOCATE(RRandomSigns,RRandomNumbers) 
         ALLOCATE(RRandomSigns(INoOfVariables-IAllowedVectors),&
-             RRandomNumbers(INoOfVariables-IAllowedVectors),&
-             STAT=IErr)
+             RRandomNumbers(INoOfVariables-IAllowedVectors),STAT=IErr)
         
 !!$           Randomise Everything else
         CALL RandomSequence(RRandomNumbers,&

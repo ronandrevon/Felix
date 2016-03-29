@@ -58,11 +58,11 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
   REAL(RKIND) :: Rradius
   CHARACTER*200 :: path,h,k,l,SPrintString,filename
   
-  IBytesize=8
+  IBytesize=2
   
   IF(IExitFLAG.EQ.1.OR.(IIterationCount.GE.(IPreviousPrintedIteration+IPrint))) THEN
     IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!RB in nm 
-    WRITE(path,"(A10,I4.4,A1,I3.3,A3,I3.3,A1,I3.3)") &
+    WRITE(path,"(A9,I4.4,A1,I3.3,A3,I3.3,A1,I3.3)") &
       "Iteration",IIterationCount,"_",IThickness,"nm_",2*IPixelcount,"x",2*IPixelcount
     CALL system('mkdir ' // path)
 
@@ -77,7 +77,7 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
       WRITE(SPrintString,FMT='(A28,I4,A35)') "Exiting and writing output; ",&
 	  IIterationCount-IPreviousPrintedIteration," iterations since the previous save" 
 	END IF
-    PRINT*,TRIM(ADJUSTL(SPrintString))
+!    PRINT*,TRIM(ADJUSTL(SPrintString))
      
     IPreviousPrintedIteration = IIterationCount
 
@@ -86,26 +86,26 @@ SUBROUTINE WriteIterationOutput(IIterationCount,IThicknessIndex,IExitFlag,IErr)
       !put appropriate RSimulatedPatterns into vector RImageToWrite
       !remember dimensions of RSimulatedPatterns(INoOfLacbedPatterns,IThicknessCount,IPixelTotal)
       RImageToWrite = RSimulatedPatterns(ind,IThicknessIndex,:)
-	
 	  !make the path/filename
-      IF(IHKLSelectFLAG.EQ.0) THEN!don't know what these two cases are?
+      IF(IHKLSelectFLAG.EQ.0) THEN!hkl's with order determined by felix
         WRITE(h,*)  NINT(Rhkl(ind,1))
         WRITE(k,*)  NINT(Rhkl(ind,2))
         WRITE(l,*)  NINT(Rhkl(ind,3))
-      ELSE
+      ELSE!hkl's with order determined by input file felix.inp
         WRITE(h,*)  NINT(Rhkl(IOutPutReflections(ind),1))
         WRITE(k,*)  NINT(Rhkl(IOutPutReflections(ind),2))
         WRITE(l,*)  NINT(Rhkl(IOutPutReflections(ind),3))
       END IF
-      WRITE(filename,*) path,"/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
-	  
-      PRINT*, path,"/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
-	  PRINT*,"RECL=",2*IPixelcount*IBytesize
+!	  PRINT*,"image",ind," of ",SIZE(IOutPutReflections),":",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l))
+      WRITE(filename,*) "/",TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".bin"
+      WRITE(filename,*) TRIM(ADJUSTL(path)),TRIM(ADJUSTL(filename))  
+!      PRINT*, filename
+!	  PRINT*,"RECL=",2*IPixelcount*2*IPixelcount*IBytesize
 
       !write the data	
-      OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-         ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelcount*IBytesize)	
-      WRITE(IChOutWIImage) RImageToWrite	 
+      OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=filename,FORM='UNFORMATTED',&
+         ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelcount*2*IPixelcount*IBytesize)	
+      WRITE(IChOutWIImage,REC=1) RImageToWrite	 
       CLOSE(IChOutWIImage,IOSTAT=IErr) 
       IF( IErr.NE.0 ) THEN
         PRINT*,"WriteIterationImages(", my_rank, ") error Closing Reflection Image()"
