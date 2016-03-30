@@ -19,21 +19,13 @@ CONTAINS
   
   IMPLICIT NONE
   
-  CHARACTER(*), INTENT(IN) :: &
-       SUnformattedVector,SOpenBracketDummy,SCloseBracketDummy
-  REAL(RKIND),INTENT(OUT),DIMENSION(3) :: &
-       RFormattedVector
-
-  CHARACTER*1 :: &
-       SComma=',',SOpenBracket,SCloseBracket
-  CHARACTER*100 :: &
-       SFormattedVectorX,SFormattedVectorY,SFormattedVectorZ
- 
-  LOGICAL :: &
-       LBACK=.TRUE.
+  CHARACTER(*), INTENT(IN) :: SUnformattedVector,SOpenBracketDummy,SCloseBracketDummy
+  REAL(RKIND),INTENT(OUT),DIMENSION(3) :: RFormattedVector
+  CHARACTER*1 :: SComma=',',SOpenBracket,SCloseBracket
+  CHARACTER*100 :: SFormattedVectorX,SFormattedVectorY,SFormattedVectorZ
+  LOGICAL :: LBACK=.TRUE.
   
-  INTEGER(IKIND) :: &
-       IOpenBracketPosition, ICloseBracketPosition, IFirstCommaPosition, &
+  INTEGER(IKIND) :: IOpenBracketPosition, ICloseBracketPosition, IFirstCommaPosition, &
        ILastCommaPosition
   
 !!$Trim and adjustL bracket to ensure one character string

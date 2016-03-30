@@ -133,7 +133,7 @@ SUBROUTINE ReSortUgs(ISymmetryIntegers,CUgs,N)
   INTEGER(IKIND) :: N,IDummy,ISymmetryIntegers(N)
   INTEGER(IKIND) :: NN,M,L,K,J,I,LOGNB2
   REAL(RKIND) :: RhklarraySearch(THREEDIM),RhklarrayCompare(THREEDIM)
-  REAL(RKIND) :: ALN2I,LocalTINY
+  REAL(RKIND) :: ALN2I,LocalTINY,RabsS,RabsC
   COMPLEX(CKIND) :: CUgSearch,CUgCompare,Cdummy,CUgs(N)
   PARAMETER (ALN2I=1.4426950D0, LocalTINY=1.D-5)
 
@@ -151,8 +151,11 @@ SUBROUTINE ReSortUgs(ISymmetryIntegers,CUgs,N)
 3       CONTINUE
         L=I+M     
         CUgSearch = CUgs(L)
+		RabsS=(REAL(CUgSearch)**2+AIMAG(CUgSearch))**0.5
         CUgCompare = CUgs(I)
-        IF( (ABS(CUgSearch)).GT.(ABS(CUgCompare)) ) THEN!RB sort on modulus ABS
+		RabsC=(REAL(CUgCompare)**2+AIMAG(CUgCompare))**0.5
+!        IF( (ABS(CUgSearch)).GT.(ABS(CUgCompare)) ) THEN!RB sort on modulus ABS
+        IF( RabsS.GT.RabsC ) THEN!RB sort on modulus ABS
            Cdummy = CUgs(I)
            CUgs(I)= CUgs(L)
            Cugs(L)= Cdummy

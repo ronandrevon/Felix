@@ -358,7 +358,7 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
 
   !Calculate Ug matrix--------------------------------------------------------
   ALLOCATE(CUgMatNoAbs(nReflections,nReflections),STAT=IErr)  !RB Matrix without absorption
-  ALLOCATE(CUgMatPrime(nReflections,nReflections),STAT=IErr)  !RB Matrix of just absorption  
+  ALLOCATE(CUgMatPrime(nReflections,nReflections),STAT=IErr)  !RB Matrix of absorption  
   ALLOCATE(CUgMat(nReflections,nReflections),STAT=IErr)  !RB Matrix including absorption
 
   !RB Matrix of sums of indices - for symmetry equivalence  in the Ug matrix, only for Ug refinement
@@ -902,7 +902,7 @@ SUBROUTINE SetupUgsToRefine(IErr)
   
   IMPLICIT NONE 
   
-  INTEGER(IKIND) :: IErr,ind,jnd,Iuid
+  INTEGER(IKIND) :: IErr,ind,jnd,Iuid,knd,lnd
   INTEGER(IKIND),DIMENSION(2) :: ILoc
   CHARACTER*200 :: SPrintString
 
@@ -919,11 +919,23 @@ SUBROUTINE SetupUgsToRefine(IErr)
         IF(ISymmetryRelations(ind,jnd).NE.0_IKIND) THEN
            CYCLE
         ELSE
-           Iuid=Iuid+1_IKIND
-           !Ug Fill the symmetry relation matrix with incrementing numbers that have the sign of the imaginary part
-		   WHERE (ABS(ABS(RgSumMat)-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
-              ISymmetryRelations = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs)/TINY**2))
-           END WHERE
+          Iuid=Iuid+1_IKIND
+          !Fill the symmetry relation matrix with incrementing numbers that have the sign of the imaginary part
+          WHERE (ABS(ABS(RgSumMat)-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
+            ISymmetryRelations = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs)/TINY))
+          END WHERE
+!          DO knd = 1,nReflections!Version without WHERE. for debug 
+!            DO lnd = 1,nReflections
+!			  IF (ABS(ABS(RgSumMat(knd,lnd))-ABS(RgSumMat(ind,jnd))).LE.RTolerance) THEN
+!                IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0.AND.ind.EQ.2) THEN
+!                  WRITE(SPrintString,FMT='(I3,1X,I3,A1,I3,1X,I3,A1,I15)')&
+!				  ind,jnd,"=",knd,lnd,":",SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs(knd,lnd))/TINY))
+!                  PRINT*,TRIM(ADJUSTL(SPrintString))
+!				END IF
+!                ISymmetryRelations(knd,lnd) = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs(knd,lnd))/TINY))
+!			  END IF
+!            END DO
+!          END DO
         END IF
      END DO
   END DO
@@ -935,17 +947,17 @@ SUBROUTINE SetupUgsToRefine(IErr)
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Ug matrix:"
     DO ind =1,12
-     WRITE(SPrintString,FMT='(12(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:12)
+     WRITE(SPrintString,FMT='(8(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:8)
      PRINT*,TRIM(SPrintString)
     END DO
     PRINT*,"RgSum matrix:"
     DO ind =1,12
-     WRITE(SPrintString,FMT='(12(2X,F5.2))') RgSumMat(ind,1:12)
+     WRITE(SPrintString,FMT='(8(2X,F5.2))') RgSumMat(ind,1:8)
      PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
 	PRINT*,"hkl: symmetry matrix"
     DO ind =1,12
-     WRITE(SPrintString,FMT='(3(1X,I3),A1,12(2X,I3))') NINT(Rhkl(ind,:)),":",ISymmetryRelations(ind,1:12)
+     WRITE(SPrintString,FMT='(3(1X,I3),A1,8(2X,I3))') NINT(Rhkl(ind,:)),":",ISymmetryRelations(ind,1:8)
      PRINT*,TRIM(SPrintString)
     END DO
   END IF
@@ -962,15 +974,21 @@ SUBROUTINE SetupUgsToRefine(IErr)
      IEquivalentUgKey(ind) = ind
      CUgToRefine(ind) = CUgMatNoAbs(ILoc(1),ILoc(2))
     IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
-	  PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
-	  PRINT*,"CUgMatNoAbs",ILoc(1),ILoc(2),":",CUgMatNoAbs(ILoc(1),ILoc(2))
+	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+      PRINT*,TRIM(ADJUSTL(SPrintString))
+	  WRITE(SPrintString,FMT='(A11,I3,A1,I3,A3,F5.2,1X,F5.2)')&
+	  "CUgMatNoAbs",ILoc(1),",",ILoc(2)," : ",CUgMatNoAbs(ILoc(1),ILoc(2))
+      PRINT*,TRIM(ADJUSTL(SPrintString))
+!	  PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+!	  PRINT*,"CUgMatNoAbs",ILoc(1),ILoc(2),":",CUgMatNoAbs(ILoc(1),ILoc(2))
     END IF
   END DO
 
   IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Before sorting:"
-    DO ind = 1,20
-      PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+    DO ind = 1,10
+	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+      PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
   END IF 
   
@@ -979,8 +997,9 @@ SUBROUTINE SetupUgsToRefine(IErr)
 
   IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"After sorting:"
-    DO ind = 1,20
-      PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
+    DO ind = 1,10
+	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+      PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
   END IF 
   

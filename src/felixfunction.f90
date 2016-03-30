@@ -300,7 +300,7 @@ SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,IIterationCount,IE
         CONJG(CUgToRefine(ind))*EXP(CIMAGONE*PI/2_RKIND)*(RAbsorptionPercentage/100_RKIND)
      END WHERE
     END DO
-    WHERE(ABS(CUgMatDummy).GT.TINY)
+    WHERE(((REAL(CUgMatDummy)**2+AIMAG(CUgMatDummy)**2)**0.5).GT.TINY)
       CUgMat = CUgMatDummy
     END WHERE
     RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[

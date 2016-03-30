@@ -293,8 +293,14 @@ SUBROUTINE StructureFactorInitialisation (IErr)
      CUgMat =  CUgMatNoAbs+CUgMatPrime!Ug
 	 
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
+    PRINT*,"Ug matrix without absorption:"
     DO ind =1,8
-     WRITE(SPrintString,FMT='(16(1X,F5.2))') CUgMatNoAbs(ind,1:8)
+     WRITE(SPrintString,FMT='(8(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:8)
+     PRINT*,TRIM(ADJUSTL(SPrintString))
+    END DO
+    PRINT*,"Ug matrix with absorption:"
+    DO ind =1,8
+     WRITE(SPrintString,FMT='(8(2X,F5.2,1X,F5.2))') CUgMat(ind,1:8)
      PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
   END IF
