@@ -151,11 +151,11 @@ SUBROUTINE ReSortUgs(ISymmetryIntegers,CUgs,N)
 3       CONTINUE
         L=I+M     
         CUgSearch = CUgs(L)
-		RabsS=(REAL(CUgSearch)**2+AIMAG(CUgSearch))**0.5
+!		RabsS=(REAL(CUgSearch)**2+AIMAG(CUgSearch)**2)**0.5
         CUgCompare = CUgs(I)
-		RabsC=(REAL(CUgCompare)**2+AIMAG(CUgCompare))**0.5
-!        IF( (ABS(CUgSearch)).GT.(ABS(CUgCompare)) ) THEN!RB sort on modulus ABS
-        IF( RabsS.GT.RabsC ) THEN!RB sort on modulus ABS
+!		RabsC=(REAL(CUgCompare)**2+AIMAG(CUgCompare)**2)**0.5
+        IF( (ABS(CUgSearch)).GT.(ABS(CUgCompare)) ) THEN!RB sort on modulus ABS
+!        IF( RabsS.GT.RabsC ) THEN!RB sort on modulus ABS
            Cdummy = CUgs(I)
            CUgs(I)= CUgs(L)
            Cugs(L)= Cdummy

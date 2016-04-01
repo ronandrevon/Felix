@@ -77,7 +77,7 @@ SUBROUTINE NDimensionalDownhillSimplex(RSimplexVariable,y,mp,np,ndim,ftol,iter,R
         RETURN
      END IF
      
-     !CALL SaveSimplex(RSimplexVariable,y,np,RStandardDeviation,RMean,iter,IErr)
+     CALL SaveSimplex(RSimplexVariable,y,np,iter,IErr)
      PRINT*,"--------------------------------"
      IF (iter.EQ.1) THEN    
        WRITE(SPrintString,FMT='(A15)') "First iteration"
@@ -185,10 +185,9 @@ REAL(RKIND) FUNCTION SimplexExtrapolate(RSimplexVariable,y,psum,mp,np,ndim,ihi,f
   RETURN
 END FUNCTION SimplexExtrapolate
 
-
 !!$----------------------------------------------------------------------------
 
-SUBROUTINE OpenSimplexOutput(IErr)
+SUBROUTINE SaveSimplex(RSimplexVariable,RSimplexFoM,IDimensions,IIterations,IErr)
 
   USE MyNumbers
 
@@ -201,78 +200,22 @@ SUBROUTINE OpenSimplexOutput(IErr)
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: IErr
 
-  CHARACTER*200 :: filename
-
-  WRITE(filename,*) "fr-Simplex.txt"
-
-  OPEN( UNIT=IChOutSimplex,STATUS='UNKNOWN',FILE=TRIM( ADJUSTL(filename)) )
-
-END SUBROUTINE OpenSimplexOutput
-
-
-!!$----------------------------------------------------------------------------
-
-SUBROUTINE WriteOutSimplex(RSimplexVariable,RSimplexFoM,IDimensions,RStandardDeviation,RMean,IIterations,IErr)
-
-  USE MyNumbers
-
-  USE IConst; USE RConst
-  USE IPara; USE RPara
-  USE IChannels
-
-  USE MPI
-  USE MyMPI
-
-  IMPLICIT NONE
-
-  INTEGER(IKIND) :: IErr,IDimensions,ind,IIterations
+  INTEGER(IKIND) :: IErr,IDimensions,IIterations,ind
   REAL(RKIND),DIMENSION(IDimensions+1,IDimensions),INTENT(IN) :: RSimplexVariable
   REAL(RKIND),DIMENSION(IDimensions+1),INTENT(IN) :: RSimplexFoM
-  REAL(RKIND),DIMENSION(IDimensions+1) :: RData
   REAL(RKIND) :: RStandardDeviation,RMean
-  CHARACTER*200 :: CSizeofData,SFormatString
-  
+  CHARACTER*200 :: filename,CSizeofData,SFormatString
+
   WRITE(CSizeofData,*) IDimensions+1
   WRITE(SFormatString,*) "("//TRIM(ADJUSTL(CSizeofData))//"(1F6.3,1X),A1)"
-
+  
+  WRITE(filename,*) "Simplex.txt"
+  OPEN( UNIT=IChOutSimplex,STATUS='UNKNOWN',FILE=filename )
   DO ind = 1,(IDimensions+1)
-     RData = (/RSimplexVariable(ind,:), RSimplexFoM(ind)/)
-     WRITE(IChOutSimplex,FMT=SFormatString) RData
+     WRITE(IChOutSimplex,FMT=SFormatString) (/RSimplexVariable(ind,:), RSimplexFoM(ind)/)
   END DO
-
   WRITE(IChOutSimplex,FMT="(2(1F6.3,1X),I5.1,I5.1,A1)") RStandardDeviation,RMean,IStandardDeviationCalls,IIterations
-
   CLOSE(IChOutSimplex)
 
-END SUBROUTINE WriteOutSimplex
-
-!!$----------------------------------------------------------------------------
-
-SUBROUTINE SaveSimplex(RSimplexVariable,RSimplexFoM,IDimensions,RStandardDeviation,RMean,IIterations,IErr)
-!what a useless subroutine, just calls two others
-  USE MyNumbers
-
-  USE IConst; USE RConst
-  USE IPara; USE RPara
-  USE IChannels
-
-  USE MPI
-  USE MyMPI
-
-  IMPLICIT NONE
-
-  INTEGER(IKIND) :: IErr,IDimensions,IIterations
-  REAL(RKIND),DIMENSION(IDimensions+1,IDimensions),INTENT(IN) :: RSimplexVariable
-  REAL(RKIND),DIMENSION(IDimensions+1),INTENT(IN) :: RSimplexFoM
-  REAL(RKIND) :: RStandardDeviation,RMean
-
-  CALL OpenSimplexOutput(IErr)
- 
-  CALL WriteOutSimplex(RSimplexVariable,RSimplexFoM,IDimensions,RStandardDeviation,RMean,IIterations,IErr)
-
 END SUBROUTINE SaveSimplex
-
-
-!!$----------------------------------------------------------------------------

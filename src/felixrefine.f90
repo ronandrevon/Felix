@@ -902,7 +902,7 @@ SUBROUTINE SetupUgsToRefine(IErr)
   
   IMPLICIT NONE 
   
-  INTEGER(IKIND) :: IErr,ind,jnd,Iuid,knd,lnd
+  INTEGER(IKIND) :: IErr,ind,jnd,Iuid,knd,lnd,IUgID
   INTEGER(IKIND),DIMENSION(2) :: ILoc
   CHARACTER*200 :: SPrintString
 
@@ -924,18 +924,6 @@ SUBROUTINE SetupUgsToRefine(IErr)
           WHERE (ABS(ABS(RgSumMat)-ABS(RgSumMat(ind,jnd))).LE.RTolerance)
             ISymmetryRelations = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs)/TINY))
           END WHERE
-!          DO knd = 1,nReflections!Version without WHERE. for debug 
-!            DO lnd = 1,nReflections
-!			  IF (ABS(ABS(RgSumMat(knd,lnd))-ABS(RgSumMat(ind,jnd))).LE.RTolerance) THEN
-!                IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0.AND.ind.EQ.2) THEN
-!                  WRITE(SPrintString,FMT='(I3,1X,I3,A1,I3,1X,I3,A1,I15)')&
-!				  ind,jnd,"=",knd,lnd,":",SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs(knd,lnd))/TINY))
-!                  PRINT*,TRIM(ADJUSTL(SPrintString))
-!				END IF
-!                ISymmetryRelations(knd,lnd) = Iuid*SIGN(1_IKIND,NINT(AIMAG(CUgMatNoAbs(knd,lnd))/TINY))
-!			  END IF
-!            END DO
-!          END DO
         END IF
      END DO
   END DO
@@ -946,18 +934,18 @@ SUBROUTINE SetupUgsToRefine(IErr)
   END IF
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Ug matrix:"
-    DO ind =1,12
-     WRITE(SPrintString,FMT='(8(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:8)
+    DO ind =1,99
+     WRITE(SPrintString,FMT='(2(2X,F5.2,1X,F5.2))') CUgMatNoAbs(ind,1:2)
      PRINT*,TRIM(SPrintString)
     END DO
-    PRINT*,"RgSum matrix:"
-    DO ind =1,12
-     WRITE(SPrintString,FMT='(8(2X,F5.2))') RgSumMat(ind,1:8)
-     PRINT*,TRIM(ADJUSTL(SPrintString))
-    END DO
+    !PRINT*,"RgSum matrix:"
+    !DO ind =1,50
+    ! WRITE(SPrintString,FMT='(8(2X,F5.2))') RgSumMat(ind,1:8)
+    ! PRINT*,TRIM(ADJUSTL(SPrintString))
+    !END DO
 	PRINT*,"hkl: symmetry matrix"
-    DO ind =1,12
-     WRITE(SPrintString,FMT='(3(1X,I3),A1,8(2X,I3))') NINT(Rhkl(ind,:)),":",ISymmetryRelations(ind,1:8)
+    DO ind =1,200
+     WRITE(SPrintString,FMT='(I4,3(1X,I4),A1,8(2X,I4))') ind,NINT(Rhkl(ind,:)),",",ISymmetryRelations(ind,1:2)
      PRINT*,TRIM(SPrintString)
     END DO
   END IF
@@ -974,20 +962,18 @@ SUBROUTINE SetupUgsToRefine(IErr)
      IEquivalentUgKey(ind) = ind
      CUgToRefine(ind) = CUgMatNoAbs(ILoc(1),ILoc(2))
     IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
-	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+	  WRITE(SPrintString,FMT='(A11,I5,A3,E15.7,1X,E15.7)') "CUgToRefine",ind," : ",CUgToRefine(ind)
       PRINT*,TRIM(ADJUSTL(SPrintString))
-	  WRITE(SPrintString,FMT='(A11,I3,A1,I3,A3,F5.2,1X,F5.2)')&
-	  "CUgMatNoAbs",ILoc(1),",",ILoc(2)," : ",CUgMatNoAbs(ILoc(1),ILoc(2))
+	  WRITE(SPrintString,FMT='(A11,I5,A1,I5,A3,E15.7,1X,E15.7)')&
+        "CUgMatNoAbs",ILoc(1),",",ILoc(2)," : ",CUgMatNoAbs(ILoc(1),ILoc(2))
       PRINT*,TRIM(ADJUSTL(SPrintString))
-!	  PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
-!	  PRINT*,"CUgMatNoAbs",ILoc(1),ILoc(2),":",CUgMatNoAbs(ILoc(1),ILoc(2))
     END IF
   END DO
 
-  IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
+  IF (IWriteFLAG.EQ.6.AND.my_rank.EQ.0) THEN
     PRINT*,"Before sorting:"
-    DO ind = 1,10
-	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+    DO ind = 1,50
+	  WRITE(SPrintString,FMT='(A11,I3,A3,E15.7,1X,E15.7)') "CUgToRefine",ind," : ",CUgToRefine(ind)
       PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
   END IF 
@@ -997,28 +983,300 @@ SUBROUTINE SetupUgsToRefine(IErr)
 
   IF (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"After sorting:"
-    DO ind = 1,10
-	  WRITE(SPrintString,FMT='(A11,I3,A3,F5.2,1X,F5.2)') "CUgToRefine",ind," : ",CUgToRefine(ind)
+    DO ind = 1,50
+	  WRITE(SPrintString,FMT='(A11,I3,A3,I3,A3,E15.7,1X,E15.7)')&
+        "CUgToRefine",ind," : ",IEquivalentUgKey(ind)," : ",CUgToRefine(ind)
       PRINT*,TRIM(ADJUSTL(SPrintString))
     END DO
-  END IF 
+  END IF
+  
+  !Refinement continuation [hack]
+  IF (IContinueFLAG.EQ.1) THEN
+    !111
+    CUgToRefine(2)=CMPLX(1.687904897922,1.82240814132662)
+	IUgID=ISymmetryRelations(2,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(2)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(2))
+    END WHERE
+    !!-2-20
+    CUgToRefine(3)=CMPLX(2.3745415053797,0.0)
+	IUgID=ISymmetryRelations(8,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(3)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(3))
+    END WHERE
+    !004
+    CUgToRefine(4)=CMPLX(1.72720261804284,0.0)
+	IUgID=ISymmetryRelations(18,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(4)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(4))
+    END WHERE
+    !11-3
+    CUgToRefine(5)=CMPLX(0.94836494246152,1.04943761482216)
+	IUgID=ISymmetryRelations(11,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(5)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(5))
+    END WHERE
+    !22-4
+    CUgToRefine(6)=CMPLX(1.25676764796887,0.0)
+	IUgID=ISymmetryRelations(24,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(6)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(6))
+    END WHERE
+    !440
+    CUgToRefine(7)=CMPLX(1.07087394971792,0.0)
+	IUgID=ISymmetryRelations(36,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(7)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(7))
+    END WHERE
+    !-3-31
+    CUgToRefine(8)=CMPLX(0.689044546419982,0.763792118843367)
+	IUgID=ISymmetryRelations(21,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(8)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(8))
+    END WHERE
+    !33-3
+    CUgToRefine(9)=CMPLX(0.570891083894945,0.601661598489738)
+	IUgID=ISymmetryRelations(33,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(9)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(9))
+    END WHERE
+    !115
+    CUgToRefine(10)=CMPLX(0.561361147893234,0.626843766384188)
+	IUgID=ISymmetryRelations(28,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(10)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(10))
+    END WHERE
+    !-4-44
+    CUgToRefine(11)=CMPLX(0.80107282828933,0.0)
+	IUgID=ISymmetryRelations(52,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(11)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(11))
+    END WHERE
+    !008
+    CUgToRefine(12)=CMPLX(0.630494960029028,0.0)
+	IUgID=ISymmetryRelations(68,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(12)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(12))
+    END WHERE
+    !-3-35
+    CUgToRefine(13)=CMPLX(0.412261267514878,0.467054305188535)
+	IUgID=ISymmetryRelations(44,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(13)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(13))
+    END WHERE
+    !22-8
+    CUgToRefine(14)=CMPLX(0.534308704133266,0.0)
+	IUgID=ISymmetryRelations(78,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(14)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(14))
+    END WHERE
+    !-6-60
+    CUgToRefine(15)=CMPLX(0.553765683779452,0.0)
+	IUgID=ISymmetryRelations(82,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(15)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(15))
+    END WHERE
+    !-1-1-7
+    CUgToRefine(16)=CMPLX(0.380276235359774,0.397870473611188)
+	IUgID=ISymmetryRelations(56,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(16)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(16))
+    END WHERE
+    !-5-51
+    CUgToRefine(17)=CMPLX(0.380109613273699,0.398029660861434)
+	IUgID=ISymmetryRelations(58,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(17)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(17))
+    END WHERE
+    !-5-53
+    CUgToRefine(18)=CMPLX(0.321160169037219,0.358283860049556)
+	IUgID=ISymmetryRelations(64,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(18)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(18))
+    END WHERE
+    !-6-6-4
+    CUgToRefine(19)=CMPLX(0.458801755210435,0.0)
+	IUgID=ISymmetryRelations(96,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(19)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(19))
+    END WHERE
+    !-3-37
+    CUgToRefine(20)=CMPLX(0.283391669499492,0.314015644984719)
+	IUgID=ISymmetryRelations(70,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(20)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(20))
+    END WHERE
+    !-4-4-8
+    CUgToRefine(21)=CMPLX(0.423656396467032,0.0)
+	IUgID=ISymmetryRelations(100,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(21)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(21))
+    END WHERE
+    !-5-55
+    CUgToRefine(22)=CMPLX(0.2598195569662342,0.284488486779033)
+	IUgID=ISymmetryRelations(84,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(22)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(22))
+    END WHERE
+    !119
+    CUgToRefine(23)=CMPLX(0.234458160087768,0.264990601930051)
+	IUgID=ISymmetryRelations(92,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(23)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(23))
+    END WHERE
+    !-8-80
+    CUgToRefine(24)=CMPLX(0.299705500267044,0.0)
+	IUgID=ISymmetryRelations(138,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(24)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(24))
+    END WHERE
+    !771
+    CUgToRefine(25)=CMPLX(0.199809232775208,0.224462634318766)
+	IUgID=ISymmetryRelations(105,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(25)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(25))
+    END WHERE
+    !339
+    CUgToRefine(26)=CMPLX(0.199881022519487,0.224373244214161)
+	IUgID=ISymmetryRelations(104,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(26)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(26))
+    END WHERE
+    !55-7
+    CUgToRefine(27)=CMPLX(0.199881022519487,0.224373244214161)
+	IUgID=ISymmetryRelations(106,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(27)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(27))
+    END WHERE
+    !668
+    CUgToRefine(28)=CMPLX(0.300807268960559,0.0)
+	IUgID=ISymmetryRelations(152,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(28)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(28))
+    END WHERE
+    !-7-7-3
+    CUgToRefine(29)=CMPLX(0.176769844421415,0.195817605460189)
+	IUgID=ISymmetryRelations(118,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(29)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(29))
+    END WHERE
+    !0012
+    CUgToRefine(30)=CMPLX(0.28147196375376,0.0)
+	IUgID=ISymmetryRelations(164,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(30)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(30))
+    END WHERE
+    !884
+    CUgToRefine(31)=CMPLX(0.266581374365749,0.0)
+	IUgID=ISymmetryRelations(160,1)
+	WHERE (ABS(ISymmetryRelations-IUgID).EQ.0)
+      CUgMatNoAbs = CUgToRefine(31)
+    END WHERE
+	WHERE (ABS(ISymmetryRelations+IUgID).EQ.0)
+      CUgMatNoAbs = CONJG(CUgToRefine(31))
+    END WHERE
+    PRINT*,"After update:"
+    DO ind = 1,50
+	  WRITE(SPrintString,FMT='(A11,I3,A3,I3,A3,E15.7,1X,E15.7)')&
+        "CUgToRefine",ind," : ",IEquivalentUgKey(ind)," : ",CUgToRefine(ind)
+      PRINT*,TRIM(ADJUSTL(SPrintString))
+    END DO
+  END IF
   
   !Count the number of Independent Variables
   jnd=1
   DO ind = 1+IUgOffset,INoofUgs+IUgOffset !=== temp comment out !=== for real part only***
-    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
-     PRINT*,"CUgToRefine",ind,":",CUgToRefine(ind)
-    end if
     IF ( ABS(REAL(CUgToRefine(ind),RKIND)).GE.RTolerance ) THEN!===
-    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
-	  PRINT*,jnd,"Real"
-    end if
       jnd=jnd+1
 	END IF!===
     IF ( ABS(AIMAG(CUgToRefine(ind))).GE.RTolerance ) THEN!===
-    if (IWriteFLAG.EQ.3.AND.my_rank.EQ.0) then
-	  PRINT*,jnd,"Imaginary"
-    end if
       jnd=jnd+1!===
 	END IF!===
   END DO
