@@ -118,6 +118,7 @@ END FUNCTION  PhaseCorrelate
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 SUBROUTINE ReSortUgs(ISymmetryIntegers,CUgs,N)
   
   USE MyNumbers

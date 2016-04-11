@@ -36,6 +36,106 @@
 ! $Id: Felixrefine.f90,v 1.89 2014/04/28 12:26:19 phslaz Exp $
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,Iter,IExitFLAG,IErr)
+
+  USE MyNumbers
+  
+  USE CConst; USE IConst; USE RConst
+  USE IPara; USE RPara; USE SPara; USE CPara
+  USE BlochPara
+
+  USE IChannels
+
+  USE MPI
+  USE MyMPI
+
+  IMPLICIT NONE
+  
+  INTEGER(IKIND) :: IErr,IExitFLAG,IThickness,ind,jnd
+  REAL(RKIND),DIMENSION(INoOfVariables) :: RIndependentVariable
+  REAL(RKIND) :: RFigureofMerit
+  INTEGER(IKIND),INTENT(IN) :: Iter
+  COMPLEX(CKIND),DIMENSION(nReflections,nReflections) :: CUgMatDummy
+  LOGICAL :: LInitialSimulationFLAG = .FALSE.
+  
+  IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
+     PRINT*,"SimulateAndFit(",my_rank,")"
+  END IF
+
+  IF (IRefineMode(1).EQ.1 .OR. IRefineMode(12).EQ.1) THEN  !Ug refinement; update structure factors 
+  !Dummy Matrix to contain new iterative values
+    CUgMatDummy = CZERO
+    !NB these are Ug's without absorption, used to be the suroutine UpdateStructureFactors
+    jnd=1
+    DO ind = 1+IUgOffset,INoofUgs+IUgOffset!=== temp changes so real part only***
+      IF ( (ABS(REAL(CUgToRefine(ind),RKIND)).GE.RTolerance).AND.&!===
+           (ABS(AIMAG(CUgToRefine(ind))).GE.RTolerance)) THEN!===use both real and imag parts
+        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),RIndependentVariable(jnd+1))!===
+        jnd=jnd+2!===
+      ELSEIF ( ABS(AIMAG(CUgToRefine(ind))).LT.RTolerance ) THEN!===use only real part
+        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),ZERO)!===
+!===        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),AIMAG(CUgToRefine(ind)))!replacement line, remove to revert
+        jnd=jnd+1
+      ELSEIF ( ABS(REAL(CUgToRefine(ind),RKIND)).LT.RTolerance ) THEN!===use only imag part
+        CUgToRefine(ind)=CMPLX(ZERO,RIndependentVariable(jnd))!===
+        jnd=jnd+1!===
+      ELSE!===should never happen
+        PRINT*,"Warning - zero structure factor!",ind,":",CUgToRefine(IEquivalentUgKey(ind))!===
+      END IF!===
+     WHERE(ISymmetryRelations.EQ.IEquivalentUgKey(ind))
+        CUgMatDummy = CUgToRefine(ind)+&
+        CUgToRefine(ind)*EXP(CIMAGONE*PI/2_RKIND)*(RAbsorptionPercentage/100_RKIND)
+     END WHERE
+     WHERE(ISymmetryRelations.EQ.-IEquivalentUgKey(ind))
+        CUgMatDummy = CONJG(CUgToRefine(ind))+&
+        CONJG(CUgToRefine(ind))*EXP(CIMAGONE*PI/2_RKIND)*(RAbsorptionPercentage/100_RKIND)
+     END WHERE
+    END DO
+    WHERE(ABS(CUgMatDummy).GT.TINY)
+      CUgMat = CUgMatDummy
+    END WHERE
+    RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[
+!	PRINT*,"UpdateStructureFactors: absorption=",RAbsorptionPercentage
+  ELSE !everything else
+     CALL UpdateVariables(RIndependentVariable,IErr)
+     IF( IErr.NE.0 ) THEN
+        PRINT*,"SimulateAndFit(",my_rank,")error in UpdateVariables"
+        RETURN
+     END IF
+     WHERE(RAtomSiteFracCoordVec.LT.0) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec+ONE
+     WHERE(RAtomSiteFracCoordVec.GT.1) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec-ONE
+  END IF
+
+  IF (my_rank.EQ.0) THEN
+     CALL PrintVariables(IErr)
+     IF( IErr.NE.0 ) THEN
+        PRINT*,"SimulateAndFit(",my_rank,")error in PrintVariables"
+        RETURN
+     END IF
+  END IF
+
+  CALL FelixFunction(LInitialSimulationFLAG,IErr) ! Simulate !!  
+  IF( IErr.NE.0 ) THEN
+     PRINT*,"SimulateAndFit(",my_rank,")error in FelixFunction"
+     RETURN
+  END IF
+
+  IF(my_rank.EQ.0) THEN   
+     CALL CreateImagesAndWriteOutput(Iter,IExitFLAG,IErr) 
+     IF( IErr.NE.0 ) THEN
+        PRINT*,"SimulateAndFit(",my_rank,")error in CreateImagesAndWriteOutput"
+        RETURN
+     ENDIF
+!This is the key parameter!!!****     
+     RFigureofMerit = RCrossCorrelation
+  END IF
+  
+  CALL MPI_BCAST(RFigureofMerit,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+  
+END SUBROUTINE SimulateAndFit
+
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
   USE MyNumbers
@@ -57,9 +157,6 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   LOGICAL,INTENT(INOUT) :: LInitialSimulationFLAG !If function is being called during initialisation
 
 
-  IF(IWriteFLAG.GE.6.AND.my_rank.EQ.0) THEN
-     PRINT*,"Felix function"
-  END IF
   IF((IWriteFLAG.GE.6.AND.my_rank.EQ.0).OR.IWriteFLAG.GE.10) THEN
      PRINT*,"Felixfunction(", my_rank, "): starting the eigenvalue problem"
      PRINT*,"Felixfunction(",my_rank,")pixels",ILocalPixelCountMin," to ",ILocalPixelCountMax
@@ -69,7 +166,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
   RIndividualReflections = ZERO
 
 !Update scattering matrix--------------------------------------------------------------------  
-  IF((IRefineModeSelectionArray(1).EQ.1)) THEN!RB Ug refinement, replace selected Ug's
+  IF (IRefineMode(1).EQ.1 .OR. IRefineMode(12).EQ.1) THEN!RB Ug refinement, replace selected Ug's
      !CALL ApplyNewStructureFactors(IErr) !NOW IN SimulateAndFit!***
      !IF( IErr.NE.0 ) THEN
      !  PRINT*,"felixfunction(",my_rank,")error in ApplyNewStructureFactors()"
@@ -93,7 +190,7 @@ SUBROUTINE FelixFunction(LInitialSimulationFLAG,IErr)
 
 !Simulation (different local pixels for each core)--------------------------------------------------------------------  
   IF(IWriteFLAG.GE.0.AND.my_rank.EQ.0) THEN
-    PRINT*,"Bloch wave calculation..."
+    !PRINT*,"Bloch wave calculation..."!RB temp suppression of output
   END IF
   DO knd = ILocalPixelCountMin,ILocalPixelCountMax,1
      jnd = IPixelLocations(knd,1)
@@ -157,13 +254,12 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IBestThicknessCount,IErr)
     DO ind = 1,IThicknessCount
       ICountedPixels = 0
       RSimulatedImage = ZERO
+	  !put 1D array RSimulatedPatterns into 2D image RSimulatedImage
       !remember dimensions of RSimulatedPatterns(INoOfLacbedPatterns,IThicknessCount,IPixelTotal)
-      DO jnd = 1,2*IPixelCount!RB why does this masking have to be done here?
+      DO jnd = 1,2*IPixelCount
         DO knd = 1,2*IPixelCount
-          IF(ABS(RMask(jnd,knd)).GT.TINY) THEN
-            ICountedPixels = ICountedPixels+1
-            RSimulatedImage(jnd,knd) = RSimulatedPatterns(hnd,ind,ICountedPixels)
-          END IF
+          ICountedPixels = ICountedPixels+1
+          RSimulatedImage(jnd,knd) = RSimulatedPatterns(hnd,ind,ICountedPixels)
         END DO
       END DO
                
@@ -195,7 +291,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IBestThicknessCount,IErr)
        !   PRINT*,"Gaussian blur radius =",Rradius
        ! END IF
         CALL BlurG(RSimulatedImage,Rradius,IErr)
-          
+		
       END SELECT
 
       RIndependentCrossCorrelation = ZERO   
@@ -213,7 +309,7 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IBestThicknessCount,IErr)
       CASE(2) ! Normalised Cross Correlation
         RIndependentCrossCorrelation = ONE-& ! So Perfect Correlation = 0 not 1
            Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,IErr)
-           
+
       END SELECT
                 
       IF(ABS(RIndependentCrossCorrelation).LT.RCrossCorrelationOld) THEN
@@ -236,114 +332,16 @@ SUBROUTINE CalculateFigureofMeritandDetermineThickness(IBestThicknessCount,IErr)
 
   IF(my_rank.eq.0) THEN
     WRITE(SPrintString,FMT='(A18,I4,A10)') "Specimen thickness ",NINT(RThickness)," Angstroms"
-    PRINT*,TRIM(ADJUSTL(SPrintString))
+    !PRINT*,TRIM(ADJUSTL(SPrintString)) !RB temp supression of output
     WRITE(SPrintString,FMT='(A15,I4,A10)') "Thickness range",NINT(RThicknessRange)," Angstroms"
-    PRINT*,TRIM(ADJUSTL(SPrintString))
+    !PRINT*,TRIM(ADJUSTL(SPrintString))
   END IF
 
 END SUBROUTINE CalculateFigureofMeritandDetermineThickness
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-SUBROUTINE SimulateAndFit(RFigureofMerit,RIndependentVariable,IIterationCount,IExitFLAG,IErr)
-
-  USE MyNumbers
-  
-  USE CConst; USE IConst; USE RConst
-  USE IPara; USE RPara; USE SPara; USE CPara
-  USE BlochPara
-
-  USE IChannels
-
-  USE MPI
-  USE MyMPI
-
-  IMPLICIT NONE
-  
-  INTEGER(IKIND) :: IErr,IExitFLAG,IThickness,ind,jnd
-  REAL(RKIND),DIMENSION(INoOfVariables) :: RIndependentVariable
-  REAL(RKIND) :: RFigureofMerit
-  INTEGER(IKIND),INTENT(IN) :: IIterationCount
-  COMPLEX(CKIND),DIMENSION(nReflections,nReflections) :: CUgMatDummy
-  LOGICAL :: LInitialSimulationFLAG = .FALSE.
-  
-  IF(IWriteFLAG.GE.10.AND.my_rank.EQ.0) THEN
-     PRINT*,"SimulateAndFit"
-  END IF
-
-  IF(IRefineModeSelectionArray(1).EQ.1) THEN  !Ug refinement; update structure factors 
-  !Dummy Matrix to contain new iterative values
-    CUgMatDummy = CZERO
-    !NB these are Ug's without absorption, used to be the suroutine UpdateStructureFactors
-    jnd=1
-    DO ind = 1+IUgOffset,INoofUgs+IUgOffset!=== temp changes so real part only***
-      IF ( (ABS(REAL(CUgToRefine(ind),RKIND)).GE.RTolerance).AND.&!===
-           (ABS(AIMAG(CUgToRefine(ind))).GE.RTolerance)) THEN!===use both real and imag parts
-        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),RIndependentVariable(jnd+1))!===
-        jnd=jnd+2!===
-      ELSEIF ( ABS(AIMAG(CUgToRefine(ind))).LT.RTolerance ) THEN!===use only real part
-        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),ZERO)!===
-!===        CUgToRefine(ind)=CMPLX(RIndependentVariable(jnd),AIMAG(CUgToRefine(ind)))!replacement line, remove to revert
-        jnd=jnd+1
-      ELSEIF ( ABS(REAL(CUgToRefine(ind),RKIND)).LT.RTolerance ) THEN!===use only imag part
-        CUgToRefine(ind)=CMPLX(ZERO,RIndependentVariable(jnd))!===
-        jnd=jnd+1!===
-      ELSE!===should never happen
-        PRINT*,"Warning - zero structure factor!",ind,":",CUgToRefine(IEquivalentUgKey(ind))!===
-      END IF!===
-     WHERE(ISymmetryRelations.EQ.IEquivalentUgKey(ind))
-        CUgMatDummy = CUgToRefine(ind)+&
-        CUgToRefine(ind)*EXP(CIMAGONE*PI/2_RKIND)*(RAbsorptionPercentage/100_RKIND)
-     END WHERE
-     WHERE(ISymmetryRelations.EQ.-IEquivalentUgKey(ind))
-        CUgMatDummy = CONJG(CUgToRefine(ind))+&
-        CONJG(CUgToRefine(ind))*EXP(CIMAGONE*PI/2_RKIND)*(RAbsorptionPercentage/100_RKIND)
-     END WHERE
-    END DO
-    WHERE(((REAL(CUgMatDummy)**2+AIMAG(CUgMatDummy)**2)**0.5).GT.TINY)
-      CUgMat = CUgMatDummy
-    END WHERE
-    RAbsorptionPercentage = RIndependentVariable(jnd)!===![[[
-!	PRINT*,"UpdateStructureFactors: absorption=",RAbsorptionPercentage
-  ELSE !everything else
-     CALL UpdateVariables(RIndependentVariable,IErr)
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SimulateAndFit(",my_rank,")error in UpdateVariables"
-        RETURN
-     END IF
-     WHERE(RAtomSiteFracCoordVec.LT.0) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec+ONE
-     WHERE(RAtomSiteFracCoordVec.GT.1) RAtomSiteFracCoordVec=RAtomSiteFracCoordVec-ONE
-  END IF
-
-  IF (my_rank.EQ.0) THEN
-     CALL PrintVariables(IErr)
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SimulateAndFit(",my_rank,")error in PrintVariables"
-        RETURN
-     END IF
-  END IF
-
-  CALL FelixFunction(LInitialSimulationFLAG,IErr) ! Simulate !!  
-  IF( IErr.NE.0 ) THEN
-     PRINT*,"SimulateAndFit(",my_rank,")error in FelixFunction"
-     RETURN
-  END IF
-
-  IF(my_rank.EQ.0) THEN   
-     CALL CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr) 
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SimulateAndFit(",my_rank,")error in CreateImagesAndWriteOutput"
-        RETURN
-     ENDIF
-!This is the key parameter!!!****     
-     RFigureofMerit = RCrossCorrelation     
-  END IF
-
-END SUBROUTINE SimulateAndFit
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
+SUBROUTINE CreateImagesAndWriteOutput(Iter,IExitFLAG,IErr)
 !NB core 0 only
   USE MyNumbers
   
@@ -358,8 +356,8 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
   
   IMPLICIT NONE
   
-  INTEGER(IKIND) :: IErr,IThicknessIndex,IIterationCount,IExitFLAG
-!  CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
+  INTEGER(IKIND) :: IErr,IThicknessIndex,Iter,IExitFLAG
+  !  CALL CalculateFigureofMeritandDetermineThickness(IThicknessIndex,IErr)
   INTEGER(IKIND) :: ind,jnd,knd,hnd,ICountedPixels,IThickness
   INTEGER(IKIND),DIMENSION(INoOfLacbedPatterns) :: IThicknessByReflection
   INTEGER(IKIND) :: IBestThicknessCount
@@ -368,9 +366,6 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
        PhaseCorrelate,Normalised2DCrossCorrelation,ResidualSumofSquares,RThicknessRange,Rradius
   REAL(RKIND),DIMENSION(INoOfLacbedPatterns) :: RReflectionCrossCorrelations,RReflectionThickness
   CHARACTER*200 :: SPrintString
-  
-  
-!  PRINT*,"CreateImagesAndWriteOutput(",my_rank,")"
 
   RReflectionCrossCorrelations = ZERO
   DO hnd = 1,INoOfLacbedPatterns
@@ -465,7 +460,7 @@ SUBROUTINE CreateImagesAndWriteOutput(IIterationCount,IExitFLAG,IErr)
   PRINT*,TRIM(ADJUSTL(SPrintString))
   
 !!$     OUTPUT -------------------------------------  
-  CALL WriteIterationOutput(IIterationCount,IBestThicknessCount,IExitFLAG,IErr)
+  CALL WriteIterationOutput(Iter,IBestThicknessCount,IExitFLAG,IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"CreateImagesAndWriteOutput(",my_rank,")error in WriteIterationOutput"
      RETURN
@@ -494,7 +489,7 @@ SUBROUTINE UpdateVariables(RIndependentVariable,IErr)
   REAL(RKIND),DIMENSION(INoOfVariables),INTENT(IN) :: RIndependentVariable
 
   !!$  Fill the Independent Value array with values
-  IF(IRefineModeSelectionArray(2).EQ.1) THEN     
+  IF(IRefineMode(2).EQ.1) THEN     
      RAtomSiteFracCoordVec = RInitialAtomSiteFracCoordVec
   END IF
 
@@ -573,7 +568,7 @@ SUBROUTINE PrintVariables(IErr)
   RCrystalVector = [RLengthX,RLengthY,RLengthZ]
 
   DO ind = 1,IRefinementVariableTypes
-     IF (IRefineModeSelectionArray(ind).EQ.1) THEN
+     IF (IRefineMode(ind).EQ.1) THEN
         SELECT CASE(ind)
         CASE(1)
            WRITE(SPrintString,FMT='(A18,1X,F5.2)') "Current Absorption",RAbsorptionPercentage

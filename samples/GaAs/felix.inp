@@ -68,6 +68,6 @@ IPrint                    = 3
 
 # Simplex Initialisation
 
-RSimplexLengthScale       = 5.0
+RSimplexLengthScale       = 3.0
 RExitCriteria             = 0.0001
 
