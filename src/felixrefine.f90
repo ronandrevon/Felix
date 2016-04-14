@@ -594,9 +594,9 @@ RFullIsotropicDebyeWallerFactor,IFullAtomicNumber,IFullAnisotropicDWFTensor)
         !PRINT*,"--------------------------------"
         WRITE(SPrintString,FMT='(A19,F8.6,A1,F8.6,A6,F8.6,A1,F8.6,A1)')&
 		"Minimum is between ",RpointA,"(",RfitA,") and ",RpointC,"(",RfitC,")"
-        !PRINT*,TRIM(ADJUSTL(SPrintString))
+        PRINT*,TRIM(ADJUSTL(SPrintString))
 	    WRITE(SPrintString,FMT='(A14,F8.6,A18,F8.6)') "Current value ",RpointB,": figure of merit ",RfitB
-        !PRINT*,TRIM(ADJUSTL(SPrintString))
+        PRINT*,TRIM(ADJUSTL(SPrintString))
 		!PRINT*,"Finding best fit..."
       END IF	  
 	  !find the minimum using Brent's method, pass best figure of merit in
@@ -909,8 +909,9 @@ SUBROUTINE BRENT(Rbrent,RIndependentVariable,Rax,Rbx,Rcx,Rtol,RbestFit,ind,IErr)
   DO Iiter=1,Iitmax !main loop
     Rxm=0.5*(Ra+Rb) 
     Rtol1=Rtol*ABS(Rx)+RzEPS 
-    Rtol2=2.*Rtol1 
-    IF (ABS(Rx-Rxm).LE.(Rtol2-.5*(Rb-Ra))) THEN!Test for done
+    Rtol2=2.*Rtol1
+	!Test for done, only accept if outgoing fit is better than incoming one
+    IF ((ABS(Rx-Rxm).LE.(Rtol2-.5*(Rb-Ra))).AND.(Rfx.LT.Rbrent)) THEN
       GOTO 3
 	END IF
     IF( ABS(Re).GT.Rtol1) THEN 
@@ -997,12 +998,12 @@ SUBROUTINE BRENT(Rbrent,RIndependentVariable,Rax,Rbx,Rcx,Rtol,RbestFit,ind,IErr)
     IErr=1
   END IF
   
-3 IF (Rfx.LT.Rbrent) THEN!only accept if outgoing fit is better than incoming one
-    RbestFit=Rx 
+!3  IF (Rfx.LT.Rbrent) THEN!only accept if outgoing fit is better than incoming one
+3   RbestFit=Rx 
     Rbrent=Rfx 
-  ELSE
-    RbestFit=Rbx
-  END IF
+  !ELSE
+  !  RbestFit=Rbx
+  !END IF
   
   RETURN
   
