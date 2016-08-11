@@ -156,7 +156,7 @@ SUBROUTINE OpenImageForReadIn(IErr,filename)
   END IF
 
   OPEN(UNIT= IChInImage, ERR= 10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*8)
+       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*2)
   RETURN
 
   ! error in OPEN detected
@@ -308,7 +308,7 @@ SUBROUTINE OpenReflectionImage(IChOutWrite, surname, IErr,IReflectWriting,IImage
 
 
   OPEN(UNIT=IChOutWrite, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=IImageSizeX*8)
+       ACCESS='DIRECT',IOSTAT=Ierr,RECL=IImageSizeX*2)
   RETURN
    
   ! error in OPEN detected

@@ -669,7 +669,7 @@ SUBROUTINE ReadExperimentalImages(IErr)
      
      WRITE(filename,"(A6,I3.3,A4)") "felix.",ind,".img"
      OPEN(UNIT= IChInImage, ERR= 10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),FORM='UNFORMATTED',&
-       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*8)
+       ACCESS='DIRECT',IOSTAT=Ierr,RECL=2*IPixelCount*2)
 	   
     ALLOCATE(RImageIn(2*IPixelCount,2*IPixelCount), STAT=IErr)  
     IF( IErr.NE.0 ) THEN
