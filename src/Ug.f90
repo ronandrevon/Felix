@@ -437,18 +437,18 @@ SUBROUTINE Absorption (IErr)
 	               root,MPI_COMM_WORLD,IErr)
     !=====================================
 	DO ind=1,IUniqueUgs
-	  CUgPrime(ind)=COMPLEX(RUgReal(ind),RUgImag(ind))
+	  CUgPrime(ind)=CMPLX(RUgReal(ind),RUgImag(ind))
 	END DO
-!    IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.1) THEN
-!	  PRINT*,"local U'g:"
-!	  DO ind=1,SIZE(CLocalUgPrime)
-!	    PRINT*,ILocalUgCountMin+ind-1,CLocalUgPrime(ind)
-!      END DO
-!	  PRINT*,"MPI gathered U'g:"
-!	  DO ind=1,2*SIZE(CLocalUgPrime)
-!        PRINT*,ind,CUgPrime(ind)
-!      END DO
-!    END IF
+    IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.1) THEN
+	  PRINT*,"local U'g:"
+	  DO ind=1,SIZE(CLocalUgPrime)
+	    PRINT*,ILocalUgCountMin+ind-1,CLocalUgPrime(ind)
+      END DO
+	  PRINT*,"MPI gathered U'g:"
+	  DO ind=1,2*SIZE(CLocalUgPrime)
+        PRINT*,ind,CUgPrime(ind)
+      END DO
+    END IF
 	!Construct CUgMatPrime
     DO ind=1,IUniqueUgs
     !number of this Ug
