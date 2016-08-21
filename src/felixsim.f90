@@ -56,10 +56,8 @@ PROGRAM felixsim
   
   IMPLICIT NONE
 
-  REAL(RKIND) :: RThickness,Duration,time, norm
-  INTEGER(IKIND) :: ind,jnd,hnd,knd,pnd,gnd,IErr, &
-       IHours,IMinutes,ISeconds,IMilliSeconds,IThicknessIndex
-  INTEGER :: IStartTime, ICurrentTime ,IRate
+  REAL(RKIND) :: RThickness,time, norm
+  INTEGER(IKIND) :: ind,jnd,hnd,knd,pnd,gnd,IErr,IThicknessIndex
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImageRoot
   COMPLEX(CKIND),DIMENSION(:,:,:), ALLOCATABLE :: CAmplitudeandPhaseRoot
   CHARACTER*40 surname, my_rank_string 
@@ -620,11 +618,10 @@ PROGRAM felixsim
   IHours = FLOOR(Duration/3600.0D0)
   IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
   ISeconds = MOD(Duration,3600.0D0)-IMinutes*60
-  IMilliSeconds = INT((Duration-(IHours*3600+IMinutes*60+ISeconds))*1000,IKIND)
 
   PRINT*, "felixsim( ", TRIM(ADJUSTL(my_rank_string)), " ) ", &
        RStr, ", used time=", IHours, "hrs ", &
-       IMinutes,"mins ",ISeconds,"secs ", IMilliSeconds,"millisecs"
+       IMinutes,"mins ",ISeconds,"secs "
 
   CALL MPI_Barrier(MPI_COMM_WORLD,IErr)
 

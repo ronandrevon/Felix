@@ -208,7 +208,9 @@ MODULE IPara
   INTEGER(IKIND) :: IFelixCount,IPreviousPrintedIteration,IStandardDeviationCalls  
   !Message Counter (Avoid subroutines printing out message more than once)
   INTEGER(IKIND) :: IMessageCounter=0
-
+  !Timing
+  INTEGER(IKIND) :: IHours,IMinutes,ISeconds,IStartTime,ICurrentTime,IRate
+  
 END MODULE IPara
 !--------------------------------------------------------------------
 MODULE RPara
@@ -298,7 +300,9 @@ MODULE RPara
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RInitialAtomPosition
   !Weighting Coefficients for figure of merit combination
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RWeightingCoefficients
-
+  !Timing
+  REAL(RKIND) :: StartTime, CurrentTime, Duration
+  
 END MODULE RPara
 !--------------------------------------------------------------------
 MODULE CPara

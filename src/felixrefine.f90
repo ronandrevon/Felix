@@ -42,14 +42,11 @@ PROGRAM Felixrefine
   ! local variable definitions
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: IHours,IMinutes,ISeconds,IErr,IMilliSeconds,IIterationFLAG,&
-       ind,jnd,knd,ICalls,Iter,ICutOff,IHOLZgPoolMag,IBSMaxLocGVecAmp,&
+  INTEGER(IKIND) :: IErr,IIterationFLAG,ind,jnd,knd,ICalls,Iter,ICutOff,IHOLZgPoolMag,IBSMaxLocGVecAmp,&
 	   ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,INhkl,IExitFLAG,&
 	   INumInitReflections,IZerothLaueZoneLevel,INumFinalReflections
-  INTEGER(IKIND) :: IStartTime,ICurrentTime,IRate
   INTEGER(IKIND), DIMENSION(:),ALLOCATABLE :: IOriginGVecIdentifier
-  REAL(RKIND) :: StartTime, CurrentTime, Duration, TotalDurationEstimate,&
-       RFigureOfMerit,RHOLZAcceptanceAngle,RLaueZoneGz,RMaxGMag
+  REAL(RKIND) :: RFigureOfMerit,RHOLZAcceptanceAngle,RLaueZoneGz,RMaxGMag
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RSimplexVariable
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RSimplexFoM,RIndependentVariable
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RgDummyVecMat,RgPoolMagLaue
@@ -793,7 +790,6 @@ PROGRAM Felixrefine
   IHours = FLOOR(Duration/3600.0D0)
   IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
   ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
-  IMilliSeconds = INT((Duration-(IHours*3600+IMinutes*60+ISeconds))*1000,IKIND)
 
   IF(my_rank.EQ.0) THEN
     PRINT*,"--------------------------------"
