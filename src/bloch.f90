@@ -104,6 +104,17 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
       PRINT*,"RDevPara",RDevPara(knd)
     END IF
   END DO
+    
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A18,I3,A5,I2,A6,I2,A4)')&
+    "Sg's completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
   
   ! select only those beams where the Ewald sphere is close to the
   ! reciprocal lattice, i.e. within RBSMaxDeviationPara
@@ -117,13 +128,18 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
 	PRINT*, nWeakBeams,"weak beams"
     PRINT*, nReflections,"nReflections"
   END IF
-	
-  IF(IYPixelIndex.EQ.10.AND.IXPixelIndex.EQ.0) THEN
-    PRINT*, nBeams,"strong beams in pixel [10,10]"
-    PRINT*, nWeakBeams,"weak beams in pixel [10,10]"
-  END IF
 
-
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A37,I3,A5,I2,A6,I2,A4)')&
+    "Strong/weak beams completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
   !--------------------------------------------------------------------
   ! ALLOCATE memory for eigen problem
   !--------------------------------------------------------------------
@@ -220,6 +236,17 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
      PRINT*,TRIM(SPrintString)
     END DO
   END IF	
+    
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A31,I3,A5,I2,A6,I2,A4)')&
+    "UgSg matrix completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF
   
   !--------------------------------------------------------------------
   ! diagonalize the UgMatEffective
@@ -241,7 +268,18 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
         RETURN
      END IF
   END IF
- 
+    
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A18,I3,A5,I2,A6,I2,A4)')&
+    "Diagonalisation completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
   DO IThicknessIndex=1,IThicknessCount,1
      RThickness = RInitialThickness + REAL((IThicknessIndex-1),RKIND)*RDeltaThickness 
      IThickness = NINT(RInitialThickness + REAL((IThicknessIndex-1),RKIND)*RDeltaThickness,IKIND) 
@@ -273,6 +311,17 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
         END IF
      END IF
   END DO
+    
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A28,I3,A5,I2,A6,I2,A4)')&
+    "Wave functions completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
   
   !--------------------------------------------------------------------
   ! DEALLOCATE eigen problem memory

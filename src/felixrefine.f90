@@ -5,13 +5,6 @@
 ! Richard Beanland, Keith Evans, Rudolf A Roemer and Alexander Hubert
 !
 ! (C) 2013/14/15/16, all rights reserved
-!
-! Version: :VERSION:
-! Date:    :DATE:
-! Time:    :TIME:
-! Status:  :RLSTATUS:
-! Build:   :BUILD:
-! Author:  :AUTHOR:
 ! 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
@@ -30,10 +23,6 @@
 !  You should have received a copy of the GNU General Public License
 !  along with felixrefine.  If not, see <http://www.gnu.org/licenses/>.
 !
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-! $Id: Felixrefine.f90,v 1.89 2014/04/28 12:26:19 phslaz Exp $
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 PROGRAM Felixrefine
@@ -139,6 +128,16 @@ PROGRAM Felixrefine
      GOTO 9999
   END IF
 
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A19,I3,A5,I2,A6,I2,A4)')&
+    "Input completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
   !--------------------------------------------------------------------
   ! Initial simulation and variable setup
   CALL MicroscopySettings( IErr )
@@ -152,7 +151,7 @@ PROGRAM Felixrefine
      PRINT*,"felixrefine(",my_rank,")error in ReciprocalLattice"
      GOTO 9999
   ENDIF
-
+  
   !Total possible atoms/unit cell
   IMaxPossibleNAtomsUnitCell=SIZE(RBasisAtomPosition,1)*SIZE(RSymVec,1)
   !The following are over-allocated since the actual size is not known before the calculation of unique positions
@@ -179,6 +178,17 @@ PROGRAM Felixrefine
   ENDIF
   !Perhaps should now re-allocate RAtomPosition,SAtomName,RIsoDW,ROccupancy,IAtomicNumber,RAnisoDW to match INAtomsUnitCell???
 
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A45,I3,A5,I2,A6,I2,A4)')&
+    "Crystal and reciprocal lattices completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
 ! set up reflection pool
 !-----------------------------------------
   RHOLZAcceptanceAngle=TWODEG2RADIAN!RB seems way too low?
@@ -377,6 +387,17 @@ PROGRAM Felixrefine
     PRINT*,"felixrefine deallocating IOriginGVecIdentifier"
   END IF
 
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A28,I3,A5,I2,A6,I2,A4)')&
+    "g-vector setup completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
   !Calculate Ug matrix etc.--------------------------------------------------------
   ALLOCATE(CUgMatNoAbs(nReflections,nReflections),STAT=IErr)  !RB Ug Matrix without absorption
   ALLOCATE(CUgMatPrime(nReflections,nReflections),STAT=IErr)  !RB U'g Matrix of just absorption  
@@ -410,6 +431,18 @@ PROGRAM Felixrefine
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
 	PRINT*,"Starting absorption calculation",SIZE(IEquivalentUgKey),"beams"
   END IF
+
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A22,I3,A5,I2,A6,I2,A4)')&
+    "Ug setup completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
   CALL Absorption (IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"StructureFactorSetup(",my_rank,")error in StructureFactorInitialisation"
@@ -422,7 +455,7 @@ PROGRAM Felixrefine
   ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
   IF(my_rank.EQ.0) THEN
     WRITE(SPrintString,FMT='(A24,I3,A5,I2,A6,I2,A4)')&
-    "Absorption completed in ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    "Absorption completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
     PRINT*,TRIM(ADJUSTL(SPrintString))
   END IF 
 
@@ -582,6 +615,18 @@ PROGRAM Felixrefine
      PRINT*,"felixrefine(",my_rank,") error in allocations for Bloch calculation"
      GOTO 9999
   END IF
+  
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
+    CALL SYSTEM_CLOCK(ICurrentTime)
+    Duration=REAL(ICurrentTime-IStartTime)/REAL(IRate)
+    IHours = FLOOR(Duration/3600.0D0)
+    IMinutes = FLOOR(MOD(Duration,3600.0D0)/60.0D0)
+    ISeconds = INT(MOD(Duration,3600.0D0)-IMinutes*60)
+    WRITE(SPrintString,FMT='(A27,I3,A5,I2,A6,I2,A4)')&
+    "Simplex setup completed by ",IHours," hrs ",IMinutes," mins ",ISeconds," sec"
+    PRINT*,TRIM(ADJUSTL(SPrintString))
+  END IF 
+  
   !--------------------------------------------------------------------
   !baseline simulation
   RFigureofMerit=9.999!Inital value
