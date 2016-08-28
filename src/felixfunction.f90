@@ -414,7 +414,29 @@ SUBROUTINE UpdateVariables(RIndependentVariable,IErr)
 	  !Change in position
       RBasisAtomPosition(IAtomID,:) = RBasisAtomPosition(IAtomID,:) + &
          RIndependentVariable(ind)*RAllowedVectors(IVectorID,:)
-     CASE(3)
+      !:::CMO hack, see notebook 28/8/16
+      IF (IAtomID.EQ.2.AND.ABS(RAllowedVectors(IVectorID,1)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(3,1) = RBasisAtomPosition(3,1)+RIndependentVariable(ind)/2
+        RBasisAtomPosition(5,1) = RBasisAtomPosition(5,1)+RIndependentVariable(ind)/2
+        RBasisAtomPosition(6,1) = RBasisAtomPosition(6,1)+RIndependentVariable(ind)/2
+        RBasisAtomPosition(7,1) = RBasisAtomPosition(7,1)+RIndependentVariable(ind)
+      END IF
+      IF (IAtomID.EQ.4.AND.ABS(RAllowedVectors(IVectorID,2)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(7,2) = RBasisAtomPosition(7,2)-RIndependentVariable(ind)
+      END IF
+      IF (IAtomID.EQ.4.AND.ABS(RAllowedVectors(IVectorID,3)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(7,3) = RBasisAtomPosition(7,3)+RIndependentVariable(ind)
+      END IF
+      IF (IAtomID.EQ.5.AND.ABS(RAllowedVectors(IVectorID,1)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(6,1) = RBasisAtomPosition(6,1)-RIndependentVariable(ind)
+      END IF
+      IF (IAtomID.EQ.5.AND.ABS(RAllowedVectors(IVectorID,2)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(6,2) = RBasisAtomPosition(6,2)+RIndependentVariable(ind)
+      END IF
+      IF (IAtomID.EQ.5.AND.ABS(RAllowedVectors(IVectorID,3)-ONE).LT.TINY) THEN
+        RBasisAtomPosition(6,3) = RBasisAtomPosition(6,3)-RIndependentVariable(ind)
+      END IF
+      CASE(3)
         RBasisOccupancy(IIterativeVariableUniqueIDs(ind,3)) = &
              RIndependentVariable(ind)
      CASE(4)

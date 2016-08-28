@@ -511,7 +511,7 @@ PROGRAM Felixrefine
     END IF
   END IF
   IF(IRefineMode(1)+IRefineMode(12).EQ.0) THEN !It's not a Ug refinement, so we need to count variables
-    INoofElementsForEachRefinementType(2)=IRefineMode(2)*IAllowedVectors!Atomic coordinates
+	INoofElementsForEachRefinementType(2)=IRefineMode(2)*IAllowedVectors!Atomic coordinates
     INoofElementsForEachRefinementType(3)=IRefineMode(3)*SIZE(IAtomicSitesToRefine)!Occupancy
     INoofElementsForEachRefinementType(4)=IRefineMode(4)*SIZE(IAtomicSitesToRefine)!Isotropic DW
     INoofElementsForEachRefinementType(5)=IRefineMode(5)*SIZE(IAtomicSitesToRefine)*6!Anisotropic DW
@@ -1668,14 +1668,13 @@ SUBROUTINE SetupAtomicVectorMovements(IErr)
      RETURN
   ENDIF
   
-  DO ind = 1,SIZE(SWyckoffSymbols)!NB SIZE(SWyckoffSymbols)=IAtomicSitesToRefine?
-     CALL CountAllowedMovements(ISpaceGrp,SWyckoffSymbols(ind),IVectors(ind),IErr)
-     IF( IErr.NE.0 ) THEN
-        PRINT*,"SetupAtomicVectorMovements(",my_rank,")error in CountAllowedMovements "
-        RETURN
-     ENDIF    
+  DO ind = 1,SIZE(SWyckoffSymbols)!NB SIZE(SWyckoffSymbols)=no. of different Wyckoff symbols that exist?
+    CALL CountAllowedMovements(ISpaceGrp,SWyckoffSymbols(ind),IVectors(ind),IErr)
+    IF( IErr.NE.0 ) THEN
+      PRINT*,"SetupAtomicVectorMovements(",my_rank,")error in CountAllowedMovements "
+      RETURN
+    ENDIF    
   END DO
-  
   IAllowedVectors = SUM(IVectors)
   
   ALLOCATE(IAllowedVectorIDs(IAllowedVectors),STAT=IErr)

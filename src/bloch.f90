@@ -123,7 +123,7 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
      PRINT*,"BlochCoefficientCalculation(",my_rank,") error in Determination of Strong and Weak beams"
      RETURN
   END IF
-  IF(IWriteFLAG.EQ.6.AND.my_rank.EQ.0) THEN
+  IF(IWriteFLAG.EQ.2.AND.my_rank.EQ.0) THEN
     PRINT*, nBeams,"strong beams"
 	PRINT*, nWeakBeams,"weak beams"
     PRINT*, nReflections,"nReflections"
