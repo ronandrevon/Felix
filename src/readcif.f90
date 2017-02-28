@@ -266,7 +266,6 @@ SUBROUTINE ReadCif(IErr)
     B = 0.D0
     Uso = 0.D0
     f1 = char_('_atom_site_label', name)
-    f1 = char_('_atom_site_label', name)
     SBasisAtomLabel(ind)=name
     f1 = char_('_atom_site_type_symbol', name)
     SBasisAtomName(ind)=name(1:2)
@@ -307,7 +306,7 @@ SUBROUTINE ReadCif(IErr)
     f2 = numb_('_atom_site_occupancy',Occ, sOcc)
     RBasisOccupancy(ind) = Occ
 
-    IF(my_rank.EQ.0) THEN!IWriteFLAG.EQ.14.AND.
+    IF(IWriteFLAG.EQ.7.AND.my_rank.EQ.0) THEN!optional output
       WRITE(SPrintString,FMT='(A4,I3,A2,A5,1X,A2,A3,I2,A3,3F7.4,A7,F5.3,A12,F7.4)')&
       "Atom",ind,": ",SBasisAtomLabel(ind),SBasisAtomName(ind)," Z=",IBasisAtomicNumber(ind),&
       ", [",RBasisAtomPosition(ind,:),"], DWF=",RBasisIsoDW(ind),", occupancy=",RBasisOccupancy(ind)

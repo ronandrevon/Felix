@@ -182,14 +182,12 @@ PROGRAM Felixrefine
   ALLOCATE(RAtomPosition(IMaxPossibleNAtomsUnitCell,ITHREE),STAT=IErr)
   !AtomCoordinate is in the microscope reference frame in Angstrom units
   ALLOCATE(RAtomCoordinate(IMaxPossibleNAtomsUnitCell,ITHREE),STAT=IErr)
-  !Atom name
-  ALLOCATE(SAtomName(IMaxPossibleNAtomsUnitCell),STAT=IErr)
-  !Isotropic Debye-Waller factor
-  ALLOCATE(RIsoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)
+  ALLOCATE(SAtomLabel(IMaxPossibleNAtomsUnitCell),STAT=IErr)!Atom label
+  ALLOCATE(SAtomName(IMaxPossibleNAtomsUnitCell),STAT=IErr)!Atom name
+  ALLOCATE(RIsoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)!Isotropic Debye-Waller factor
   ALLOCATE(ROccupancy(IMaxPossibleNAtomsUnitCell),STAT=IErr)
   ALLOCATE(IAtomicNumber(IMaxPossibleNAtomsUnitCell),STAT=IErr)
-  !Anisotropic Debye-Waller factor (why is it an integer????)
-  ALLOCATE(RAnisoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)
+  ALLOCATE(RAnisoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)  !Anisotropic Debye-Waller factor (why is it an integer????)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine(",my_rank,")error in atom position allocations"
      GOTO 9999
