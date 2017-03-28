@@ -511,7 +511,7 @@ PROGRAM Felixrefine
     INoofElementsForEachRefinementType(10)=IRefineMode(10)!kV, J
     !Number of independent variables
     INoOfVariables = SUM(INoofElementsForEachRefinementType)
-    IF(INoOfVariables.EQ.0) THEN !there's no refinement requested, say so and quit (could be done when reading felix.inp)
+    IF((INoOfVariables.EQ.0).AND.(ISimFLAG.EQ.0)) THEN !there's no refinement requested, say so and quit (could be done when reading felix.inp)
       IF (my_rank.EQ.0) PRINT*,"No refinement variables! Check IRefineModeFLAG in felix.inp"
       IF (my_rank.EQ.0) PRINT*,"Valid refine modes are A,B,C,D,E,F,G,H,I,J,S"
       GOTO 9999
