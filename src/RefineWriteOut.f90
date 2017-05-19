@@ -81,7 +81,7 @@ SUBROUTINE WriteIterationOutput(Iter,IThicknessIndex,IExitFlag,IErr)
     RImageToWrite = RImageSimi(:,:,ind,IThicknessIndex)
 	
     OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(filename)),&
-	FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8)
+	FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
     DO jnd = 1,2*IPixelCount
      WRITE(IChOutWIImage,rec=jnd) RImageToWrite(jnd,:)
     END DO

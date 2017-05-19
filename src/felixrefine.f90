@@ -767,7 +767,7 @@ PROGRAM Felixrefine
           WRITE(l,*)  NINT(Rhkl(IOutPutReflections(ind),3))
           WRITE(SPrintString,*) TRIM(ADJUSTL(h)),TRIM(ADJUSTL(k)),TRIM(ADJUSTL(l)),".mask"
           OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=SPrintString,&!
-          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8)
+          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
           DO jnd = 1,2*IPixelCount
             WRITE(IChOutWIImage,rec=jnd) RTestImage(jnd,:)
           END DO
