@@ -53,7 +53,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   INTEGER(IKIND),DIMENSION(2) :: IPos,ILoc
   COMPLEX(CKIND) :: CVgij,CFpseudo
   REAL(RKIND) :: RMeanInnerPotentialVolts,RScatteringFactor,Lorentzian,Gaussian,Kirkland,&
-        RScattFacToVolts,RPMag,Rx,Ry,Rr,RPalpha,RTheta,Rfold
+        RScattFacToVolts,RPMag,Rx,Ry,Rr,RPalpha,RTheta,Rfold,RRscale
   CHARACTER*200 :: SPrintString
   
   !Conversion factor from scattering factors to volts. h^2/(2pi*m0*e*omega), see e.g. Kirkland eqn. 6.9 and C.5
@@ -69,16 +69,23 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   ALLOCATE(CPseudoAtom(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom potentials (real space)- could just have one reusable matrix to save memory
   ALLOCATE(CPseudoScatt(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom scattering factor (reciprocal space)
   ALLOCATE(RFourPiGsquaredVc(IPsize,IPsize),STAT=IErr)!4*pi*G^2^Volume of unit cell, to convert electron density to potential
-  RPScale=0.01!one picometre per pixel, working in Angstroms, global variable
-  DO ind=1,IPsize
-    DO jnd=1,IPsize
-      Rx=RPScale*(REAL(ind-(IPsize/2))-HALF)!x&y run from e.g. -511.5 to +511.5 picometres
-      Ry=RPScale*(REAL(jnd-(IPsize/2))-HALF)
-      RFourPiGsquaredVc(ind,jnd)=RPScale*RPScale/(FOUR*PI*(Rx*Rx+Ry*Ry)*RVolume)
+  RRScale=0.008!Real space scale working in Angstroms; max radius is 512*0.008=4.096A
+  RPScale=TWO*TWOPI/(RRscale*IPsize)!Reciprocal space scale is 2pi/(RRscale*(IPsize/2)), roughly pi/2
+  !make 4piG^2Vc, centred on corner to match the FFT
+  DO ind=1,IPsize/2
+    DO jnd=1,IPsize/2
+      Rx=RPScale*(REAL(ind)-HALF)
+      Ry=RPScale*(REAL(jnd)-HALF)
+      Rr=1/(FOUR*PI*(Rx*Rx+Ry*Ry))
+      RFourPiGsquaredVc(ind,jnd)=Rr
+      RFourPiGsquaredVc(IPsize+1-ind,jnd)=Rr
+      RFourPiGsquaredVc(ind,IPsize+1-jnd)=Rr
+      RFourPiGsquaredVc(IPsize+1-ind,IPsize+1-jnd)=Rr
     END DO
   END DO
+  !IF(my_rank.EQ.0) PRINT*,"max RFourPiGsquaredVc",RFourPiGsquaredVc(ind,jnd)
   !Magnitude of pseudoatom potential, in volts
-  RPMag=1.0!set such that a Ja gives the same Ug matrix as a hydrogen atom
+  RPMag=0.004!set such that a Ja gives a maximum scattering factor of the Bohr radius, the same as a hydrogen atom
   mnd=0!pseudoatom counter
   DO lnd=1,INAtomsUnitCell 
     IF (IAtomicNumber(lnd).GE.105) THEN!we have a pseudoatom
@@ -93,8 +100,8 @@ SUBROUTINE StructureFactorInitialisation (IErr)
       !electron density in real space
       DO ind=1,IPsize
         DO jnd=1,IPsize
-          Rx=RPScale*(REAL(ind-(IPsize/2))-HALF)!x&y run from e.g. -511.5 to +511.5 picometres
-          Ry=RPScale*(REAL(jnd-(IPsize/2))-HALF)
+          Rx=RRScale*(REAL(ind-(IPsize/2))-HALF)!x&y run from e.g. -511.5 to +511.5 picometres
+          Ry=RRScale*(REAL(jnd-(IPsize/2))-HALF)
           Rr=SQRT(Rx*Rx+Ry*Ry)
           Rtheta=ACOS(Rx/Rr)
           CPseudoAtom(ind,jnd,mnd)=CMPLX(RPMag*RPalpha*Rr*EXP(-RPalpha*Rr)*COS(Rfold*Rtheta),ZERO)!Easier to make a complex input to fftw rather than fanny around with the different format needed for a real input. Lazy.
@@ -105,7 +112,8 @@ SUBROUTINE StructureFactorInitialisation (IErr)
         OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=SPrintString,&
              FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=8192)
         DO jnd = 1,IPsize
-            WRITE(IChOutWIImage,rec=jnd) REAL(CPseudoAtom(jnd,:,mnd))
+            WRITE(IChOutWIImage,rec=jnd) RFourPiGsquaredVc(jnd,:)
+            !WRITE(IChOutWIImage,rec=jnd) REAL(CPseudoAtom(jnd,:,mnd))
         END DO
         CLOSE(IChOutWIImage,IOSTAT=IErr)
       END IF
@@ -114,7 +122,9 @@ SUBROUTINE StructureFactorInitialisation (IErr)
            FFTW_FORWARD,FFTW_ESTIMATE )!Could be moved to an initialisation step if there are no other plans?
       CALL dfftw_execute_ (Iplan_forward)
       CALL dfftw_destroy_plan_ (Iplan_forward)
-      CPseudoScatt(:,:,mnd)=CPseudoScatt(:,:,mnd)*RFourPiGsquaredVc!convert electron density to potential
+      !WHERE (ABS(CPseudoScatt(:,:,mnd)).GT.TINY)
+        CPseudoScatt(:,:,mnd)=CPseudoScatt(:,:,mnd)*RFourPiGsquaredVc!convert electron density to potential
+      !END WHERE
       IF (my_rank.EQ.0) THEN!output to check
         WRITE(SPrintString,FMT='(A12,I1,A4)') "PseudoFactor",mnd,".img"
         OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=SPrintString,&
@@ -182,8 +192,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
     CUgMatNoAbs(ind,ind)=CZERO
   END DO
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
-    PRINT*,"Ug matrix, without absorption (nm^-2)"
-    PRINT*,CUgMatNoAbs(2,1)
+    PRINT*,"Ug matrix, without absorption (nm^-2)"!NB * by 100 to get it in nm^-2
 	DO ind =1,16
      WRITE(SPrintString,FMT='(3(1X,I3),A1,8(1X,F7.3,F7.3))') NINT(Rhkl(ind,:)),":",100*CUgMatNoAbs(ind,1:8)
      PRINT*,TRIM(SPrintString)
@@ -223,7 +232,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   ! high-energy approximation (not HOLZ compatible)
   !Wave vector in crystal
   !K^2=k^2+U0
-  RBigK= SQRT(RElectronWaveVectorMagnitude**2 + REAL(CUgMatNoAbs(1,1)))
+  RBigK= SQRT(RElectronWaveVectorMagnitude**2 + RMeanInnerPotential)
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     WRITE(SPrintString,FMT='(A4,F5.1,A10)') "K = ",RBigK," Angstroms"
       PRINT*,TRIM(ADJUSTL(SPrintString))
@@ -749,7 +758,7 @@ SUBROUTINE PseudoAtom(CFpseudo,i,j,k,IErr)
   COMPLEX(CKIND) :: CFpseudo
 
   IF (RElectronWaveLength*ABS(RCurrentGMagnitude)*REAL(IPsize)*RPscale/TWOPI.GE.ONE) THEN!g vector is out of range of the fft
-    IF (my_rank.EQ.0) PRINT*,"big g"
+    !IF (my_rank.EQ.0) PRINT*,"big g"
     Ix=IPsize!use the point furthest from the origin
     Iy=IPsize
   ELSE!Find the pixel corresponding to g

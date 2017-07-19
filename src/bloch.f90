@@ -179,8 +179,8 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
 	  !Replace the Sg's
       CUgSgMatrix(knd,knd)= CUgSgMatrix(knd,knd) - TWO*RBigK*sumD/(TWOPI*TWOPI)
     ENDDO
-	!Divide by 2K so off-diagonal elementa are Ug/2K, diagonal elements are Sg
-	!DON'T KNOW WHERE THE 4pi^2 COMES FROM!! 
+	!The 4pi^2 is a result of using h, not hbar, in the conversion from VG(ij) to Ug(ij).  Needs to be taken out of the weak beam calculation too 
+	!Divide by 2K so off-diagonal elementa are Ug/2K, diagonal elements are Sg, Spence's (1990) 'Structure matrix'
     CUgSgMatrix = TWOPI*TWOPI*CUgSgMatrix/(TWO*RBigK)
   END IF
   
