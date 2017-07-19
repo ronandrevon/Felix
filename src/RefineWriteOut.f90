@@ -314,6 +314,7 @@ SUBROUTINE WriteStructureFactors(path,IErr)
   WRITE(fullpath,*) TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
   OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
 
+  !N.B. The Fourier coefficients of the crystal potential are 2*RBigK*CUgMat(:,1)/4pi^2
   DO ind = 1,nReflections
      WRITE(IChOut,FMT='(3I5.1,2F13.9)') NINT(Rhkl(ind,:)),CUgMat(ind,1)
   END DO

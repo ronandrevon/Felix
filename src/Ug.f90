@@ -68,9 +68,17 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   IPsize=1024!Size of the array used to calculate the pseudoatom FFT, global variable, must be an EVEN number (preferably 2^n)!For later: give CPseudoAtom ,CPseudoScatt a 3rd dimension?
   ALLOCATE(CPseudoAtom(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom potentials (real space)- could just have one reusable matrix to save memory
   ALLOCATE(CPseudoScatt(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom scattering factor (reciprocal space)
+  ALLOCATE(RFourPiGsquaredVc(IPsize,IPsize),STAT=IErr)!4*pi*G^2^Volume of unit cell, to convert electron density to potential
   RPScale=0.01!one picometre per pixel, working in Angstroms, global variable
+  DO ind=1,IPsize
+    DO jnd=1,IPsize
+      Rx=RPScale*(REAL(ind-(IPsize/2))-HALF)!x&y run from e.g. -511.5 to +511.5 picometres
+      Ry=RPScale*(REAL(jnd-(IPsize/2))-HALF)
+      RFourPiGsquaredVc(ind,jnd)=RPScale*RPScale/(FOUR*PI*(Rx*Rx+Ry*Ry)*RVolume)
+    END DO
+  END DO
   !Magnitude of pseudoatom potential, in volts
-  RPMag=0.01815!set such that a Ja gives the same Ug matrix as a hydrogen atom
+  RPMag=1.0!set such that a Ja gives the same Ug matrix as a hydrogen atom
   mnd=0!pseudoatom counter
   DO lnd=1,INAtomsUnitCell 
     IF (IAtomicNumber(lnd).GE.105) THEN!we have a pseudoatom
@@ -82,7 +90,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
       IF (IAtomicNumber(lnd).EQ.108) Rfold=THREE  !Jd
       IF (IAtomicNumber(lnd).EQ.109) Rfold=FOUR   !Je
       IF (IAtomicNumber(lnd).EQ.110) Rfold=SIX    !Jf
-      !potential in real space
+      !electron density in real space
       DO ind=1,IPsize
         DO jnd=1,IPsize
           Rx=RPScale*(REAL(ind-(IPsize/2))-HALF)!x&y run from e.g. -511.5 to +511.5 picometres
@@ -93,7 +101,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
         END DO
       END DO
       IF (my_rank.EQ.0) THEN!output to check
-        WRITE(SPrintString,FMT='(A15,I1,A3)') "PseudoPotential",mnd,".img"
+        WRITE(SPrintString,FMT='(A15,I1,A4)') "PseudoPotential",mnd,".img"
         OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=SPrintString,&
              FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=8192)
         DO jnd = 1,IPsize
@@ -105,9 +113,10 @@ SUBROUTINE StructureFactorInitialisation (IErr)
       CALL dfftw_plan_dft_2d_ (Iplan_forward, IPsize,IPsize, CPseudoAtom(:,:,mnd), CPseudoScatt(:,:,mnd),&
            FFTW_FORWARD,FFTW_ESTIMATE )!Could be moved to an initialisation step if there are no other plans?
       CALL dfftw_execute_ (Iplan_forward)
-      CALL dfftw_destroy_plan_ (Iplan_forward)!could be moved to clean up?
+      CALL dfftw_destroy_plan_ (Iplan_forward)
+      CPseudoScatt(:,:,mnd)=CPseudoScatt(:,:,mnd)*RFourPiGsquaredVc!convert electron density to potential
       IF (my_rank.EQ.0) THEN!output to check
-        WRITE(SPrintString,FMT='(A12,I1,A3)') "PseudoFactor",mnd,".img"
+        WRITE(SPrintString,FMT='(A12,I1,A4)') "PseudoFactor",mnd,".img"
         OPEN(UNIT=IChOutWIImage, ERR=10, STATUS= 'UNKNOWN', FILE=SPrintString,&
              FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=8192)
         DO jnd = 1,IPsize
@@ -195,6 +204,19 @@ SUBROUTINE StructureFactorInitialisation (IErr)
     WRITE(SPrintString,FMT='(A20,F5.2,1X,A6)') "MeanInnerPotential= ",RMeanInnerPotential," Volts"
     PRINT*,TRIM(ADJUSTL(SPrintString))
   END IF
+  !fg^2 at at g ->infinity should be 2Z/a0, where a0 is the Bohr radius 0.5292A
+  RCurrentGMagnitude=100000.0!TWOPI/(RElectronWaveLength*
+  DO ind=1,INAtomsUnitCell
+    ICurrentZ = IAtomicNumber(ind)
+    mnd=0!pseudoatom counter
+    IF(ICurrentZ.LT.105) THEN!It's not a pseudoatom
+      CALL AtomicScatteringFactor(RScatteringFactor,IErr)
+    ELSE
+      mnd=mnd+1
+      CALL PseudoAtom(CFpseudo,1,1,mnd,IErr)
+    END IF
+    IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) PRINT*,ind,"Z check at g->infinity",RScatteringFactor*RCurrentGMagnitude*RCurrentGMagnitude*0.529177/2.0
+  END DO
 
   ! high-energy approximation (not HOLZ compatible)
   !Wave vector in crystal
@@ -725,13 +747,15 @@ SUBROUTINE PseudoAtom(CFpseudo,i,j,k,IErr)
   COMPLEX(CKIND) :: CFpseudo
 
   IF (RElectronWaveLength*ABS(RCurrentGMagnitude)*REAL(IPsize)*RPscale/TWOPI.GE.ONE) THEN!g vector is out of range of the fft
-    CFpseudo=CZERO
+    IF (my_rank.EQ.0) PRINT*,"big g"
+    Ix=IPsize!use the point furthest from the origin
+    Iy=IPsize
   ELSE!Find the pixel corresponding to g
     Ix=NINT(RElectronWaveLength*RgMatrix(i,j,1)*REAL(IPsize)*REAL(IPsize)*RPscale/(TWO*TWOPI))
     Iy=NINT(RElectronWaveLength*RgMatrix(i,j,2)*REAL(IPsize)*REAL(IPsize)*RPscale/(TWO*TWOPI))
     IF (Ix.LE.0) Ix=Ix+IPsize!fft has the origin at [0,0], negative numbers wrap around from edges
     IF (Iy.LE.0) Iy=Iy+IPsize
-    CFpseudo=CPseudoScatt(Ix,Iy,k)
   END IF
+  CFpseudo=CPseudoScatt(Ix,Iy,k)
   
 END SUBROUTINE PseudoAtom

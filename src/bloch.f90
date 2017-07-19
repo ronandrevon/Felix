@@ -34,7 +34,6 @@
 
 SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IFirstPixelToCalculate,IErr)
   
-  USE WriteToScreen
   USE MyNumbers
   USE CConst; USE IConst
   USE IPara; USE RPara; USE CPara
@@ -133,7 +132,7 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
        nReflections,CBeamTranspose,nReflections,CZERO,CUgMatPartial,nReflections)
   CALL ZGEMM('N','N',nBeams,nBeams,nReflections,CONE,CBeamProjectionMatrix, &
        nBeams,CUgMatPartial,nReflections,CZERO,CUgSgMatrix,nBeams)
-  IF (IHolzFLAG.EQ.1) THEN
+  IF (IHolzFLAG.EQ.1) THEN!We are considering higher order Laue Zones (suspect this is non-functional!!)
     DO ind=1,nBeams
       CUgSgMatrix(ind,ind) = CUgSgMatrix(ind,ind) + TWO*RBigK*RDevPara(IStrongBeamList(ind))
     ENDDO
@@ -144,7 +143,7 @@ SUBROUTINE BlochCoefficientCalculation(IYPixelIndex,IXPixelIndex,IPixelNumber,IF
       END DO
     END DO
     CUgSgMatrix = (TWOPI**2)*CUgSgMatrix/(TWO*RBigK)
-  ELSE
+  ELSE!ZOLZ only
     ! replace the diagonal parts with strong beam deviation parameters
     DO ind=1,nBeams
       CUgSgMatrix(ind,ind) = TWO*RBigK*RDevPara(IStrongBeamList(ind))/(TWOPI*TWOPI)

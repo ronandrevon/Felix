@@ -238,8 +238,7 @@ MODULE RPara
   ! scattering factors
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RScattFactors!,RPseudoAtom
   ! Crystallography 
-  ! Real Space and Reciprocal Lattice Vectors in Orthogonal and Microscope
-  ! reference framce
+  ! Real Space and Reciprocal Lattice Vectors in Orthogonal and Microscope reference frames
   REAL(RKIND), DIMENSION(ITHREE) :: RXDirM,RYDirM,RZDirM,& 
        RaVecO, RbVecO, RcVecO, &
        RaVecM, RbVecM, RcVecM, &
@@ -288,6 +287,8 @@ MODULE RPara
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RImageMask
   !Iterative Variable Value
   REAL(RKIND) :: RValue!this is an awful name that doesn't mean anything
+  !Divisor for Poisson calculation of electron potential
+  REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RFourPiGsquaredVc
   !Refinement Vectors
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RAllowedVectors
   REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RAllowedVectorMagnitudes
