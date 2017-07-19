@@ -56,9 +56,9 @@ SUBROUTINE StructureFactorInitialisation (IErr)
         RScattFacToVolts,RPMag,Rx,Ry,Rr,RPalpha,RTheta,Rfold
   CHARACTER*200 :: SPrintString
   
-  !Conversion factor from scattering factors to volts. h^2/(2pi*m0*e), see e.g. Kirkland eqn. C.5
+  !Conversion factor from scattering factors to volts. h^2/(2pi*m0*e*omega), see e.g. Kirkland eqn. 6.9 and C.5
   !NB RVolume is already in A unlike RPlanckConstant
-  RScattFacToVolts=(RPlanckConstant**2)*(RAngstromConversion**2)/(TWOPI*RElectronMass*RElectronCharge)
+  RScattFacToVolts=(RPlanckConstant**2)*(RAngstromConversion**2)/(TWOPI*RElectronMass*RElectronCharge*RVolume)
   !Count Pseudoatoms
   IPseudo=0
   DO jnd=1,INAtomsUnitCell
@@ -127,10 +127,10 @@ SUBROUTINE StructureFactorInitialisation (IErr)
     END IF
   END DO
 
-  !Calculate Ug matrix
+  !Calculate lower diagonal of Ug matrix
   CUgMatNoAbs = CZERO
-  DO ind=1,nReflections
-    DO jnd=1,ind
+  DO ind=2,nReflections
+    DO jnd=1,ind-1
       RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd)!g-vector magnitude, global variable
       !The Fourier component of the potential Vg goes in location (i,j)
       CVgij=CZERO!this is in Volts
@@ -152,8 +152,8 @@ SUBROUTINE StructureFactorInitialisation (IErr)
               MATMUL( RAnisotropicDebyeWallerFactorTensor( &
               RAnisoDW(lnd),:,:),RgMatrix(ind,jnd,:))))
           END IF
-          !The structure factor equation, complex Vg(ind,jnd)=sum(f*exp(-ig.r) in Volts
-          CVgij=CVgij+RScatteringFactor*EXP(-CIMAGONE*DOT_PRODUCT(RgMatrix(ind,jnd,:), RAtomCoordinate(lnd,:)) )
+          !The structure factor equation, complex Vg(ind,jnd)=RScattFacToVolts * sum(f*exp(-ig.r) in Volts
+          CVgij=CVgij+RScatteringFactor*RScattFacToVolts*EXP(-CIMAGONE*DOT_PRODUCT(RgMatrix(ind,jnd,:), RAtomCoordinate(lnd,:)) )
         ELSE!pseudoatom
           mnd=mnd+1
           CALL PseudoAtom(CFpseudo,ind,jnd,mnd,IErr)
@@ -171,11 +171,11 @@ SUBROUTINE StructureFactorInitialisation (IErr)
           CVgij=CVgij+CFpseudo*EXP(-CIMAGONE*DOT_PRODUCT(RgMatrix(ind,jnd,:), RAtomCoordinate(lnd,:)) )
         END IF
       ENDDO
-      CUgMatNoAbs(ind,jnd)=CVgij
+      CUgMatNoAbs(ind,jnd)=CVgij!This is still the Vg(i,j) matrix, not yet Ug(i,j)
     ENDDO
   ENDDO
-
-  CUgMatNoAbs=CUgMatNoAbs*RRelativisticCorrection/(PI*RVolume)!Why RVolume here?
+  !Ug=Vg*(2me/hbar^2).  To give it in Angstrom units divide by 10^20.*TWOPI*TWOPI
+  CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
   !NB Only the lower half of the Vg matrix was calculated, this completes the upper half
   CUgMatNoAbs = CUgMatNoAbs + CONJG(TRANSPOSE(CUgMatNoAbs))
   DO ind=1,nReflections
@@ -183,6 +183,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   END DO
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Ug matrix, without absorption (nm^-2)"
+    PRINT*,CUgMatNoAbs(2,1)
 	DO ind =1,16
      WRITE(SPrintString,FMT='(3(1X,I3),A1,8(1X,F7.3,F7.3))') NINT(Rhkl(ind,:)),":",100*CUgMatNoAbs(ind,1:8)
      PRINT*,TRIM(SPrintString)
@@ -200,6 +201,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
       RMeanInnerPotential = RMeanInnerPotential+RScatteringFactor
     END IF
   END DO
+  RMeanInnerPotential = RMeanInnerPotential*RScattFacToVolts
   IF(my_rank.EQ.0) THEN
     WRITE(SPrintString,FMT='(A20,F5.2,1X,A6)') "MeanInnerPotential= ",RMeanInnerPotential," Volts"
     PRINT*,TRIM(ADJUSTL(SPrintString))
