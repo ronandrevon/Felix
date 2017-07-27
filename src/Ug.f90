@@ -65,12 +65,12 @@ SUBROUTINE StructureFactorInitialisation (IErr)
     IF (IAtomicNumber(jnd).GE.105) IPseudo=IPseudo+1
   END DO
   !Calculate pseudoatom potentials
-  IPsize=2048!Size of the array used to calculate the pseudoatom FFT, global variable, must be an EVEN number (preferably 2^n)!For later: give CPseudoAtom ,CPseudoScatt a 3rd dimension?
+  IPsize=1024!Size of the array used to calculate the pseudoatom FFT, global variable, must be an EVEN number (preferably 2^n)!For later: give CPseudoAtom ,CPseudoScatt a 3rd dimension?
   IHalfPsize=IPsize/2
   ALLOCATE(CPseudoAtom(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom potentials (real space)- could just have one reusable matrix to save memory
   ALLOCATE(CPseudoScatt(IPsize,IPsize,IPseudo),STAT=IErr)!Matrices with Pseudoatom scattering factor (reciprocal space)
   ALLOCATE(RFourPiGsquaredVc(IPsize,IPsize),STAT=IErr)!4*pi*G^2^Volume of unit cell, to convert electron density to potential
-  RRScale=0.016!Real space size of 1 pixel working in Angstroms; max radius is 512*RRScale=4.096A
+  RRScale=0.008!Real space size of 1 pixel working in Angstroms; max radius is 512*RRScale=4.096A
   RPScale=TWO*TWOPI/(RRscale*IPsize)!Reciprocal  size of 1 pixel is 2pi/(RRscale*(IPsize/2)): roughly pi/2 for RRScale = 0.04
   !make 4piG^2Vc, centred on corner to match the FFT
   DO ind=1,IPsize/2
@@ -123,7 +123,7 @@ SUBROUTINE StructureFactorInitialisation (IErr)
            FFTW_FORWARD,FFTW_ESTIMATE )!Could be moved to an initialisation step if there are no other plans?
       CALL dfftw_execute_ (Iplan_forward)
       CALL dfftw_destroy_plan_ (Iplan_forward)
-      CPseudoScatt(:,:,mnd)=CPseudoScatt(:,:,mnd)*RFourPiGsquaredVc!convert electron density to potential
+      !CPseudoScatt(:,:,mnd)=CPseudoScatt(:,:,mnd)*RFourPiGsquaredVc!convert electron density to potential
       !Shift the fft origin to the middle using CPseudoAtom as a temp store
       CPseudoAtom(1:IHalfPsize,1:IHalfPsize,mnd)=CPseudoScatt(1+IHalfPsize:IPsize,1+IHalfPsize:IPsize,mnd)
       CPseudoAtom(1+IHalfPsize:IPsize,1+IHalfPsize:IPsize,mnd)=CPseudoScatt(1:IHalfPsize,1:IHalfPsize,mnd)
@@ -193,14 +193,14 @@ SUBROUTINE StructureFactorInitialisation (IErr)
   ENDDO
   !Ug=Vg*(2me/hbar^2).  To give it in Angstrom units divide by 10^20.*TWOPI*TWOPI
   CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
-  !NB Only the lower half of the Vg matrix was calculated, this completes the upper half
+  !NB Only the lower half of the Vg matrix was calculated, this completes the upper half using Hermeticity
   CUgMatNoAbs = CUgMatNoAbs + CONJG(TRANSPOSE(CUgMatNoAbs))
   DO ind=1,nReflections
     CUgMatNoAbs(ind,ind)=CZERO
   END DO
   IF(IWriteFLAG.EQ.3.AND.my_rank.EQ.0) THEN
     PRINT*,"Ug matrix, without absorption (nm^-2)"!NB * by 100 to get it in nm^-2
-	DO ind =1,16
+    DO ind =1,16
      WRITE(SPrintString,FMT='(3(1X,I3),A1,8(1X,F7.3,F7.3))') NINT(Rhkl(ind,:)),":",100*CUgMatNoAbs(ind,1:8)
      PRINT*,TRIM(SPrintString)
     END DO
@@ -385,7 +385,7 @@ SUBROUTINE UpdateUgMatrix(IErr)
     END WHERE
   END DO
 
-  CUgMatNoAbs=CUgMatNoAbs*RRelativisticCorrection/(PI*RVolume)
+  CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
   DO ind=1,nReflections!zero diagonal
      CUgMatNoAbs(ind,ind)=ZERO
   ENDDO
