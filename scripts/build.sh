@@ -26,7 +26,7 @@
 #
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-echo "build script for felixsim/draw/refine"
+echo "build script for felix"
 
 version=${1:-0.0}
 rls=${2:-0}
@@ -38,6 +38,7 @@ time=${6:-`date -R | cut -b 18-31`}
 echo "attempting to build version" ${version} "with rls" ${rls} "build" ${build} "for author" ${author} "on" ${date} "at time" ${time} 
 
 sourcedir=`pwd`
+samplesdir=${sourcedir}/../samples/
 
 cd ..
 targetdir=`pwd`/felix-${version}
@@ -48,11 +49,18 @@ tarball=felix-${version}.tar.bz2
 
 # tag the files with the right version/rls/build/author information
 
+# moves sources
 cd ${sourcedir}
 cp -vr * ${targetdir}
+
+# moves samples
+cd ${targetdir}
+mkdir -p samples
+cp -vr ${samplesdir} .
+
 cd ${targetdir} 
 
-echo "--- working on files in directory" $dir
+echo "--- working on files in directory" `pwd`
 
 for file in `find . \( -name "*.f90" -o -name "*.inp" -o -name "makefile*" -o -name "*.mk" -o -name "README.txt" \) -print`; do
 
@@ -64,8 +72,17 @@ for file in `find . \( -name "*.f90" -o -name "*.inp" -o -name "makefile*" -o -n
 
 done
 
+cd ${targetdir}/samples
+echo "--- working on files in directory" `pwd`
+for sample in *; do
+   echo ${sample}
+   zip -vrm ${sample}.zip ${sample}/
+   #rm -rf ${sample}
+done
+
 # create the tarball for OBS deployment
 
+cd ${targetdir}
 pwd
 cd ..
 #cp -vr ${sourcedir}/* ${targetdir}
