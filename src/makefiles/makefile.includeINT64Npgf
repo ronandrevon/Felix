@@ -1,18 +1,21 @@
+# CSC module load commands
+# intel/mkl/11.0 intel/15.0 ompi/2.0.1/intel/15.0
+
 # where are the libraries for the Linux platform located
 # note that the platform will be added to this path!
 PLATFORM=INT64Npgf
 
 # -------------------------------
 # C-preprocessor used for FORTRAN source codes
-CPP=pgf90
+CPP=icc
 # preprocessor options
 CPPFLAGS=-E
 
 # -------------------------------
 # which C-compiler do we use
-CC=pgcc
+CC=icc
 # C compiler options
-CCFLAGS= -O -B -Mlarge_arrays  -mcmodel=medium
+CCFLAGS= -O3
 #CCFLAGS= -g
 
 
@@ -29,6 +32,7 @@ CCFLAGS= -O -B -Mlarge_arrays  -mcmodel=medium
 # to obtain names like "DAXPY_" or "DAXPY__"
 # SOLARIS OS:      -D__UNDERSCORE__
 # Red Hat Linux:   -D__UNDERSCORE__
+# SGI-Linux:       -D__UNDERSCORE__
 # AIX:             none
 FORTRANNAMES=-D__UNDERSCORE__
 
@@ -37,19 +41,29 @@ FORTRANNAMES=-D__UNDERSCORE__
 #LONGINTEGER=-D_LONG_INTEGER_
 LONGINTEGER=
 
+# -------------------------------
+# which PLATFORM dependent libraries to link
+LIBS= -lblas -llapack -lfftw3
+
+# -------------------------------
+# which fortran compiler is used
+F90=mpif90
+# its flags
+F90FLAGS= -O2 -Mr8 -Munroll -Mnoframe -Mdclchk #debug 
+#F90FLAGS = -g -Mr8 -Munroll -Mnoframe -Mdclchk # -ipo release
 
 
 # -------------------------------
 # which fortran compiler is used
-FF=pgf90
+FF=pgf77
 # its flags
-FFFLAGS=  -O -Mextend -Mlarge_arrays  -mcmodel=medium
-#FFFLAGS=  -g
+FFFLAGS= -O2 -Mr8 -Munroll -Mnoframe -Mdclchk
+#FFFLAGS=  -g -Mr8 -Munroll -Mnoframe -Mdclchk
 
 
 # -------------------------------
 # Preprocessor + FORTRAN Compiler
-FCOMPILE=$(FF)  $(FFFLAGS)  -I$(INCDIR) $(ARITHMETIC) $(LONGINTEGER) -c -o $@ $<
+FCOMPILE=$(FF)  $(FFFLAGS)  -I$(INCDIR) $(ARITHMETIC)  $(LONGINTEGER) -c -o $@ $<
 
 #FCOMPILE=rm -rf $*.f;\
 #         $(CPP) $(CPPFLAGS) -I$(INCDIR) $(ARITHMETIC) $<  >$*.f;\

@@ -27,7 +27,7 @@
 # GNU-compiler-based options
 
 # 64 BIT gcc/gfortran linux system on INTEL architectures
- PLATFORM=INT64NGNU
+# PLATFORM=INT64NGNU
 
 # 64 BIT gcc/gfortran linux system on AMD architectures
 # PLATFORM=OPT64NGNU
@@ -36,7 +36,7 @@
 # Intel-compiler-based options
 
 # 64 BIT gcc/gfortran linux system on INTEL architectures
- PLATFORM=INT64Nifort
+# PLATFORM=INT64Nifort
 
 # 64 BIT gcc/gfortran linux system on AMD architectures
 # PLATFORM=OPT64Nifort
@@ -44,7 +44,7 @@
 
 # PGF-compiler-based options
 # 64 BIT pgcc/pgf90 linux system on INTEL architectures
-# PLATFORM=INT64Npgf
+PLATFORM=INT64Npgf
 
 # 64 BIT pgcc/pgf90 linux system on AMD architectures
 # PLATFORM=OPT64Npgf
