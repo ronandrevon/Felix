@@ -443,11 +443,12 @@ SUBROUTINE DetermineRefineableAtomicSites(SAtomicSites,IErr)
      END IF
   END IF
 
-  IF ((IPos2-IPos1).GT.1.AND.SCAN(SAtomicSites,',').EQ.0) THEN
+  !would be better to count the sites to refine, then allocate, then fill
+  !
+  IF ((IPos2-IPos1).GT.1.AND.SCAN(SAtomicSites,',').EQ.0) THEN!why is this IF needed???
      ALLOCATE(IAtomicSitesToRefine(1),STAT=IErr)
      IF(IErr.NE.0.AND.(my_rank.EQ.0)) PRINT*,&
        "DetermineRefineableAtomicSites: error allocating IAtomicSitesToRefine"
-     IF (my_rank.EQ.0) PRINT*,SIZE(IAtomicSitesToRefine)
      WRITE(SLengthofNumberString,*) LEN(SAtomicSites((IPos1+1):(IPos2-1))) 
      WRITE(SFormatString,*) "(I"//TRIM(ADJUSTL(SLengthofNumberString))//")"
      READ(SAtomicSites((IPos1+1):(IPos2-1)),FMT=SFormatString) IAtomicSitesToRefine(1)

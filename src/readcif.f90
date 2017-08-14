@@ -252,6 +252,7 @@ SUBROUTINE ReadCif(IErr)
   ALLOCATE(SBasisAtomLabel(IAtomCount),STAT=IErr)
   ALLOCATE(SBasisAtomName(IAtomCount),STAT=IErr)
   ALLOCATE(IBasisAtomicNumber(IAtomCount),STAT=IErr)
+  ALLOCATE(SWyckoffSymbols(IAtomCount),STAT=IErr)
   ALLOCATE(RBasisIsoDW(IAtomCount),STAT=IErr)
   ALLOCATE(RBasisOccupancy(IAtomCount),STAT=IErr)
   ALLOCATE(RAnisotropicDebyeWallerFactorTensor(IAtomCount,ITHREE,ITHREE),STAT=IErr)
@@ -288,6 +289,10 @@ SUBROUTINE ReadCif(IErr)
       PRINT*,TRIM(ADJUSTL(SPrintString))
       IErr=1
     END IF
+    !Wyckoff symbol
+    f1 = char_('_atom_site_Wyckoff_symbol',name)
+	SWyckoffSymbols(ind) = name
+    !atom coordinates
     f2 = numb_('_atom_site_fract_x', x, sx)
     RBasisAtomPosition(ind,1)= x
     f2 = numb_('_atom_site_fract_y', y, sy)
@@ -318,29 +323,28 @@ SUBROUTINE ReadCif(IErr)
   END DO
 
 !Branch here depending on felixsim or felixrefine
-  IF (ISoftwareMode.NE.0) THEN !felixrefine
-    ALLOCATE(SWyckoffSymbols(SIZE(IAtomicSitesToRefine)),STAT=IErr)
-    IF( IErr.NE.0 ) THEN
-      PRINT*,"Read Cif (refine)(", my_rank, ") error ", IErr, " in ALLOCATE()"
-     RETURN
-    END IF
-    DO ind=1,IAtomCount
-      f2 = char_('_atom_site_Wyckoff_symbol',name)
-      WHERE (IAtomicSitesToRefine.EQ.ind)
-	    SWyckoffSymbols = name
-	  END WHERE
-    END DO
-  ELSE !felixsim
-    ALLOCATE(SWyckoffSymbols(IAtomCount),STAT=IErr)
-    IF( IErr.NE.0 ) THEN
-      PRINT*,"Read Cif (sim)(", my_rank, ") error ", IErr, " in ALLOCATE()"
-      RETURN
-    END IF
-    DO ind=1,IAtomCount
-      f2 = char_('_atom_site_Wyckoff_symbol',name)
-	  SWyckoffSymbols(ind) = name
-    END DO
-  END IF
+!  IF (ISoftwareMode.NE.0) THEN !felixrefine
+!    ALLOCATE(SWyckoffSymbols(SIZE(IAtomicSitesToRefine)),STAT=IErr)
+!    IF( IErr.NE.0 ) THEN
+!      PRINT*,"Read Cif (refine)(", my_rank, ") error ", IErr, " in ALLOCATE()"
+!     RETURN
+!    END IF
+!    DO ind=1,IAtomCount
+!      f2 = char_('_atom_site_Wyckoff_symbol',name)
+!      WHERE (IAtomicSitesToRefine.EQ.ind)
+!	    SWyckoffSymbols = name
+!	  END WHERE
+!    END DO
+!  ELSE !felixsim
+!    IF( IErr.NE.0 ) THEN
+!      PRINT*,"Read Cif (sim)(", my_rank, ") error ", IErr, " in ALLOCATE()"
+!      RETURN
+!    END IF
+!    DO ind=1,IAtomCount
+!      f2 = char_('_atom_site_Wyckoff_symbol',name)
+!	  SWyckoffSymbols(ind) = name
+!    END DO
+!  END IF
   
   DO ind=1,IAtomCount
     f2 = numb_('_atom_site_aniso_U_11',u,su) 

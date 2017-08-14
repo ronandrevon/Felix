@@ -228,6 +228,7 @@ PROGRAM Felixrefine
      PRINT*,"felixrefine(",my_rank,")error in SortHKL"
      GOTO 9999
   END IF
+  IF (my_rank.EQ.0.AND.IWriteFLAG.EQ.3) PRINT*,"Biggest g is",NINT(Rhkl(INhkl,:))
 
   !Assign numbers to the different reflections in IOutputReflections
   CALL SpecificReflectionDetermination (IErr)
@@ -1359,18 +1360,18 @@ SUBROUTINE RefinementVariableSetup(RIndependentVariable,IErr)
      SELECT CASE (IVariableType)
      CASE(1)
 	    !Structure factor refinement, define in SymmetryRelatedStructureFactorDetermination
-    CASE(2)
+     CASE(2)!Atomic coordinates, B
         RIndependentVariable(ind) = RAllowedVectorMagnitudes(IIterativeVariableUniqueIDs(ind,3))
-     CASE(3)
+     CASE(3)!Occupancy, C
         RIndependentVariable(ind) = RBasisOccupancy(IIterativeVariableUniqueIDs(ind,3))
-     CASE(4)
+     CASE(4)!Isotropic DW, D
         RIndependentVariable(ind) = RBasisIsoDW(IIterativeVariableUniqueIDs(ind,3))
-     CASE(5)
+     CASE(5)!Anisotropic DW, E
         RIndependentVariable(ind) = RAnisotropicDebyeWallerFactorTensor(&
              IIterativeVariableUniqueIDs(ind,3),&
              IIterativeVariableUniqueIDs(ind,4),&
              IIterativeVariableUniqueIDs(ind,5))
-     CASE(6)
+     CASE(6)!Unit cell dimensions, F
         SELECT CASE(IIterativeVariableUniqueIDs(ind,3))
         CASE(1)
            RIndependentVariable(ind) = RLengthX
@@ -1379,7 +1380,7 @@ SUBROUTINE RefinementVariableSetup(RIndependentVariable,IErr)
         CASE(3)
            RIndependentVariable(ind) = RLengthZ
         END SELECT
-     CASE(7)
+     CASE(7)!Unit cell angles, G
         SELECT CASE(IIterativeVariableUniqueIDs(ind,3))
         CASE(1)
            RIndependentVariable(ind) = RAlpha
@@ -1388,16 +1389,16 @@ SUBROUTINE RefinementVariableSetup(RIndependentVariable,IErr)
         CASE(3)
            RIndependentVariable(ind) = RGamma
         END SELECT
-     CASE(8)
+     CASE(8)!Convergence angle, H
         RIndependentVariable(ind) = RConvergenceAngle
-     CASE(9)
+     CASE(9)!Percentage Absorption, I
         RIndependentVariable(ind) = RAbsorptionPercentage
-     CASE(10)
+     CASE(10)!kV, J
         RIndependentVariable(ind) = RAcceleratingVoltage
-     CASE(11)
-        RIndependentVariable(ind) = RRSoSScalingFactor
-     CASE(12)
-	    !Structure factor refinement, define in SymmetryRelatedStructureFactorDetermination
+!     CASE(11)
+!        RIndependentVariable(ind) = RRSoSScalingFactor
+!     CASE(12)
+!	    !Structure factor refinement, define in SymmetryRelatedStructureFactorDetermination
      END SELECT
   END DO
 
@@ -1612,8 +1613,7 @@ SUBROUTINE RecoverSavedSimplex(RSimplexVariable,RSimplexFoM,RStandardDeviation,R
 
   IMPLICIT NONE
 
-  INTEGER(IKIND) :: &
-       IErr,ind,Iter
+  INTEGER(IKIND) :: IErr,ind,Iter
   REAL(RKIND),DIMENSION(INoOfVariables+1,INoOfVariables) :: RSimplexVariable
   REAL(RKIND),DIMENSION(INoOfVariables+1) :: RSimplexFoM
   REAL(RKIND) :: RStandardDeviation,RMean
@@ -1663,13 +1663,13 @@ SUBROUTINE SetupAtomicVectorMovements(IErr)
      RETURN
   END IF
 
-  ALLOCATE(IVectors(SIZE(SWyckoffSymbols)),STAT=IErr)
+  ALLOCATE(IVectors(SIZE(IAtomicSitesToRefine)),STAT=IErr)
   IF( IErr.NE.0 ) THEN
      PRINT*,"felixrefine (", my_rank, ") error in Allocation() of IVectors"
      RETURN
   END IF
   
-  DO ind = 1,SIZE(SWyckoffSymbols)!NB SIZE(SWyckoffSymbols)=IAtomicSitesToRefine?
+  DO ind = 1,SIZE(IAtomicSitesToRefine)
      CALL CountAllowedMovements(ISpaceGrp,SWyckoffSymbols(ind),IVectors(ind),IErr)
      IF( IErr.NE.0 ) THEN
         PRINT*,"SetupAtomicVectorMovements(",my_rank,")error in CountAllowedMovements "
@@ -1687,8 +1687,12 @@ SUBROUTINE SetupAtomicVectorMovements(IErr)
      RETURN
   END IF
   
+  
+ ! IF (my_rank.EQ.0) PRINT*,"SWyckoffSymbols",SWyckoffSymbols
+ ! IF (my_rank.EQ.0) PRINT*,"IVectors",IVectors
+ ! IF (my_rank.EQ.0) PRINT*,"IAllowedVectors",IAllowedVectors
   knd = 0
-  DO ind = 1,SIZE(SWyckoffSymbols)
+  DO ind = 1,SIZE(IAtomicSitesToRefine)
     DO jnd = 1,IVectors(ind)
       knd = knd + 1
       IAllowedVectorIDs(knd) = IAtomicSitesToRefine(ind)
@@ -1696,7 +1700,7 @@ SUBROUTINE SetupAtomicVectorMovements(IErr)
   END DO
   
   RAllowedVectorMagnitudes = ZERO
-  DO ind = 1,SIZE(SWyckoffSymbols)
+  DO ind = 1,SIZE(IAtomicSitesToRefine)
     CALL DetermineAllowedMovements(ISpaceGrp,SWyckoffSymbols(ind),&
          RAllowedVectors(SUM(IVectors(:(ind-1)))+1:SUM(IVectors(:(ind))),:),&
          IVectors(ind),IErr)
