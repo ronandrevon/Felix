@@ -115,6 +115,12 @@ MODULE Ug_mod
 
       ! work through unique Ug's
       IUniqueUgs = SIZE(IEquivalentUgKey)
+      ALLOCATE(RUgImag(IUniqueUgs),STAT=IErr) ! complete U'g list [Im]
+      IF(l_alert(IErr,"Absorption()","allocate RUgImag")) RETURN
+      ALLOCATE(RUgReal(IUniqueUgs),STAT=IErr) ! complete U'g list [Re]
+      IF(l_alert(IErr,"Absorption()","allocate RUgReal")) RETURN
+      ALLOCATE(CUgPrime(IUniqueUgs),STAT=IErr) ! complete U'g list
+      IF(l_alert(IErr,"Absorption()","allocate CUgPrime")) RETURN
       ! allocations for the U'g to be calculated by this core  
       ILocalUgCountMin = (IUniqueUgs*(my_rank)/p)+1
       ILocalUgCountMax = (IUniqueUgs*(my_rank+1)/p)
@@ -129,12 +135,6 @@ MODULE Ug_mod
       ! U'g list for this core [Re,Im]
       ALLOCATE(RLocalUgImag(ILocalUgCountMax-ILocalUgCountMin+1),STAT=IErr)
       IF(l_alert(IErr,"Absorption()","allocate RLocalUgImag")) RETURN
-      ALLOCATE(CUgPrime(IUniqueUgs),STAT=IErr) ! complete U'g list
-      IF(l_alert(IErr,"Absorption()","allocate CUgPrime")) RETURN
-      ALLOCATE(RUgReal(IUniqueUgs),STAT=IErr) ! complete U'g list [Re]
-      IF(l_alert(IErr,"Absorption()","allocate RUgReal")) RETURN
-      ALLOCATE(RUgImag(IUniqueUgs),STAT=IErr) ! complete U'g list [Im]
-      IF(l_alert(IErr,"Absorption()","allocate RUgImag")) RETURN
 
       ! setup position and number for each core
       DO ind = 1,p ! p is the number of cores
@@ -164,7 +164,7 @@ MODULE Ug_mod
           IF (ICurrentZ.LT.105) THEN ! It's not a pseudoatom 
             ! Uses numerical integration to calculate absorptive form factor f'
             CALL DoubleIntegrateBK(RfPrime,IErr) ! NB uses Kirkland scattering factors
-            IF(l_alert(IErr,"Absorption()","allocate RUgImag")) RETURN
+            IF(l_alert(IErr,"Absorption","call DoubleIntegrateBK")) RETURN
           ELSE ! It is a pseudoatom, proportional model 
             lnd=lnd+1
             CALL PseudoAtom(CFpseudo,ILoc(1),ILoc(2),lnd,IErr)
@@ -789,6 +789,7 @@ MODULE Ug_mod
     ! Quadpack integration 0 to infinity
     CALL dqagi(IntegrateBK,ZERO,inf,0,RAccuracy,RResult,RError,Ieval,IErr,&
          limit, lenw, last, iwork, work )
+    IF(l_alert(IErr,"DoubleIntegrateBK","call dqagi")) RETURN
     ! The integration required is actually -inf to inf in 2 dimensions
     ! We used symmetry to just do 0 to inf, so multiply by 4
     RResult=RResult*4
@@ -810,7 +811,7 @@ MODULE Ug_mod
     !?? 'CALL dqagi(IntegrateBK,---)' each DoubleIntegrateBK
 
     USE MyNumbers
-
+    USE message_mod; USE alert_mod
     USE RPARA, ONLY : RSprimeY
 
     IMPLICIT NONE
@@ -831,6 +832,8 @@ MODULE Ug_mod
     ! Quadpack integration 0 to infinity
     CALL dqagi(BirdKing,ZERO,inf,0,RAccuracy,IntegrateBK,RError,Ieval,IErr,&
          limit, lenw, last, iwork, work )
+    IF(l_alert(IErr,"IntegrateBK","call dqagi")) RETURN
+    PRINT*,"bong"
     
   END FUNCTION IntegrateBK
 
@@ -869,7 +872,7 @@ MODULE Ug_mod
     
     INTEGER(IKIND) :: ind
     REAL(RKIND):: BirdKing, Rs, Rg1, Rg2, RsEff
-    REAL(RKIND), INTENT(IN) :: RSprimeX
+    REAL(RKIND), INTENT(INOUT) :: RSprimeX
     REAL(RKIND),DIMENSION(2) :: RGprime
     
     ! NB Kirkland scattering factors in optics convention

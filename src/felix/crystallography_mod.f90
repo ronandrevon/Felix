@@ -191,27 +191,31 @@ MODULE crystallography_mod
     !?? called each SimulateAndFit()
     !?? called in felixrefine setup
     !?? JR updates full crystal arrays from basis atom refinement
+    !Uses e.g. RAtomPositions plus symmetry to make RAllAtomPositions
+    !Then fills up RAtomPositions with unique atoms up to INAtomsUnitCell
+    !Elements in RAtomPositions with indices larger than INAtomsUnitCell are removed by a deallocation/allocation
     
+    !NB Anisotropic DW factor incorrect, commented out
     USE MyNumbers
     USE message_mod; USE alert_mod
 
     ! global outputs
     USE RPARA, ONLY : RAtomCoordinate,ROccupancy,RIsoDW,RAtomPosition
-    USE IPARA, ONLY : IAtomicNumber,IAnisoDW
+    USE IPARA, ONLY : IAtomicNumber!,IAnisoDW
     USE SPARA, ONLY : SAtomLabel, SAtomName
 
     ! global inputs
     USE RPARA, ONLY : RBasisOccupancy,RBasisIsoDW,RSymVec,RBasisAtomPosition,RSymMat, &
           RcVecM,RbVecM,RaVecM
     USE SPARA, ONLY : SBasisAtomLabel, SBasisAtomName
-    USE IPARA, ONLY : IBasisAtomicNumber, IBasisAnisoDW, IMaxPossibleNAtomsUnitCell, &
-          INAtomsUnitCell
+    USE IPARA, ONLY : IBasisAtomicNumber, IMaxPossibleNAtomsUnitCell, &
+          INAtomsUnitCell!,IBasisAnisoDW
     
     IMPLICIT NONE
     
     INTEGER(IKIND) :: IErr,ind,jnd,knd
-    INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IAllAtomicNumber, RAllAnisoDW
-    REAL(RKIND),ALLOCATABLE :: RAllAtomPosition(:,:), RAllOccupancy(:), RAllIsoDW(:)
+    INTEGER(IKIND), DIMENSION(:), ALLOCATABLE :: IAllAtomicNumber!,RAllAnisoDW
+    REAL(RKIND),ALLOCATABLE :: RAllAtomPosition(:,:), RAllOccupancy(:), RAllIsoDW(:),RSwap(:,:)
     LOGICAL :: Lunique
     CHARACTER*2, DIMENSION(:), ALLOCATABLE :: SAllAtomName
     CHARACTER*5, DIMENSION(:), ALLOCATABLE :: SAllAtomLabel
@@ -222,10 +226,12 @@ MODULE crystallography_mod
               SAllAtomLabel(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)),&
               RAllOccupancy(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)),&
               RAllIsoDW(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)),&
-              IAllAtomicNumber(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)),&
-              RAllAnisoDW(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)), STAT=IErr )
-    IF(l_alert(IErr,"UniqueAtomPositions()","allocations")) RETURN
-   
+              IAllAtomicNumber(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)), STAT=IErr )!,&
+              !RAllAnisoDW(SIZE(RSymVec,1)*SIZE(RBasisAtomPosition,1)), STAT=IErr )
+    IF(l_alert(IErr,"UniqueAtomPositions","allocations")) RETURN
+  !Swap matrix for memory saving
+  ALLOCATE(RSwap(SIZE(ROccupancy),ITHREE),STAT=IErr)
+  IF(l_alert(IErr,"UniqueAtomPositions","allocate RSwap")) CALL abort()   
 
     !--------------------------------------------------------------------  
     ! apply symmetry elements to generate all equivalent positions 
@@ -241,19 +247,17 @@ MODULE crystallography_mod
         RAllOccupancy(knd) = RBasisOccupancy(jnd)
         RAllIsoDW(knd) = RBasisIsoDW(jnd)
         IAllAtomicNumber(knd) = IBasisAtomicNumber(jnd)
-        RAllAnisoDW(knd) = IBasisAnisoDW(jnd)
+        !RAllAnisoDW(knd) = IBasisAnisoDW(jnd)
 	    knd=knd+1
       END DO
     END DO
-    RAllAtomPosition = MODULO(RAllAtomPosition,ONE) !?? what does this do JR, all -> tiny/zero?
+    RAllAtomPosition = MODULO(RAllAtomPosition,ONE) !All coords are between zero and one
     WHERE(ABS(RAllAtomPosition).LT.TINY) RAllAtomPosition = ZERO 
 
     !--------------------------------------------------------------------  
     ! Reduce to the set of unique fractional atomic positions
     !--------------------------------------------------------------------
 
-    ! used to be subroutine CrystalUniqueFractionalAtomicPostitionsCalculation
-    
     ! first atom has to be in this set
     RAtomPosition(1,:)= RAllAtomPosition(1,:)
     SAtomLabel(1)= SAllAtomLabel(1)
@@ -261,7 +265,7 @@ MODULE crystallography_mod
     RIsoDW(1) = RAllIsoDW(1)
     ROccupancy(1) = RAllOccupancy(1)
     IAtomicNumber(1) = IAllAtomicNumber(1)
-    IAnisoDW(1) = RAllAnisoDW(1)
+    !IAnisoDW(1) = RAllAnisoDW(1)
     jnd=2
     ! work through all possible atom coords and check for duplicates
     DO ind=2,IMaxPossibleNAtomsUnitCell
@@ -281,12 +285,30 @@ MODULE crystallography_mod
         RIsoDW(jnd) = RAllIsoDW(ind)
         ROccupancy(jnd) = RAllOccupancy(ind)
         IAtomicNumber(jnd) = IAllAtomicNumber(ind)!
-        IAnisoDW(jnd) = RAllAnisoDW(ind)
+        !IAnisoDW(jnd) = RAllAnisoDW(ind)
         jnd=jnd+1
       END IF
     END DO
     INAtomsUnitCell = jnd-1 ! this is how many unique atoms there are in the unit cell
+    CALL message(LM,"Actual number of atoms in unit cell is ",INAtomsUnitCell)
 
+    !Memory saving, could do strings too
+    RSwap=RAtomPosition
+    DEALLOCATE(RAtomPosition,STAT=IErr)
+    ALLOCATE(RAtomPosition(INAtomsUnitCell,ITHREE),STAT=IErr)
+    RAtomPosition=RSwap(1:INAtomsUnitCell,:)
+    RSwap(:,1)=RIsoDW
+    RSwap(:,2)=ROccupancy
+    RSwap(:,3)=REAL(IAtomicNumber)
+    DEALLOCATE(RIsoDW,STAT=IErr)
+    DEALLOCATE(ROccupancy,STAT=IErr)
+    DEALLOCATE(IAtomicNumber,STAT=IErr)
+    ALLOCATE(RIsoDW(INAtomsUnitCell),STAT=IErr)
+    ALLOCATE(ROccupancy(INAtomsUnitCell),STAT=IErr)
+    ALLOCATE(IAtomicNumber(INAtomsUnitCell),STAT=IErr)
+    RIsoDW=RSwap(1:INAtomsUnitCell,1)
+    ROccupancy=RSwap(1:INAtomsUnitCell,2)
+    IAtomicNumber=NINT(RSwap(1:INAtomsUnitCell,3))
 
     DO ind=1,INAtomsUnitCell    
       CALL message( LL, dbg7, "For Atom ",ind)
@@ -295,8 +317,8 @@ MODULE crystallography_mod
     END DO
     
     ! Finished with these variables now
-    DEALLOCATE(RAllAtomPosition,SAllAtomName,RAllOccupancy,RAllIsoDW,IAllAtomicNumber,&
-          RAllAnisoDW,STAT=IErr,)
+    DEALLOCATE(RAllAtomPosition,SAllAtomName,RAllOccupancy,RAllIsoDW,IAllAtomicNumber,STAT=IErr)!&
+          !RAllAnisoDW,
     IF(l_alert(IErr,"UniqueAtomPositions()","deallocations")) RETURN
       
     !--------------------------------------------------------------------

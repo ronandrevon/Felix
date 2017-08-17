@@ -185,6 +185,7 @@ PROGRAM Felixrefine
   ! total possible atoms/unit cell
   IMaxPossibleNAtomsUnitCell=SIZE(RBasisAtomPosition,1)*SIZE(RSymVec,1)
   ! over-allocate since actual size not known before calculation of unique positions (atoms in special positions will be duplicated)
+  CALL message(LM,"Total number of possible atom sites in unit cell is ",IMaxPossibleNAtomsUnitCell)
 
   ! allocations using that RBasisAtomPosition, RSymVec have now been setup
   ! fractional unit cell coordinates are used for RAtomPosition, like BasisAtomPosition
@@ -203,9 +204,10 @@ PROGRAM Felixrefine
   IF(l_alert(IErr,"felixrefine","allocate ROccupancy")) CALL abort()
   ALLOCATE(IAtomicNumber(IMaxPossibleNAtomsUnitCell),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate IAtomicNumber")) CALL abort()
-  ! Anisotropic Debye-Waller factor
-  ALLOCATE(IAnisoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)
-  IF(l_alert(IErr,"felixrefine","allocate IAnisoDW")) CALL abort()
+  ! Anisotropic Debye-Waller factor 
+  !ALLOCATE(IAnisoDW(IMaxPossibleNAtomsUnitCell),STAT=IErr)
+  !IF(l_alert(IErr,"felixrefine","allocate IAnisoDW")) CALL abort()
+
 
   !--------------------------------------------------------------------
   ! set up unique atom positions, reflection pool
@@ -214,8 +216,8 @@ PROGRAM Felixrefine
   ! fills unit cell from basis and symmetry, removes duplicate atoms at special positions
   CALL UniqueAtomPositions(IErr)
   IF(l_alert(IErr,"felixrefine","UniqueAtomPositions()")) CALL abort()
-  !?? could re-allocate RAtomCoordinate,SAtomName,RIsoDW,ROccupancy,
-  !?? IAtomicNumber,IAnisoDW to match INAtomsUnitCell?
+  !re-allocate RAtomCoordinate,RIsoDW,ROccupancy to match INAtomsUnitCell
+  !?? IAtomicNumber,IAnisoDW,SAtomName ?
 
   RHOLZAcceptanceAngle=TWODEG2RADIAN !?? RB seems way too low?
   IHKLMAXValue = 5 ! starting value, increments in loop below
@@ -483,10 +485,9 @@ PROGRAM Felixrefine
   !--------------------------------------------------------------------
 
   CALL start_timer( IStartTime2 )
-  CALL message(LS,dbg3,"Absorption calculation, number of beams = ",&
-        SIZE(IEquivalentUgKey))
+  CALL message(LS,dbg3,"Absorption calculation...")
   CALL Absorption (IErr)
-  IF(l_alert(IErr,"felixrefine","Absorption()")) CALL abort()
+  IF(l_alert(IErr,"felixrefine","call Absorption")) CALL abort()
   CALL print_end_time( LS, IStartTime2, "Absorption" )
   CALL start_timer( IStartTime2 )
 

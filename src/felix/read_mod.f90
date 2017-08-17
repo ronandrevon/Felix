@@ -499,7 +499,7 @@ MODULE read_mod
       IF(l_alert(IErr,"ReadExperimentalImages()","close an experimental input image")) RETURN
     END DO
 
-    CALL message(LM,"Number of experimental images successfully loaded = ",INoOfLacbedPatterns)
+    CALL message(LS,"Number of experimental images successfully loaded = ",INoOfLacbedPatterns)
 
     RETURN
 
@@ -545,7 +545,7 @@ MODULE read_mod
       ALLOCATE(IAtomsToRefine(1),STAT=IErr)
       IF(l_alert(IErr,"DetermineRefineableAtomicSites()", &
             "allocate IAtomsToRefine")) RETURN
-      CALL message (LM, "SIZE(IAtomsToRefine) = ",SIZE(IAtomsToRefine) )
+      CALL message (LL, "SIZE(IAtomsToRefine) = ",SIZE(IAtomsToRefine) )
       WRITE(SLengthofNumberString,*) LEN(SAtomicSites((IPos1+1):(IPos2-1))) 
       WRITE(SFormatString,*) "(I"//TRIM(ADJUSTL(SLengthofNumberString))//")"
       READ(SAtomicSites((IPos1+1):(IPos2-1)),FMT=SFormatString) IAtomsToRefine(1)
@@ -578,7 +578,7 @@ MODULE read_mod
         END IF
       END DO
     END IF
-    CALL message (LM, "Refining atoms ", IAtomsToRefine )
+    CALL message (LS, "Refining atoms ", IAtomsToRefine )
     
   END SUBROUTINE DetermineRefineableAtomicSites
 
