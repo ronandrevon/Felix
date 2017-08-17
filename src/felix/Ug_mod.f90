@@ -780,7 +780,8 @@ MODULE Ug_mod
     INTEGER(IKIND), PARAMETER :: limit=500
     INTEGER(IKIND), PARAMETER :: lenw= limit*4
     INTEGER(IKIND) :: IErr,Ieval,last, iwork(limit)
-    REAL(RKIND) :: RAccuracy,RError,RResult,dd
+!    REAL(RKIND), EXTERNAL :: IntegrateBK
+    REAL(RKIND) :: RAccuracy,RError,RResult,dd,IntegrateBK
     REAL(RKIND) :: work(lenw)
     
     dd=1.0 ! Do I need this? what does it do?
@@ -809,7 +810,7 @@ MODULE Ug_mod
     !?? JR used in Ug.f90 only
     !?? used in each (case 2 Bird & King) absorption (indirectly)
     !?? 'CALL dqagi(IntegrateBK,---)' each DoubleIntegrateBK
-
+    ! NB can't print from here as it is called EXTERNAL in DoubleIntegrateBK
     USE MyNumbers
     USE message_mod; USE alert_mod
     USE RPARA, ONLY : RSprimeY
@@ -820,7 +821,8 @@ MODULE Ug_mod
     INTEGER(IKIND), PARAMETER :: inf = 1
     INTEGER(IKIND), PARAMETER :: limit = 500
     INTEGER(IKIND), PARAMETER :: lenw = limit*4
-    REAL(RKIND) :: RAccuracy, RError, IntegrateBK, Sy
+    REAL(RKIND) :: RAccuracy,RError,IntegrateBK,Sy,BirdKing
+!    REAL(RKIND), EXTERNAL :: BirdKing
     INTEGER(IKIND) last, iwork(limit)
     REAL(RKIND) work(lenw)
 
@@ -871,8 +873,7 @@ MODULE Ug_mod
     IMPLICIT NONE
     
     INTEGER(IKIND) :: ind
-    REAL(RKIND):: BirdKing, Rs, Rg1, Rg2, RsEff
-    REAL(RKIND), INTENT(INOUT) :: RSprimeX
+    REAL(RKIND):: BirdKing, Rs, Rg1, Rg2, RsEff,RSprimeX
     REAL(RKIND),DIMENSION(2) :: RGprime
     
     ! NB Kirkland scattering factors in optics convention
