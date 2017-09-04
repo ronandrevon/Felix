@@ -76,7 +76,7 @@ MODULE write_output_mod
     IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm 
 
     IF (ISimFLAG.EQ.0) THEN !felixrefine output
-      WRITE(path,"(A1,I4.4,A1,I3.3,A3,I3.3,A1,I3.3)") &
+      WRITE(path,"(A1,I5.5,A1,I3.3,A3,I3.3,A1,I3.3)") &
             "I",Iter,"_",IThickness,"nm_",2*IPixelcount,"x",2*IPixelcount
       path = TRIM(SChemicalFormula) // "_" // path ! This adds chemical to folder name
     ELSE ! Sim Output

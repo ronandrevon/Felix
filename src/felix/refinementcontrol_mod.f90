@@ -555,9 +555,9 @@ MODULE refinementcontrol_mod
         ! The atom being moved
         IAtomID = IAtomMoveList(IVectorID)
         ! Change in position r' = r - v*(r.v) +v*RIndependentVariable(ind)
-        RBasisAtomPosition(IAtomID,:) = RBasisAtomPosition(IAtomID,:) - &
+        RBasisAtomPosition(IAtomID,:) = MODULO((RBasisAtomPosition(IAtomID,:) - &
             RVector(IVectorID,:)*DOT_PRODUCT(RBasisAtomPosition(IAtomID,:),RVector(IVectorID,:)) + &
-            RVector(IVectorID,:)*RIndependentVariable(ind)
+            RVector(IVectorID,:)*RIndependentVariable(ind)),ONE)
       CASE(3)
         RBasisOccupancy(IIterativeVariableUniqueIDs(ind,2))=RIndependentVariable(ind) 
       CASE(4)

@@ -1071,7 +1071,7 @@ CONTAINS
       RFit0=RFigureofMerit ! incoming fit
 
       !--------------------------------------------------------------------
-      ! change max gradient vector (RPVec) depending upon max/min gradient situation 
+      ! change max gradient vector (RPVec)
       !--------------------------------------------------------------------
       
       IF (nnd.EQ.0) THEN ! max gradient
@@ -1104,10 +1104,10 @@ CONTAINS
           ! Make a random number and vary the sign of dx, using system clock
           CALL SYSTEM_CLOCK(mnd)
           Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
-          Rdx=0.1*Rdx*RScale/ABS(Rdx) ! small change IN current variable (RScale/10)is dx
+          Rdx=0.1*Rdx*RScale/ABS(Rdx) ! small change in current variable (RScale/10)is dx
           RCurrentVar=RVar0
           RCurrentVar(ind)=RCurrentVar(ind)+Rdx
-          !?? JR elaborate why simulate here
+          !?? Simulate to see the effect of the small variable change dx
           CALL SimulateAndFit(RCurrentVar,Iter,IExitFLAG,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! BestFitCheck copies RCurrentVar into RIndependentVariable
