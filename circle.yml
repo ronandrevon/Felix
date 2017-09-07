@@ -17,14 +17,15 @@ checkout:
 compile:
   override:
     - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64NGNU" >>user.mk; make clean; make; #make clean; pwd; ls -al
-    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64Nifort" >>user.mk; make clean; make; #make clean; pwd; ls -al
+    - cd ../felix-${CIRCLE_SHA1}/; make clean
+#    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64Nifort" >>user.mk; make clean; make; #make clean; pwd; ls -al
 
 test:
   pre:
     - cd ../samples/GaAs_short; ../../felix-$CIRCLE_SHA1/felix.INT64NGNU.d | tee terminal_log.txt
     - cd ../samples/SrTiO3_short; ../../felix-$CIRCLE_SHA1/felix.INT64NGNU.d | tee terminal_log.txt
-    - cd ../samples/GaAs_short; ../../felix-$CIRCLE_SHA1/felix.INT64Nifort.d | tee terminal_log.txt
-    - cd ../samples/SrTiO3_short; ../../felix-$CIRCLE_SHA1/felix.INT64Nifort.d | tee terminal_log.txt
+#    - cd ../samples/GaAs_short; ../../felix-$CIRCLE_SHA1/felix.INT64Nifort.d | tee terminal_log.txt
+#    - cd ../samples/SrTiO3_short; ../../felix-$CIRCLE_SHA1/felix.INT64Nifort.d | tee terminal_log.txt
   post:
     - diff -W132 -s ../samples/GaAs_short/GaAs_I0000_085nm_070x070/GaAs_085nm_070x070_+0+0+0.bin ../samples/GaAs_short/sample_outputs/GaAs_I0000_085nm_070x070/GaAs_085nm_070x070_+0+0+0.bin || true
     - diff -W132 -y -s ../samples/GaAs_short/iteration_log.txt ../samples/GaAs_short/sample_outputs/iteration_log.txt || true
@@ -35,3 +36,4 @@ deployment:
     branch: master
     commands:
       - package_cloud push RudoRoemer/Felix/opensuse/13.1 ./path/to/package.ext
+      - package_cloud push RudoRoemer/Felix/ubuntu/17.10 ./path/to/package.ext	
