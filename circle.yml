@@ -5,8 +5,8 @@ dependencies:
   pre:
     - gem install package_cloud
     - sudo apt-get update
-    - sudo apt-get install libcr-dev mpich2 mpich2-doc
-    - sudo apt-get install libfftw3-dev libfftw3-doc
+    - sudo apt-get install libcr-dev mpich2 #mpich2-doc
+    - sudo apt-get install libfftw3-dev #libfftw3-doc
     
 checkout:
   post:
@@ -16,8 +16,8 @@ checkout:
     
 compile:
   override:
-    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64NGNU" >>src/user; make clean; make; make clean; pwd; ls -al
-    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64Nifort" >>src/user; make clean; make; make clean; pwd; ls -al
+    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64NGNU" >>src/user.mk; make clean; make; #make clean; pwd; ls -al
+    - cd ../felix-${CIRCLE_SHA1}/;pwd;echo "PLATFORM=INT64Nifort" >>src/user.mk; make clean; make; #make clean; pwd; ls -al
 
 test:
   pre:
