@@ -3,6 +3,7 @@ general:
 
 dependencies:
   pre:
+    - gem install package_cloud
     - sudo apt-get update
     - sudo apt-get install libcr-dev mpich2 mpich2-doc
     - sudo apt-get install libfftw3-dev libfftw3-doc
@@ -28,3 +29,9 @@ test:
     - diff -W132 -s ../samples/GaAs_short/GaAs_I0000_085nm_070x070/GaAs_085nm_070x070_+0+0+0.bin ../samples/GaAs_short/sample_outputs/GaAs_I0000_085nm_070x070/GaAs_085nm_070x070_+0+0+0.bin || true
     - diff -W132 -y -s ../samples/GaAs_short/iteration_log.txt ../samples/GaAs_short/sample_outputs/iteration_log.txt || true
     - diff -W132 -y -s ../samples/GaAs_short/terminal_log.txt ../samples/GaAs_short/sample_outputs/terminal_log.txt  || true
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - package_cloud push RudoRoemer/Felix/opensuse/13.1 ./path/to/package.ext
