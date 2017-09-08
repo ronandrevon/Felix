@@ -1,12 +1,12 @@
 #/usr/bin/bash
 
-include ../src/makefiles/platforms.mk
-include ../src/user.mk
-include ../src/makefiles/default.mk
+include ../makefiles/platforms.mk
+include ../user.mk
+include ../makefiles/default.mk
 
-DIRCIFTBX=../src/ciftbx/
-DIRQUADPACK=../src/quadpack/
-DIRFELIX=../src/felix/
+DIRCIFTBX=../ciftbx/
+DIRQUADPACK=../quadpack/
+DIRFELIX=../felix/
 
 LIBFELIX=$(MYPLATFORM)/lib$(PRECISION)felix.a
 LIBQUADPACK=$(MYPLATFORM)/lib$(PRECISION)quadpack.a

@@ -70,11 +70,11 @@ SAMPLES=$(MAIN).o
 INCDIR=$(MYSTARTDIR)/include
 
 # where are the libraries
-LIBDIR=$(STARTDIR)/../lib/$(PLATFORM)
+LIBDIR=$(STARTDIR)/lib/$(PLATFORM)
 
-LIBFELIX=/lib$(PRECISION)felix.a
-LIBQUADPACK=lib$(PRECISION)quadpack.a
-LIBCIFTBX=lib$(PRECISION)ciftbx.a
+LIBFELIX=$(LIBDIR)/$(PRECISION)felix.a
+LIBQUADPACK=$(LIBDIR)/$(PRECISION)quadpack.a
+LIBCIFTBX=$(LIBDIR)/$(PRECISION)ciftbx.a
 
 .SUFFIXES: .c .f .f90 .F .o .a
 .DEFAULT: main

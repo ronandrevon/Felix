@@ -61,7 +61,7 @@ felixdir:
 # binding libraries	
 ourlibs: quadpack ciftbx
 	@ echo --- BINDING libraries
-	@ cd ../lib;\
+	@ cd lib;\
         $(MAKE) ourlibs \
         "MYSTARTDIR=$(STARTDIR)" "PRECISION=$(MYPRECISION)" "MYPLATFORM=$(PLATFORM)"\
         "BLAS=" \
