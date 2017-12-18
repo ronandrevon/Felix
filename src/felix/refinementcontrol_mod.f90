@@ -108,8 +108,8 @@ MODULE refinementcontrol_mod
       jnd=1
       ! work through the Ug's to update
       DO ind = 1+IUgOffset,INoofUgs+IUgOffset
-        ! Don't update components smaller than RTolerance:
-        ! 3 possible types of Ug, complex, REAL and imaginary
+        ! Don't update values smaller than RTolerance:
+        ! All Ug's are complex
         IF ( (ABS(REAL(CUniqueUg(ind),RKIND)).GE.RTolerance).AND.&
               (ABS(AIMAG(CUniqueUg(ind))).GE.RTolerance)) THEN ! use both REAL and imag parts
           CUniqueUg(ind)=CMPLX(RIndependentVariable(jnd),RIndependentVariable(jnd+1))

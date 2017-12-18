@@ -1,4 +1,4 @@
-data_Felix.cif.15-08-2016
+data_Felix.cif.untilted31-08-2017
 _chemical_name_systematic 'Tricalcium dimanganate(IV)' 
 _chemical_formula_structural 'Ca3 (Mn2 O7)' 
 _chemical_formula_sum 'Ca3 Mn2 O7' 
@@ -40,11 +40,11 @@ _atom_site_fract_y
 _atom_site_fract_z
 _atom_site_B_iso_or_equiv
 _atom_site_occupancy
-Ca1 Ca2+ 6 a 0.0000  0.2667  0.7273  0.4219  1.030
-Ca2 Ca2+ 6 b 0.1862  0.2677  0.7578  0.3833  1.027
-Mn1 Mn4+ 8 b 0.0978  0.2484  0.2451  0.2188  1.035
-O1 O2- 4 a 0.0000  0.3103  0.2567  1.2445  0.981
-O2 O2- 8 b 0.1049  0.5273  0.0254  0.9500  0.949
-O3 O2- 8 b 0.0888  0.0256  0.9662  1.2728  0.976
-O4 O2- 8 b 0.1969  0.1990  0.2405  0.9416  0.978
-#End of Felix.cif.15-08-2016
+Ca1 Ca2+ 6 a 0.0000  0.2667  0.7273  0.4064  1.02934
+Ca2 Ca2+ 6 b 0.1862  0.2677  0.7578  0.3912  1.02622
+Mn1 Mn4+ 8 b 0.0978  0.2487  0.2450  0.1855  1.03465
+O1 O2- 4 a 0.0000  0.2500  0.3100  1.2634  0.98023
+O2 O2- 8 b 0.1049  0.5273  0.0254  0.9353  0.94679
+O3 O2- 8 b 0.0888  0.0256  0.9662  1.2924  0.97397
+O4 O2- 8 b 0.1968  0.1990  0.2405  0.9185  0.97703
+#End of Felix.cif.untilted31-08-2017
