@@ -93,7 +93,7 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND),INTENT(OUT) :: IErr
     INTEGER(IKIND) :: ind,jnd, ILoc(2), IUniqueUgs
     INTEGER(IKIND), SAVE :: IStartTime
-    REAL(RKIND) :: RCurrentG(3), RScatteringFactor
+    REAL(RKIND) :: RCurrentG(3), RScatteringFactor,RUgMatRe(nReflections,nReflections),RUgMatIm(nReflections,nReflections)
     COMPLEX(CKIND) :: CUgMatDummy(nReflections,nReflections),CVgij
     CHARACTER*100 :: SFormat,SPrintString
 
@@ -112,7 +112,7 @@ MODULE refinementcontrol_mod
         ! Don't update components smaller than RTolerance:
         ! 3 possible types of Ug, complex, REAL and imaginary
         IF ( (ABS(REAL(CUniqueUg(ind),RKIND)).GE.RTolerance).AND.&
-              (ABS(AIMAG(CUniqueUg(ind))).GE.RTolerance)) THEN ! use both REAL and imag parts
+            (ABS(AIMAG(CUniqueUg(ind))).GE.RTolerance)) THEN ! use both REAL and imag parts
           CUniqueUg(ind)=CMPLX(RIndependentVariable(jnd),RIndependentVariable(jnd+1))
           jnd=jnd+2
         ELSEIF ( ABS(AIMAG(CUniqueUg(ind))).LT.RTolerance ) THEN ! use only REAL part
@@ -125,16 +125,14 @@ MODULE refinementcontrol_mod
           IErr=1; 
           WRITE(SPrintString,*) ind
           IF(l_alert(IErr,"SimulateAndFit",&
-                "zero structure factor, CUniqueUg element number="//TRIM(SPrintString))) RETURN
-
+              "zero structure factor, CUniqueUg element number="//TRIM(SPrintString))) RETURN
         END IF
-
         ! Update the Ug matrix for this Ug
         WHERE(ISymmetryRelations.EQ.IEquivalentUgKey(ind))
-           CUgMatDummy = CUniqueUg(ind)
+          CUgMatDummy = CUniqueUg(ind)
         END WHERE
         WHERE(ISymmetryRelations.EQ.-IEquivalentUgKey(ind))
-           CUgMatDummy = CONJG(CUniqueUg(ind))
+          CUgMatDummy = CONJG(CUniqueUg(ind))
         END WHERE
       END DO
       ! put the changes into CUgMatNoAbs
@@ -146,41 +144,46 @@ MODULE refinementcontrol_mod
       IF (IAbsorbFLAG.EQ.1) THEN ! proportional absorption
         RAbsorptionPercentage = RIndependentVariable(jnd)
       END IF
-
     ELSE ! not Ug refinement
       ! Update variables
       CALL UpdateVariables(RIndependentVariable,IErr)
       IF(l_alert(IErr,"SimulateAndFit","UpdateVariables")) RETURN
       IF (IRefineMode(8).EQ.1) THEN ! convergence angle
         ! recalculate resolution in k space
-        RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND) 
-        !?? in the past wrote following to iterationlog.txt Iter,RFigureofMerit,RConvergenceAngle
+        IF (my_rank.EQ.0) RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND)
+        CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
       ELSE
         ! basis has changed in some way, recalculate unit cell
         CALL UniqueAtomPositions(IErr)
         IF(l_alert(IErr,"SimulateAndFit","UniqueAtomPositions")) RETURN
-
         !--------------------------------------------------------------------
         ! update scattering matrix Ug
         !--------------------------------------------------------------------
-        ! calculate CUgMatNoAbs
-        CUgMatNoAbs = CZERO
-        !/////RB
-        !duplicated from Ug matrix initialisation.  Ug refinement will no longer work! Should be put into a single subroutine.
-    DO ind=2,nReflections
-      DO jnd=1,ind-1
-        RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
-        ! Sums CVgij contribution from each atom and pseudoatom in Volts
-        CALL GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr)
-		CUgMatNoAbs(ind,jnd)=CVgij
-      ENDDO
-    ENDDO
-    !Convert to Ug
-    CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
-    ! NB Only the lower half of the Vg matrix was calculated, this completes the upper half
-    CUgMatDummy = TRANSPOSE(CUgMatNoAbs)! Dummy just used as a box to avoid the bug when conj(transpose) is used on orac
-    CUgMatNoAbs = CUgMatNoAbs + CONJG(CUgMatDummy)
-        !/////RB
+        IF (my_rank.EQ.0) THEN!There is a bug when individual cores calculate UgMat, make it the responsibility of core 0 and broadcast it
+          ! calculate CUgMatNoAbs
+          CUgMatNoAbs = CZERO
+          !duplicated from Ug matrix initialisation.  Ug refinement will no longer work! Should be put into a single subroutine.
+          DO ind=2,nReflections
+            DO jnd=1,ind-1
+              RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
+              ! Sums CVgij contribution from each atom and pseudoatom in Volts
+              CALL GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr)
+              CUgMatNoAbs(ind,jnd)=CVgij
+            ENDDO
+          ENDDO
+          !Convert to Ug
+          CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
+          ! NB Only the lower half of the Vg matrix was calculated, this completes the upper half
+          CUgMatDummy = TRANSPOSE(CUgMatNoAbs)! Dummy just used as a box to avoid the bug when conj(transpose) is used on orac
+          CUgMatNoAbs = CUgMatNoAbs + CONJG(CUgMatDummy)
+          RUgMatRe=REAL(CUgMatNoAbs)!parts to be broadcast to all cores using MPI
+          RUgMatIm=AIMAG(CUgMatNoAbs)
+        END IF
+        !send out the UgMat parts to all cores and reassemble CUgMatNoAbs
+        ind=nReflections*nReflections
+        CALL MPI_BCAST(RUgMatRe,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+        CALL MPI_BCAST(RUgMatIm,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+        CUgMatNoAbs=CMPLX(RUgMatRe,RUgMatIm)
         CALL Absorption(IErr)! calculates CUgMat = CUgMatNoAbs + CUgMatPrime
         IF(l_alert(IErr,"SimulateAndFit","Absorption")) RETURN
       END IF
@@ -191,6 +194,7 @@ MODULE refinementcontrol_mod
 	  WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
       CALL message( LM,dbg3, SPrintString)
     END DO
+    
 
     IF (my_rank.EQ.0) THEN ! send current values to screen
       CALL PrintVariables(IErr)
@@ -507,7 +511,7 @@ MODULE refinementcontrol_mod
       CASE(4)
         RBasisIsoDW(IIterativeVariableUniqueIDs(ind,2))=RIndependentVariable(ind)
       CASE(5)
-        ! NOT CURRENTLY IMPLIMENTED
+        ! NOT CURRENTLY IMPLEMENTED
         IErr=1;IF(l_alert(IErr,"UpdateVariables",&
               "Anisotropic Debye Waller Factors not implemented")) CALL abort
 !        RAnisotropicDebyeWallerFactorTensor(&
