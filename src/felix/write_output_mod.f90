@@ -101,6 +101,7 @@ MODULE write_output_mod
     REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RImageToWrite
     CHARACTER(200) :: path, filename, fullpath
     
+    IErr=0
     IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm 
 
     IF (ISimFLAG.EQ.0) THEN !felixrefine output
@@ -120,10 +121,10 @@ MODULE write_output_mod
             SChemicalFormula(1:ILN),"_",NINT(Rhkl(IOutPutReflections(ind),1:3)),'.bin'
       fullpath = TRIM(ADJUSTL(path))//"/"//TRIM(ADJUSTL(filename))
       CALL message ( LL, dbg6, fullpath )
-      RImageToWrite = RImageSimi(:,:,ind,IThicknessIndex)	
+      RImageToWrite = RImageSimi(:,:,ind,IThicknessIndex)
       ! Writes data to output image .bin files
       OPEN(UNIT=IChOutWIImage, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(fullpath)),&
-	          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
+          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
       IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN      
       DO jnd = 1,2*IPixelCount
         WRITE(IChOutWIImage,rec=jnd) RImageToWrite(jnd,:)
@@ -179,7 +180,7 @@ MODULE write_output_mod
     INTEGER(IKIND) :: jnd
     CHARACTER(200) :: filename, fullpath
 
-
+    IErr=0
     ! Write out unique atomic positions
     WRITE(filename,"(A1,I4.4,A4)") "_",Iter,".cif"
     filename=SChemicalFormula(1:ILN) // filename!gives e.g. SrTiO3_0001.cif 
@@ -210,7 +211,7 @@ MODULE write_output_mod
 
     DO jnd = 1,SIZE(RBasisAtomPosition,DIM=1)!RB only gives refined atoms, needs work
       WRITE(IChOutSimplex,FMT='(2(A3,1X),3(F7.4,1X),2(F5.2,1X))') &
-	          SBasisAtomLabel(jnd), SBasisAtomName(jnd), RBasisAtomPosition(jnd,:), &
+          SBasisAtomLabel(jnd), SBasisAtomName(jnd), RBasisAtomPosition(jnd,:), &
             RBasisIsoDW(jnd),RBasisOccupancy(jnd)
     END DO
     WRITE(IChOutSimplex,FMT='(A22)') "#End of refinement cif"
@@ -338,7 +339,7 @@ MODULE write_output_mod
                   [REAL(CUniqueUg(ind+IUgOffset)), REAL(AIMAG(CUniqueUg(ind+IUgOffset)),RKIND)]
           END DO
           IF (IAbsorbFLAG.EQ.1) THEN
-		        RDataOut(IEnd+1) = RAbsorptionPercentage 
+            RDataOut(IEnd+1) = RAbsorptionPercentage 
             ! RB last variable is proportional absorption
           END IF
       END SELECT
