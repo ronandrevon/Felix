@@ -803,6 +803,10 @@ PROGRAM Felixrefine
     CASE(3)
       CALL ParabolicRefinement
       IF(l_alert(IErr,"felixrefine","ParabolicRefinement")) CALL abort 
+
+    CASE(4)
+      CALL DWFmatrix
+      IF(l_alert(IErr,"felixrefine","DWFmatrix")) CALL abort 
      
     CASE DEFAULT ! Simulation only, should never happen
       CALL message( LS, "No refinement, simulation only")
@@ -1062,7 +1066,6 @@ CONTAINS
           RCurrentVar(ind)=RCurrentVar(ind)+Rdx
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
-          ! Do not increment iteration here nor write iteration output
           Iter=Iter+1
           CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
           ! BestFitCheck copies RCurrentVar into RIndependentVariable
@@ -1232,7 +1235,7 @@ CONTAINS
     DEALLOCATE(RVar0,RCurrentVar,RLastVar,RPVec,RFitVec,STAT=IErr)  
 
   END SUBROUTINE MaxGradientRefinement
-
+  
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
@@ -1554,6 +1557,32 @@ CONTAINS
     DEALLOCATE(RVar0,RCurrentVar,RLastVar,RPVec,STAT=IErr)
  
   END SUBROUTINE ParabolicRefinement
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  !>
+  !! Procedure-description: this is a hack for GaAs only
+  !! A matrix of DWFs
+  !! Major-Authors: Richard Beanland (2018)
+  !!
+  SUBROUTINE DWFmatrix
+  !this is a hack for GaAs only
+  !we rely on the refinement type being specified as D and the independent variables as being defined elsewhere
+  
+    ALLOCATE(RCurrentVar(INoOfVariables),STAT=IErr)
+    IF(l_alert(IErr,"MaxGradientRefinement","allocate RCurrentVar")) RETURN
+    IF (my_rank.EQ.0) PRINT*,"Simulating matrix of Debye-Waller factors"
+    DO ind=1,8
+      DO jnd=1,8
+        Iter=Iter+1
+        RCurrentVar(1)=0.35+REAL(ind)/10!from 0.45 to 1.15
+        RCurrentVar(2)=0.35+REAL(jnd)/10!from 0.45 to 1.15
+        CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
+        CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
+      END DO
+    END DO
+  
+  END SUBROUTINE DWFmatrix
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

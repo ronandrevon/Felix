@@ -41,9 +41,9 @@ RDeltaThickness          = 10.0
 IReflectOut              = 10
 
 #Refinement Specific Flags
-IRefineModeFLAG          = H
+IRefineModeFLAG          = D
 IWeightingFLAG           = 0
-IRefineMethodFLAG        = 2
+IRefineMethodFLAG        = 4
 ICorrelationFLAG         = 2
 IImageProcessingFLAG     = 4
 RBlurRadius              = 0.0
