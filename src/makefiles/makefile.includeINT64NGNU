@@ -43,7 +43,7 @@ LONGINTEGER=
 
 # -------------------------------
 # which PLATFORM dependent libraries to link
-LIBS= -lblas -llapack -lfftw3
+LIBS= -lopenblas -lfftw3  -fdefault-integer-8 -m64 -I${MKLROOT}/include -Wl,--start-group ${MKLROOT}/lib/intel64/libmkl_gf_ilp64.a ${MKLROOT}/lib/intel64/libmkl_sequential.a ${MKLROOT}/lib/intel64/libmkl_core.a -Wl,--end-group -lpthread -lm -ldl #-lblas -llapack -lfftw3
 
 
 # -------------------------------
