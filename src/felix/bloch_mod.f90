@@ -424,6 +424,8 @@ MODULE bloch_mod
           CWaveFunctions(nBeams),CEigenValueDependentTerms(nBeams,nBeams)
     INTEGER(IKIND) :: ind,jnd,knd,hnd,ifullind,iuniind,gnd,ichnk
     
+    IErr=0!there is nowhere in this subroutine to flag an eror, actually
+    
     ! The top surface boundary conditions
     CPsi0 = CZERO ! all diffracted beams are zero
     CPsi0(1) = CONE ! the 000 beam has unit amplitude

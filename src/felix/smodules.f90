@@ -50,8 +50,8 @@
 MODULE SConst
 
   CHARACTER*50, PARAMETER :: RStr= "Version: :VERSION: / :BUILD: / :AUTHOR: "
-  CHARACTER*50, PARAMETER :: DStr= "Date: :DATE:"
-  CHARACTER*50, PARAMETER :: AStr= "(:RLSTATUS:) multipole atom test & debug" 
+  CHARACTER*50, PARAMETER :: DStr= "Date: 15 Aug 2018"
+  CHARACTER*50, PARAMETER :: AStr= "Hack to investigate anharmonicity in GaAs ONLY" 
   
   CHARACTER*8 SAllSpaceGrp(230)
   DATA SAllSpaceGrp/"P1","P-1","P2","P21","C2","Pm","Pc","Cm",&

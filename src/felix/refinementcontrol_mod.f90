@@ -363,12 +363,12 @@ MODULE refinementcontrol_mod
     ! The thickness with the lowest figure of merit for each image
     IBestImageThicknessIndex = 1 
 
-    ! write out PatternFits.txt
-	OPEN(UNIT=IChOut,FILE='PatternFits.txt',FORM='formatted',STATUS='unknown',POSITION='append')
-	WRITE(IChOut,FMT='(A10,I4)') "Iteration ",Iter
+!    ! write out PatternFits.txt
+!	OPEN(UNIT=IChOut,FILE='PatternFits.txt',FORM='formatted',STATUS='unknown',POSITION='append')
+!	WRITE(IChOut,FMT='(A10,I4)') "Iteration ",Iter
     !\/----------------------------------------------------------------------
     DO jnd = 1,IThicknessCount
-	  WRITE(IChOut,FMT='(A10,I4)') "Thickness ",NINT(RInitialThickness+(jnd-1)*RDeltaThickness)
+!	  WRITE(IChOut,FMT='(A10,I4)') "Thickness ",NINT(RInitialThickness+(jnd-1)*RDeltaThickness)
       RTotalCorrelation = ZERO ! The sum of all individual correlations, initialise at 0
       DO ind = 1,INoOfLacbedPatterns
         RSimulatedImage = RImageSimi(:,:,ind,jnd)
@@ -422,7 +422,7 @@ MODULE refinementcontrol_mod
 
         CALL message(LXL,dbg6,"For Pattern ",ind,", thickness ",jnd)
         CALL message(LXL,dbg6,"  the FoM = ",RImageCorrelation)
-		WRITE(IChOut,FMT='(3I5.1,F13.9)') NINT(Rhkl(IOutPutReflections(ind),:)),RImageCorrelation
+!		WRITE(IChOut,FMT='(3I5.1,F13.9)') NINT(Rhkl(IOutPutReflections(ind),:)),RImageCorrelation
 		
         ! Determine which thickness matches best for each LACBED pattern
         ! which is later used to find the range of viable thicknesses 
@@ -444,7 +444,7 @@ MODULE refinementcontrol_mod
       CALL message(LM,dbg6,"Figure of merit ",RTotalCorrelation)
 
     END DO
-    CLOSE(IChOut)
+!    CLOSE(IChOut)
 
     !/\----------------------------------------------------------------------
     ! The figure of merit, global variable
@@ -485,8 +485,8 @@ MODULE refinementcontrol_mod
     USE message_mod 
 
     ! global inputs
-    USE IPARA, ONLY : INoOfVariables, IRefineMode, IIterativeVariableUniqueIDs,IAtomMoveList 
-    USE RPARA, ONLY : RVector
+    USE IPARA, ONLY : INoOfVariables,IRefineMode,IAtomMoveList,IAtomsToRefine
+    USE RPARA, ONLY : RVector,RAnharmonic
 
     ! global outputs
     USE RPARA, ONLY :  RBasisOccupancy, RBasisIsoDW, RAnisotropicDebyeWallerFactorTensor, &
@@ -496,61 +496,17 @@ MODULE refinementcontrol_mod
     IMPLICIT NONE
 
     REAL(RKIND),DIMENSION(INoOfVariables),INTENT(IN) :: RIndependentVariable
-    INTEGER(IKIND) :: IVariableType,IVectorID,IAtomID,IErr,ind
+    INTEGER(IKIND) :: IVariableType,IVectorID,IAtomID,IErr,ind,jnd
 
-    DO ind = 1,INoOfVariables
-      IVariableType = IIterativeVariableUniqueIDs(ind,1)
-      SELECT CASE (IVariableType)
-      CASE(1) ! A: structure factor refinement, do in UpdateStructureFactors
-        
-      CASE(2)
-        ! The index of the atom and vector being used
-        IVectorID = IIterativeVariableUniqueIDs(ind,2)
-        ! The atom being moved
-        IAtomID = IAtomMoveList(IVectorID)
-        ! Change in position r' = r - v*(r.v) +v*RIndependentVariable(ind)
-        RBasisAtomPosition(IAtomID,:) = MODULO((RBasisAtomPosition(IAtomID,:) - &
-            RVector(IVectorID,:)*DOT_PRODUCT(RBasisAtomPosition(IAtomID,:),RVector(IVectorID,:)) + &
-            RVector(IVectorID,:)*RIndependentVariable(ind)),ONE)
-      CASE(3)
-        RBasisOccupancy(IIterativeVariableUniqueIDs(ind,2))=RIndependentVariable(ind) 
-      CASE(4)
-        RBasisIsoDW(IIterativeVariableUniqueIDs(ind,2))=RIndependentVariable(ind)
-      CASE(5)
-        ! NOT CURRENTLY IMPLEMENTED
-        IErr=1;IF(l_alert(IErr,"UpdateVariables",&
-              "Anisotropic Debye Waller Factors not implemented")) CALL abort
-!        RAnisotropicDebyeWallerFactorTensor(&
-!              IIterativeVariableUniqueIDs(ind,2),&
-!              IIterativeVariableUniqueIDs(ind,4),&
-!              IIterativeVariableUniqueIDs(ind,5)) = & 
-!              RIndependentVariable(ind)
-      CASE(6)
-        SELECT CASE(IIterativeVariableUniqueIDs(ind,2))
-        CASE(1)
-          RUnitCellA = RIndependentVariable(ind)
-        CASE(2)
-          RUnitCellB = RIndependentVariable(ind)
-        CASE(3)
-          RUnitCellC = RIndependentVariable(ind)
-        END SELECT
-      CASE(7)
-        SELECT CASE(IIterativeVariableUniqueIDs(ind,2))
-        CASE(1)
-          RAlpha = RIndependentVariable(ind)
-        CASE(2)
-          RBeta = RIndependentVariable(ind)
-        CASE(3)
-          RGamma = RIndependentVariable(ind)
-        END SELECT
-      CASE(8)
-        RConvergenceAngle = RIndependentVariable(ind)
-      CASE(9)
-        RAbsorptionPercentage = RIndependentVariable(ind)
-      CASE(10)
-        RAcceleratingVoltage = RIndependentVariable(ind)
-      END SELECT
-    END DO
+    ind=1
+    IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
+      DO jnd=1,SIZE(IAtomsToRefine)
+          RBasisIsoDW(jnd)=RIndependentVariable(ind)
+          ind=ind+1
+	  END DO
+      RAnharmonic=RIndependentVariable(ind)
+	END IF
+
 
   END SUBROUTINE UpdateVariables
 
@@ -617,6 +573,8 @@ MODULE refinementcontrol_mod
             WRITE(SPrintString,FMT='(A4,A4,F7.4)') "    ",SBasisAtomLabel(jnd),RBasisIsoDW(jnd)
             CALL message(LS,SPrintString)
           END DO
+          WRITE(SPrintString,FMT='(A33,F7.4)') "    Anharmonicity parameter A(As)",RAnharmonic
+          CALL message(LS,SPrintString)
 
         CASE(5)
           CALL message(LS,"Current Anisotropic Debye Waller Factors")

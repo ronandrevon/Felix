@@ -469,7 +469,7 @@ PROGRAM Felixrefine
     DO jnd=1,ind!only have to calculate half since they are symmetric or antisymmetric
       !g-vector magnitudes in reciprocal angstroms, microscope reference frame
       RgMatrixMagnitude(ind,jnd)=SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
-      !g-vector products h*k*l for cubic anharmonicity
+      !g-vector products h*k*l/(4pia)^3 for cubic anharmonicity
       RgCubAnMat(ind,jnd)=((Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,3)-Rhkl(jnd,3)))/((FOUR*PI*RUnitCellA)**3)
       ! equivalent g's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2
       RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
@@ -481,17 +481,20 @@ PROGRAM Felixrefine
   RgCubAnMat=RgCubAnMat-TRANSPOSE(RgCubAnMat)
   RgSumMat=RgSumMat+TRANSPOSE(RgSumMat)
   CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
-  CALL message ( LM, dbg3, "hkl: g Sum matrix" )
+  CALL message ( LM, dbg3, "hkl: g Sum matrix and Anharmonic matrix" )
   DO ind =1,16
 	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
-    CALL message ( LM, dbg3, SPrintString )!LM, dbg3
+    CALL message ( LM, dbg3, SPrintString )
+    WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
+    CALL message ( LM, dbg3, SPrintString )
   END DO
-  IF (my_rank.EQ.0) THEN
-    DO ind =1,8
-      WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
-      PRINT*, SPrintString
-    END DO
-  END IF
+!For debugging to see Anharmonic matrix
+!  IF (my_rank.EQ.0) THEN
+!    DO ind =1,16
+!      WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
+!      PRINT*, SPrintString
+!    END DO
+!  END IF
     
   ! structure factor initialization
   ! Calculate Ug matrix for each entry in CUgMatNoAbs(1:nReflections,1:nReflections)
@@ -556,7 +559,7 @@ PROGRAM Felixrefine
       ! Occupancy, C
       INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)
       ! Isotropic DW, D
-      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)!+1!Add one for anharmonic parameter
+      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)+1!Add one for anharmonic parameter
       ! Anisotropic DW, E
       INoOfVariablesForRefinementType(5)=IRefineMode(5)*SIZE(IAtomsToRefine)*6
       INoOfVariablesForRefinementType(6)=IRefineMode(6)*3! Unit cell dimensions, F
@@ -580,6 +583,7 @@ PROGRAM Felixrefine
     !--------------------------------------------------------------------
     ! assign refinement variables depending upon Ug and non-Ug refinement
     !--------------------------------------------------------------------
+    ! IRefineMode is either 0 or 1 indicating what is to be refined
     IF(IRefineMode(1).EQ.1) THEN ! It's a Ug refinement, A
       ! Fill up the IndependentVariable list with CUgMatNoAbs components
       jnd=1
@@ -600,27 +604,29 @@ PROGRAM Felixrefine
       ALLOCATE(RIndependentVariable(INoOfVariables),STAT=IErr)  
       ind=1
       IF(IRefineMode(2).EQ.1) THEN ! Atomic coordinates, B
-	      DO jnd=1,SIZE(IAtomMoveList)
-            RIndependentVariable(ind)=DOT_PRODUCT(RBasisAtomPosition(IAtomMoveList(jnd),:),RVector(jnd,:))
-            ind=ind+1
-	      END DO
-	    END IF
+	    DO jnd=1,SIZE(IAtomMoveList)
+          RIndependentVariable(ind)=DOT_PRODUCT(RBasisAtomPosition(IAtomMoveList(jnd),:),RVector(jnd,:))
+          ind=ind+1
+	    END DO
+	  END IF
       IF(IRefineMode(3).EQ.1) THEN ! Occupancy, C
-	      DO jnd=1,SIZE(IAtomsToRefine)
-            RIndependentVariable(ind)=RBasisOccupancy(IAtomsToRefine(jnd))
-            ind=ind+1
-	      END DO
-	    END IF
+	    DO jnd=1,SIZE(IAtomsToRefine)
+          RIndependentVariable(ind)=RBasisOccupancy(IAtomsToRefine(jnd))
+          ind=ind+1
+	    END DO
+	  END IF
       IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
-	      DO jnd=1,SIZE(IAtomsToRefine)
-            RIndependentVariable(ind)=RIsoDW(IAtomsToRefine(jnd))
-            ind=ind+1
-	      END DO
-	    END IF
+	    DO jnd=1,SIZE(IAtomsToRefine)
+          RIndependentVariable(ind)=RBasisIsoDW(IAtomsToRefine(jnd))
+          ind=ind+1
+	    END DO
+        RIndependentVariable(ind)=RAnharmonic
+        ind=ind+1
+	  END IF
       IF(IRefineMode(8).EQ.1) THEN ! Convergence angle, H
         RIndependentVariable(ind)=RConvergenceAngle
         ind=ind+1
-	    END IF
+	  END IF
       ! Assign IDs - not needed for a Ug refinement
       ALLOCATE(IIterativeVariableUniqueIDs(INoOfVariables,2),STAT=IErr)
       IF(l_alert(IErr,"felixrefine","allocate IIterativeVariableUniqueIDs")) CALL abort
@@ -648,7 +654,7 @@ PROGRAM Felixrefine
 
             CASE(4) ! Isotropic Debye Waller Factors , D
               IIterativeVariableUniqueIDs(IArrayIndex,1) = ind
-              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
+!              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
 
             CASE(5) ! Anisotropic Debye Waller Factors (a11-a33), E
               !?? not currently implemented
