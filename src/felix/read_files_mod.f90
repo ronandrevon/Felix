@@ -196,8 +196,10 @@ MODULE read_files_mod
     ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
     ! RDebyeWallerConstant          ! default, if not specified in .cif
     ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RDebyeWallerConstant
+    IF(my_rank.EQ.0) PRINT*, 'RDebyeWallerConstant=',RDebyeWallerConstant
     ! RAnharmonic         ! for anharmonic thermal vibrations
     ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RAnharmonic
+    IF(my_rank.EQ.0) PRINT*, 'RAnharmonic=',RAnharmonic
 
     !--------------------------------------------------------------------
     ! microscope settings
