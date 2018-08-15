@@ -470,7 +470,7 @@ PROGRAM Felixrefine
       !g-vector magnitudes in reciprocal angstroms, microscope reference frame
       RgMatrixMagnitude(ind,jnd)=SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
       !g-vector products h*k*l for cubic anharmonicity
-      RgCubAnMat(ind,jnd)=(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,3)-Rhkl(jnd,3))
+      RgCubAnMat(ind,jnd)=((Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,3)-Rhkl(jnd,3)))/((FOUR*PI*RUnitCellA)**3)
       ! equivalent g's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2
       RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
         RUnitCellA*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RUnitCellB*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
@@ -486,7 +486,13 @@ PROGRAM Felixrefine
 	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
     CALL message ( LM, dbg3, SPrintString )!LM, dbg3
   END DO
-
+  IF (my_rank.EQ.0) THEN
+    DO ind =1,8
+      WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
+      PRINT*, SPrintString
+    END DO
+  END IF
+    
   ! structure factor initialization
   ! Calculate Ug matrix for each entry in CUgMatNoAbs(1:nReflections,1:nReflections)
   CALL StructureFactorInitialisation(IErr)
@@ -550,7 +556,7 @@ PROGRAM Felixrefine
       ! Occupancy, C
       INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)
       ! Isotropic DW, D
-      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)
+      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)!+1!Add one for anharmonic parameter
       ! Anisotropic DW, E
       INoOfVariablesForRefinementType(5)=IRefineMode(5)*SIZE(IAtomsToRefine)*6
       INoOfVariablesForRefinementType(6)=IRefineMode(6)*3! Unit cell dimensions, F

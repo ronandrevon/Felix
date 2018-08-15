@@ -24,7 +24,7 @@ IMinWeakBeams             = 0
 
 # crystal settings
 RDebyeWallerConstant      = 0.0
-RAnharmonic               = 0.0
+RAnharmonic               = 1.0
 
 # microscope settings
 ROuterConvergenceAngle    = 3.0039

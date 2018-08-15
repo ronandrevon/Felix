@@ -277,7 +277,7 @@ MODULE ug_matrix_mod
     INTEGER(IKIND),INTENT(IN) :: ind, jnd
     COMPLEX(CKIND),INTENT(OUT) :: CVgij
     INTEGER(IKIND),INTENT(OUT) :: IErr
-    COMPLEX(CKIND) :: CFpseudo,CThermal
+    COMPLEX(CKIND) :: CFpseudo,CAnharm
     INTEGER(IKIND) :: knd, INumPseudAtoms=0
 
     
@@ -298,10 +298,9 @@ MODULE ug_matrix_mod
           ! exp(-B sin(theta)^2/lamda^2) = exp(-Bs^2) = exp(-Bg^2/16pi^2), see e.g. Bird&King
           ! Anharmonic part for GaAs ONLY, following McIntyre Acta Cryst A36,482(1980) and Stevenson Acta CrystA50,621(1994)
           !For Ga multiply by (1+i.A(As).h.k.l.(BGa/4pi.a)^3)
-          IF (ICurrentZ.EQ.31) CThermal=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
+          IF (ICurrentZ.EQ.31) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
           !For As multiply by (1-i.A(As).h.k.l.(BAs/4pi.a)^3)
-          IF (ICurrentZ.EQ.33) CThermal=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
-          RScatteringFactor = RScatteringFactor*CThermal
+          IF (ICurrentZ.EQ.33) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
         ELSE ! anisotropic Debye-Waller factor
           !?? this will need sorting out, may not work
           RScatteringFactor = RScatteringFactor * &
@@ -310,7 +309,7 @@ MODULE ug_matrix_mod
                 RgMatrix(ind,jnd,:)) ) )
         END IF
         ! The structure factor equation, complex Vg(ind,jnd)=sum(f*exp(-ig.r)) in Volts
-        CVgij=CVgij+RScatteringFactor*RScattFacToVolts*EXP(-CIMAGONE*DOT_PRODUCT(RgMatrix(ind,jnd,:),&
+        CVgij=CVgij+RScatteringFactor*CAnharm*RScattFacToVolts*EXP(-CIMAGONE*DOT_PRODUCT(RgMatrix(ind,jnd,:),&
               RAtomCoordinate(knd,:)) )
       ELSE ! pseudoatom
         INumPseudAtoms=INumPseudAtoms+1
