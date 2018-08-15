@@ -58,7 +58,7 @@ MODULE crystallography_mod
     
     ! global inputs
     USE IPARA, ONLY : IDiffractionFLAG,IVolumeFLAG
-    USE RPARA, ONLY : RAlpha,RBeta,RGamma,RLengthX,RLengthY,RLengthZ,RNormDirC,RXDirC,&
+    USE RPARA, ONLY : RAlpha,RBeta,RGamma,RUnitCellA,RUnitCellB,RUnitCellC,RNormDirC,RXDirC,&
           RZDirC
     
     IMPLICIT NONE
@@ -71,21 +71,21 @@ MODULE crystallography_mod
     CHARACTER*400  RTMatString
 
     ! Crystal Lattice Vectors: orthogonal reference frame in Angstrom units
-    RaVecO(1)= RLengthX
+    RaVecO(1)= RUnitCellA
     RaVecO(2)= ZERO
     RaVecO(3)= ZERO
 
-    RbVecO(1)= RLengthY*COS(RGamma)
-    RbVecO(2)= RLengthY*SIN(RGamma)
+    RbVecO(1)= RUnitCellA*COS(RGamma)
+    RbVecO(2)= RUnitCellB*SIN(RGamma)
     RbVecO(3)= ZERO
 
-    RcVecO(1)= RLengthZ*COS(RBeta)
-    RcVecO(2)= RLengthZ*(COS(RAlpha)-COS(RBeta)*COS(RGamma))/SIN(RGamma)
-    RcVecO(3)= RLengthZ*(SQRT(1.D0-COS(RAlpha)*COS(RAlpha)-COS(RBeta)*COS(RBeta)&
+    RcVecO(1)= RUnitCellC*COS(RBeta)
+    RcVecO(2)= RUnitCellC*(COS(RAlpha)-COS(RBeta)*COS(RGamma))/SIN(RGamma)
+    RcVecO(3)= RUnitCellC*(SQRT(1.D0-COS(RAlpha)*COS(RAlpha)-COS(RBeta)*COS(RBeta)&
       -COS(RGamma)*COS(RGamma)+TWO*COS(RAlpha)*COS(RBeta)*COS(RGamma)) / SIN(RGamma))
 
     IF(IVolumeFLAG .EQ. 0) THEN
-       RVolume= RLengthX*RLengthY*RLengthZ* &
+       RVolume= RUnitCellA*RUnitCellB*RUnitCellC* &
             SQRT(1.0D0 - &
             COS(RAlpha)*COS(RAlpha)-COS(RBeta)*COS(RBeta)-COS(RGamma)*COS(RGamma) + &
             TWO*COS(RAlpha)*COS(RBeta)*COS(RGamma))

@@ -36,7 +36,7 @@
 MODULE ug_matrix_mod
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: Absorption, GetVgContributionij, StructureFactorInitialisation 
+  PUBLIC :: Absorption, GetVgij, StructureFactorInitialisation 
   CONTAINS
 
   !>
@@ -245,16 +245,17 @@ MODULE ug_matrix_mod
   !!$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
-  !! Procedure-description: Calculate a single fourier components of the potential Vg
+  !! Procedure-description: Calculate Fourier components of the potential Vg
   !! for atoms and pseudoatoms  
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
   !!
-  SUBROUTINE GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr) 
+  SUBROUTINE GetVgij(RScatteringFactor,ind,jnd,CVgij,IErr) 
 
     ! ----> CVgij, used to make/update CUgMatNoAbs
     ! used each SimulateAndFit update scattering matrix Ug
-    ! used once felixrefine setup via StructureFactorInitialisation 
+    ! used once felixrefine setup via StructureFactorInitialisation
+    ! ind, jnd give the position in the g-vector matrices for this calculation
 
     USE MyNumbers
     USE message_mod
@@ -264,9 +265,9 @@ MODULE ug_matrix_mod
 
     ! global inputs
     USE IPARA, ONLY : INAtomsUnitCell,IAtomicNumber,IAnisoDebyeWallerFactorFlag,IAnisoDW
-    USE RPARA, ONLY : RIsoDW,RCurrentGMagnitude,RgMatrix,RVolume, &
+    USE RPARA, ONLY : RIsoDW,RCurrentGMagnitude,RgMatrix,RUnitCellA,RAnharmonic,Rhkl, &
           RAnisotropicDebyeWallerFactorTensor,RAtomCoordinate,ROccupancy, &
-          RDebyeWallerConstant,RScattFacToVolts
+          RDebyeWallerConstant,RScattFacToVolts,RgCubAnMat
     USE CPARA, ONLY : CIMAGONE
     USE RConst, ONLY : RPlanckConstant,RAngstromConversion,RElectronMass,RElectronCharge
 
@@ -276,11 +277,11 @@ MODULE ug_matrix_mod
     INTEGER(IKIND),INTENT(IN) :: ind, jnd
     COMPLEX(CKIND),INTENT(OUT) :: CVgij
     INTEGER(IKIND),INTENT(OUT) :: IErr
-    COMPLEX(CKIND) :: CFpseudo
+    COMPLEX(CKIND) :: CFpseudo,CThermal
     INTEGER(IKIND) :: knd, INumPseudAtoms=0
 
     
-    CVgij = CZERO!this is in Volts
+    CVgij = CZERO!this is Vg(i,j) in Volts
     ! Sums CVgij contribution from each atom and pseudoatom
     DO knd=1,INAtomsUnitCell
       ICurrentZ = IAtomicNumber(knd) ! atomic number, Z, NB passed as a global variable for absorption
@@ -295,8 +296,12 @@ MODULE ug_matrix_mod
           IF(RIsoDW(knd).GT.10.OR.RIsoDW(knd).LT.0) RIsoDW(knd) = RDebyeWallerConstant!use default in felix.inp for unrealistic values in the cif
           ! Isotropic D-W factor
           ! exp(-B sin(theta)^2/lamda^2) = exp(-Bs^2) = exp(-Bg^2/16pi^2), see e.g. Bird&King
-          RScatteringFactor = RScatteringFactor*EXP(-RIsoDW(knd) * &
-                (RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )
+          ! Anharmonic part for GaAs ONLY, following McIntyre Acta Cryst A36,482(1980) and Stevenson Acta CrystA50,621(1994)
+          !For Ga multiply by (1+i.A(As).h.k.l.(BGa/4pi.a)^3)
+          IF (ICurrentZ.EQ.31) CThermal=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
+          !For As multiply by (1-i.A(As).h.k.l.(BAs/4pi.a)^3)
+          IF (ICurrentZ.EQ.33) CThermal=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
+          RScatteringFactor = RScatteringFactor*CThermal
         ELSE ! anisotropic Debye-Waller factor
           !?? this will need sorting out, may not work
           RScatteringFactor = RScatteringFactor * &
@@ -328,7 +333,7 @@ MODULE ug_matrix_mod
       END IF
     ENDDO
 
-  END SUBROUTINE GetVgContributionij
+  END SUBROUTINE GetVgij
 
   !!$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -359,7 +364,7 @@ MODULE ug_matrix_mod
           RRelativisticCorrection,RVolume,RIsoDW,RgMatrixMagnitude,ROccupancy,&
           RElectronWaveVectorMagnitude,RgMatrix,RDebyeWallerConstant,RTolerance,&
           RAtomCoordinate,Rhkl,RAnisotropicDebyeWallerFactorTensor,RScattFacToVolts,&
-          RLengthX,RLengthY,RLengthZ
+          RUnitCellA,RUnitCellB,RUnitCellC
     USE IChannels, ONLY : IChOutWIImage
 
     USE RConst, ONLY : RPlanckConstant
@@ -473,7 +478,7 @@ MODULE ug_matrix_mod
       DO jnd=1,ind-1
         RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
         ! Sums CVgij contribution from each atom and pseudoatom in Volts
-        CALL GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr)
+        CALL GetVgij(RScatteringFactor,ind,jnd,CVgij,IErr)
 		CUgMatNoAbs(ind,jnd)=CVgij
       ENDDO
     ENDDO
@@ -531,22 +536,22 @@ MODULE ug_matrix_mod
       !--------------------------------------------------------------------
       
       ! IEquivalentUgKey is used later in absorption case 2 Bird & king
-      RgSumMat = ZERO
+!RB moved to refine.f90 line ~460
+!      RgSumMat = ZERO
       ! equivalent Ug's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2...
-      DO ind = 1,nReflections
-        DO jnd = 1,ind
-          RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,2)-Rhkl(jnd,2))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
-            RLengthX*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RLengthY*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
-            RLengthZ*(Rhkl(ind,3)-Rhkl(jnd,3))**TWO
-        END DO
-      END DO
-      ! it's symmetric
-      RgSumMat = RgSumMat+TRANSPOSE(RgSumMat)
-      CALL message ( LM, dbg3, "hkl: g Sum matrix" )
-      DO ind =1,16
-	  	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
-        CALL message ( LM, dbg3, SPrintString )!LM, dbg3
-      END DO
+!      DO ind = 1,nReflections
+!        DO jnd = 1,nReflections
+!          RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,2)-Rhkl(jnd,2))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
+!            RUnitCellA*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RUnitCellB*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
+!            RUnitCellC*(Rhkl(ind,3)-Rhkl(jnd,3))**TWO
+!        END DO
+!      END DO
+
+!      CALL message ( LM, dbg3, "hkl: g Sum matrix" )
+!      DO ind =1,16
+!	  	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
+!        CALL message ( LM, dbg3, SPrintString )!LM, dbg3
+!      END DO
 
       ISymmetryRelations = 0_IKIND 
       Iuid = 0_IKIND 

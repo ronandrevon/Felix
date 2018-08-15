@@ -57,7 +57,7 @@ MODULE read_files_mod
           IMinStrongBeams, IMinWeakBeams, INoOfLacbedPatterns, ISimFLAG, IRefineMode, &
           IWeightingFLAG, IRefineMethodFLAG, ICorrelationFLAG, IImageProcessingFLAG, &
           INoofUgs, IPrint, IPixelCount, IBlochMethodFLAG
-    USE RPARA, ONLY : RDebyeWallerConstant, RAbsorptionPercentage, RConvergenceAngle, &
+    USE RPARA, ONLY : RDebyeWallerConstant, RAnharmonic, RConvergenceAngle, &
           RZDirC, RXDirC, RNormDirC, RAcceleratingVoltage, RAcceptanceAngle, &
           RInitialThickness, RFinalThickness, RDeltaThickness, RBlurRadius, &
           RSimplexLengthScale, RExitCriteria
@@ -196,8 +196,8 @@ MODULE read_files_mod
     ILine= ILine+1; READ(IChInp,ERR=20,END=30,FMT='(A)')
     ! RDebyeWallerConstant          ! default, if not specified in .cif
     ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RDebyeWallerConstant
-    ! RAbsorptionPercentage         ! for proportional model of absorption
-    ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RAbsorptionPercentage
+    ! RAnharmonic         ! for anharmonic thermal vibrations
+    ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RAnharmonic
 
     !--------------------------------------------------------------------
     ! microscope settings

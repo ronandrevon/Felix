@@ -193,7 +193,7 @@ MODULE write_output_mod
     
     ! global inputs
     USE IPARA, ONLY : ILN
-    USE RPARA, ONLY : RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, RGamma, &
+    USE RPARA, ONLY : RUnitCellA, RUnitCellB, RUnitCellC, RAlpha, RBeta, RGamma, &
                       RBasisAtomPosition, RBasisIsoDW, RBasisOccupancy
     USE SPARA, ONLY : SSpaceGrp, SBasisAtomLabel, SBasisAtomName,SChemicalFormula
     USE IChannels, ONLY : IChOutSimplex
@@ -216,9 +216,9 @@ MODULE write_output_mod
  
     WRITE(IChOutSimplex,FMT='(A16)') "data_felixrefine"
     WRITE(IChOutSimplex,FMT='(A5)') "loop_"
-    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_a",RLengthX
-    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_b",RLengthY
-    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_c",RLengthZ
+    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_a",RUnitCellA
+    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_b",RUnitCellB
+    WRITE(IChOutSimplex,FMT='(A14,1X,F7.4)') "_cell_length_c",RUnitCellC
     WRITE(IChOutSimplex,FMT='(A17,1X,F7.2)') "_cell_angle_alpha",RAlpha*180/PI
     WRITE(IChOutSimplex,FMT='(A16,1X,F7.2)') "_cell_angle_beta",RBeta*180/PI
     WRITE(IChOutSimplex,FMT='(A17,1X,F7.2)') "_cell_angle_gamma",RGamma*180/PI
@@ -274,7 +274,7 @@ MODULE write_output_mod
                       IRefinementVariableTypes
     USE RPARA, ONLY : RBasisAtomPosition, RBasisOccupancy, RBasisIsoDW, &
                       RAnisotropicDebyeWallerFactorTensor, RFigureofMerit, &
-                      RAbsorptionPercentage, RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, &
+                      RAbsorptionPercentage, RUnitCellA, RUnitCellB, RUnitCellC, RAlpha, RBeta, &
                       RGamma, RConvergenceAngle, RAcceleratingVoltage, RRSoSScalingFactor                    
     USE CPARA, ONLY : CUniqueUg
     USE IChannels, ONLY : IChOutSimplex     
@@ -346,7 +346,7 @@ MODULE write_output_mod
         RDataOut(IStart:IEnd) = &
               RESHAPE(RAnisotropicDebyeWallerFactorTensor,SHAPE(RDataOut(IStart:IEnd)))
       CASE(6)
-        RDataOut(IStart:IEnd) = [RLengthX, RLengthY, RLengthZ]
+        RDataOut(IStart:IEnd) = [RUnitCellA, RUnitCellB, RUnitCellC]
       CASE(7)
         RDataOut(IStart:IEnd) = [RAlpha, RBeta, RGamma]
       CASE(8)

@@ -121,8 +121,10 @@ PROGRAM Felixrefine
   IF(l_alert(IErr,"felixrefine","ReadInpFile")) CALL abort
   CALL SetMessageMode( IWriteFLAG, IErr )
   IF(l_alert(IErr,"felixrefine","set_message_mod_mode")) CALL abort
-
   CALL message(LL,'IBlochMethodFLAG =',IBlochMethodFLAG)
+
+  !number of thicknesses to simulate
+  IThicknessCount= NINT((RFinalThickness-RInitialThickness)/RDeltaThickness) + 1
 
   CALL read_cif(IErr) ! felix.cif ! some allocations are here
   IF(l_alert(IErr,"felixrefine","ReadCif")) CALL abort
@@ -370,11 +372,14 @@ PROGRAM Felixrefine
   END DO
 
   ! g-vector components parallel to the surface unit normal
+  ! cubic anharmonic number h*k*l
   ALLOCATE(RgDotNorm(INhkl),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate RgDotNorm")) CALL abort
-
+  ALLOCATE(RgPoolCubAn(INhkl),STAT=IErr)
+  IF(l_alert(IErr,"felixrefine","allocate RgPoolMag")) CALL abort
   DO ind =1,INhkl
     RgDotNorm(ind) = DOT_PRODUCT(RgPool(ind,:),RNormDirM)
+    RgPoolCubAn(ind) = Rhkl(ind,1)*Rhkl(ind,2)*Rhkl(ind,3)
   END DO
   CALL message(LL,dbg7,"g.n list")
   DO ind = 1,SIZE(Rhkl,1)
@@ -441,6 +446,9 @@ PROGRAM Felixrefine
   ! Matrix of sums of indices - for symmetry equivalence in the Ug matrix
   ALLOCATE(RgSumMat(nReflections,nReflections),STAT=IErr) 
   IF(l_alert(IErr,"felixrefine","allocate RgSumMat")) CALL abort
+  ! Matrix of products of indices - for cubic anharmonic components
+  ALLOCATE(RgCubAnMat(nReflections,nReflections),STAT=IErr) 
+  IF(l_alert(IErr,"felixrefine","allocate RgCubAnMat")) CALL abort
   ! Matrix with numbers marking equivalent Ug's
   ALLOCATE(ISymmetryRelations(nReflections,nReflections),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate ISymmetryRelations")) CALL abort
@@ -449,16 +457,35 @@ PROGRAM Felixrefine
   ! calculate reflection matrix & initialise structure factors
   !--------------------------------------------------------------------
   ! Calculate matrix  of g-vectors that corresponds to the Ug matrix
-  IThicknessCount= NINT((RFinalThickness-RInitialThickness)/RDeltaThickness) + 1
+  ! in reciprocal angstroms, microscope reference frame
   DO ind=1,nReflections
     DO jnd=1,nReflections
-      RgMatrix(ind,jnd,:)= RgPool(ind,:)-RgPool(jnd,:)
-      RgMatrixMagnitude(ind,jnd) = & 
-           SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
-    ENDDO
-  ENDDO
-  CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
+      RgMatrix(ind,jnd,:)= RgPool(ind,:)-RgPool(jnd,:)!NB antisymmetric and diagonal is zero
+    END DO
+  END DO
   CALL message(LXL,dbg3,"first 16 g-vectors", RgMatrix(1:16,1,:)) 
+  ! Now the other g-vector matrices
+  DO ind=1,nReflections
+    DO jnd=1,ind!only have to calculate half since they are symmetric or antisymmetric
+      !g-vector magnitudes in reciprocal angstroms, microscope reference frame
+      RgMatrixMagnitude(ind,jnd)=SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
+      !g-vector products h*k*l for cubic anharmonicity
+      RgCubAnMat(ind,jnd)=(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,3)-Rhkl(jnd,3))
+      ! equivalent g's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2
+      RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
+        RUnitCellA*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RUnitCellB*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
+        RUnitCellC*(Rhkl(ind,3)-Rhkl(jnd,3))**TWO
+    END DO
+  END DO
+  RgMatrixMagnitude=RgMatrixMagnitude+TRANSPOSE(RgMatrixMagnitude)
+  RgCubAnMat=RgCubAnMat-TRANSPOSE(RgCubAnMat)
+  RgSumMat=RgSumMat+TRANSPOSE(RgSumMat)
+  CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
+  CALL message ( LM, dbg3, "hkl: g Sum matrix" )
+  DO ind =1,16
+	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
+    CALL message ( LM, dbg3, SPrintString )!LM, dbg3
+  END DO
 
   ! structure factor initialization
   ! Calculate Ug matrix for each entry in CUgMatNoAbs(1:nReflections,1:nReflections)

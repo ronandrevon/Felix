@@ -169,7 +169,7 @@ MODULE refinementcontrol_mod
             DO jnd=1,ind-1
               RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
               ! Sums CVgij contribution from each atom and pseudoatom in Volts
-              CALL GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr)
+              CALL GetVgij(RScatteringFactor,ind,jnd,CVgij,IErr)
               CUgMatNoAbs(ind,jnd)=CVgij
             ENDDO
           ENDDO
@@ -490,7 +490,7 @@ MODULE refinementcontrol_mod
 
     ! global outputs
     USE RPARA, ONLY :  RBasisOccupancy, RBasisIsoDW, RAnisotropicDebyeWallerFactorTensor, &
-          RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, RGamma, RConvergenceAngle, &
+          RUnitCellA, RUnitCellB, RUnitCellC, RAlpha, RBeta, RGamma, RConvergenceAngle, &
           RAbsorptionPercentage, RAcceleratingVoltage, RRSoSScalingFactor, RBasisAtomPosition
 
     IMPLICIT NONE
@@ -528,11 +528,11 @@ MODULE refinementcontrol_mod
       CASE(6)
         SELECT CASE(IIterativeVariableUniqueIDs(ind,2))
         CASE(1)
-          RLengthX = RIndependentVariable(ind)
+          RUnitCellA = RIndependentVariable(ind)
         CASE(2)
-          RLengthY = RIndependentVariable(ind)
+          RUnitCellB = RIndependentVariable(ind)
         CASE(3)
-          RLengthZ = RIndependentVariable(ind)
+          RUnitCellC = RIndependentVariable(ind)
         END SELECT
       CASE(7)
         SELECT CASE(IIterativeVariableUniqueIDs(ind,2))
@@ -576,7 +576,7 @@ MODULE refinementcontrol_mod
     REAL(RKIND),DIMENSION(3) :: RCrystalVector
     CHARACTER*100 :: SPrintString
 
-    RCrystalVector = [RLengthX,RLengthY,RLengthZ]
+    RCrystalVector = [RUnitCellA,RUnitCellB,RUnitCellC]
 
     DO ind = 1,IRefinementVariableTypes
       IF (IRefineMode(ind).EQ.1) THEN
@@ -626,7 +626,7 @@ MODULE refinementcontrol_mod
           END DO
 
         CASE(6)
-          CALL message(LS, "Current Unit Cell Parameters", (/ RLengthX,RLengthY,RLengthZ /) )
+          CALL message(LS, "Current Unit Cell Parameters", (/ RUnitCellA,RUnitCellB,RUnitCellC /) )
 
         CASE(7)
           CALL message(LS, "Current Unit Cell Angles", (/ RAlpha,RBeta,RGamma /) )

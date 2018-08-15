@@ -235,8 +235,8 @@ MODULE RPara
 
   !INPUT Section 
   !Crystallography
-  REAL(RKIND) :: RLengthX,RLengthY,RLengthZ,RVolume,RAlpha,RBeta,RGamma, &
-       RDebyeWallerConstant,RAbsorptionPercentage
+  REAL(RKIND) :: RUnitCellA,RUnitCellB,RUnitCellC,RVolume,RAlpha,RBeta,RGamma, &
+       RDebyeWallerConstant,RAbsorptionPercentage,RAnharmonic
   REAL(RKIND), DIMENSION(:), ALLOCATABLE :: RBasisIsoDW, RBasisOccupancy, RIsoDW, ROccupancy
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RSymVec,RBasisAtomPosition, &
        RAtomPosition,RUniqueKey
@@ -273,18 +273,17 @@ MODULE RPara
        RInvBaseVec(ITHREE,ITHREE)
   REAL(RKIND), DIMENSION(:,:,:), ALLOCATABLE :: RAnisotropicDebyeWallerFactorTensor
   !Diffraction Pattern Definitions
-  REAL(RKIND), DIMENSION(:), ALLOCATABLE :: RgPoolMag, RSg
+  REAL(RKIND), DIMENSION(:), ALLOCATABLE :: RgPoolMag,RSg,RgDotNorm,RgPoolCubAn
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RgPool, RgPoolMagLaueZone
   REAL(RKIND), DIMENSION(ITHREE,ITHREE) :: RTMat
   REAL(RKIND) :: RDeltaK, RMinimumGMag,RGVectorMagnitude
   REAL(RKIND),DIMENSION(ITHREE) :: RGVector
-  REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RgDotNorm
   !Image Initialisation
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RhklPositions
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImage
   !Main Program
   REAL(RKIND) :: RMeanInnerPotential,RScattFacToVolts
-  REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RgMatrixMagnitude, RgSumMat !RB
+  REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RgMatrixMagnitude,RgSumMat,RgCubAnMat
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RgMatrix
   REAL(RKIND) :: ROuterIntegralLowerBound,ROuterIntegralUpperBound,&
        RInnerIntegralLowerBound,RInnerIntegralUpperBound,&
