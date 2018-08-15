@@ -272,7 +272,7 @@ MODULE write_output_mod
     ! global inputs
     USE IPARA, ONLY : IAbsorbFLAG, IRefineMode, INoofUgs, IUgOffset, &
                       IRefinementVariableTypes
-    USE RPARA, ONLY : RBasisAtomPosition, RBasisOccupancy, RBasisIsoDW, &
+    USE RPARA, ONLY : RBasisAtomPosition, RBasisOccupancy,RBasisIsoDW,RAnharmonic, &
                       RAnisotropicDebyeWallerFactorTensor, RFigureofMerit, &
                       RAbsorptionPercentage, RUnitCellA, RUnitCellB, RUnitCellC, RAlpha, RBeta, &
                       RGamma, RConvergenceAngle, RAcceleratingVoltage, RRSoSScalingFactor                    
@@ -303,7 +303,7 @@ MODULE write_output_mod
     ! Occupancies
     IOutputVariables(3) = IRefineMode(3)*SIZE(RBasisOccupancy,DIM=1) 
     ! Isotropic Debye Waller Factors
-    IOutputVariables(4) = IRefineMode(4)*SIZE(RBasisIsoDW,DIM=1) 
+    IOutputVariables(4) = IRefineMode(4)*SIZE(RBasisIsoDW,DIM=1)
     ! Anisotropic Debye Waller Factors
     IOutputVariables(5) = IRefineMode(5)*SIZE(RAnisotropicDebyeWallerFactorTensor)
     IOutputVariables(6) = IRefineMode(6) * 3 ! Lattice Parameters (a,b,c) 
@@ -318,13 +318,8 @@ MODULE write_output_mod
       IF(IRefineMode(jnd).EQ.0) THEN
         CYCLE ! The refinement variable type is not being refined, skip
       END IF
-      IF(jnd.EQ.1) THEN ! It's an atom coordinate refinement
-        IStart = 1
-      ELSE
-        IStart = SUM(IOutputVariables(1:(jnd-1)))+1 
-        !?? RB there is probably a better way of doing this
-      END IF
-      IEND = SUM(IOutputVariables(1:jnd))
+      IStart = 1
+      IEnd = 2
 
       SELECT CASE(jnd)
       CASE(1)
@@ -342,6 +337,7 @@ MODULE write_output_mod
         RDataOut(IStart:IEnd) = RBasisOccupancy
       CASE(4)
         RDataOut(IStart:IEnd) = RBasisIsoDW
+        RDataOut(IEnd+1) = RAnharmonic
       CASE(5)
         RDataOut(IStart:IEnd) = &
               RESHAPE(RAnisotropicDebyeWallerFactorTensor,SHAPE(RDataOut(IStart:IEnd)))

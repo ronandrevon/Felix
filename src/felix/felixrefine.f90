@@ -1094,11 +1094,17 @@ CONTAINS
           CALL message(LS,SPrintString)
 
           ! Make a random number to vary the sign of dx, using system clock
-          CALL SYSTEM_CLOCK(mnd)
-          Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
-          Rdx=0.1*Rdx*RScale/ABS(Rdx) ! small change in current variable (RScale/10)is dx
+          IF(my_rank.EQ.0) THEN
+            CALL SYSTEM_CLOCK(mnd)
+            Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
+            Rdx=0.1*RScale*Rdx/ABS(Rdx) ! small change in current variable (RScale/10)is dx
+            PRINT*,ind,Rdx
+          END IF
+          !===================================== ! send Rdx OUT to all cores
+          CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+          !=====================================
           RCurrentVar=RVar0
-          RCurrentVar(ind)=RCurrentVar(ind)+Rdx
+          RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! Do not increment iteration here nor write iteration output
@@ -1111,7 +1117,6 @@ CONTAINS
           RPVec(ind)=(RFit0-RFigureofMerit)/Rdx ! -df/dx: need the dx to keep track of sign
         END DO
         nnd=1 ! do min gradient next time
-
       ELSE ! min gradient - to explore along a valley
         DO ind=1,INoOfVariables
           ! invert gradient
