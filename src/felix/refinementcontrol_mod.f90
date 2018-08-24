@@ -499,13 +499,13 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND) :: IVariableType,IVectorID,IAtomID,IErr,ind,jnd
 
     ind=1
-    IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
-      DO jnd=1,SIZE(IAtomsToRefine)
-          RBasisIsoDW(jnd)=RIndependentVariable(ind)
-          ind=ind+1
-	  END DO
+!    IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
+!      DO jnd=1,SIZE(IAtomsToRefine)
+!          RBasisIsoDW(jnd)=RIndependentVariable(ind)
+!          ind=ind+1
+!	  END DO
       RAnharmonic=RIndependentVariable(ind)
-	END IF
+!	END IF
 
 
   END SUBROUTINE UpdateVariables

@@ -568,7 +568,7 @@ PROGRAM Felixrefine
       INoOfVariablesForRefinementType(9)=IRefineMode(9)! Percentage Absorption, I
       INoOfVariablesForRefinementType(10)=IRefineMode(10)! kV, J
       ! Total number of independent variables
-      INoOfVariables = SUM(INoOfVariablesForRefinementType)
+      INoOfVariables = 1!SUM(INoOfVariablesForRefinementType)
       IF(INoOfVariables.EQ.0) THEN 
         ! there's no refinement requested, say so and quit
         IErr = 1
@@ -600,33 +600,33 @@ PROGRAM Felixrefine
       ! Proportional absorption included in structure factor refinement as last variable
 	    IF (IAbsorbFLAG.EQ.1) RIndependentVariable(jnd) = RAbsorptionPercentage
     ELSE ! It's not a Ug refinement 
-	  ! Fill up the IndependentVariable list 
-      ALLOCATE(RIndependentVariable(INoOfVariables),STAT=IErr)  
+      ! Fill up the IndependentVariable list 
       ind=1
+      ALLOCATE(RIndependentVariable(ind),STAT=IErr)  
       IF(IRefineMode(2).EQ.1) THEN ! Atomic coordinates, B
-	    DO jnd=1,SIZE(IAtomMoveList)
+     DO jnd=1,SIZE(IAtomMoveList)
           RIndependentVariable(ind)=DOT_PRODUCT(RBasisAtomPosition(IAtomMoveList(jnd),:),RVector(jnd,:))
           ind=ind+1
-	    END DO
-	  END IF
+        END DO
+      END IF
       IF(IRefineMode(3).EQ.1) THEN ! Occupancy, C
-	    DO jnd=1,SIZE(IAtomsToRefine)
+        DO jnd=1,SIZE(IAtomsToRefine)
           RIndependentVariable(ind)=RBasisOccupancy(IAtomsToRefine(jnd))
           ind=ind+1
-	    END DO
-	  END IF
+        END DO
+      END IF
       IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
-	    DO jnd=1,SIZE(IAtomsToRefine)
-          RIndependentVariable(ind)=RBasisIsoDW(IAtomsToRefine(jnd))
-          ind=ind+1
-	    END DO
+      !  DO jnd=1,SIZE(IAtomsToRefine)
+      !    RIndependentVariable(ind)=RBasisIsoDW(IAtomsToRefine(jnd))
+      !    ind=ind+1
+      !  END DO
         RIndependentVariable(ind)=RAnharmonic
         ind=ind+1
-	  END IF
+      END IF
       IF(IRefineMode(8).EQ.1) THEN ! Convergence angle, H
         RIndependentVariable(ind)=RConvergenceAngle
         ind=ind+1
-	  END IF
+      END IF
       ! Assign IDs - not needed for a Ug refinement
       ALLOCATE(IIterativeVariableUniqueIDs(INoOfVariables,2),STAT=IErr)
       IF(l_alert(IErr,"felixrefine","allocate IIterativeVariableUniqueIDs")) CALL abort
@@ -634,7 +634,7 @@ PROGRAM Felixrefine
       DO ind = 2,IRefinementVariableTypes ! Loop over iterative variables apart from Ug's
         IF(IRefineMode(ind).EQ.1) THEN
           DO jnd = 1,INoOfVariablesForRefinementType(ind)
-            IArrayIndex = SUM(INoOfVariablesForRefinementType(:(ind-1))) + jnd
+            IArrayIndex = 1!SUM(INoOfVariablesForRefinementType(:(ind-1))) + jnd
 
             SELECT CASE(ind)
 
@@ -774,8 +774,8 @@ PROGRAM Felixrefine
   !--------------------------------------------------------------------
   ! baseline simulation
   !--------------------------------------------------------------------
-  RFigureofMerit=666.666 ! Initial large value, diabolically
-  Iter = 0
+  RFigureofMerit=666.666 ! Initial diabolically large value
+  Iter=0
   ! baseline simulation with timer
   CALL Simulate(IErr)
   IF(l_alert(IErr,"felixrefine","Simulate")) CALL abort
@@ -1098,11 +1098,12 @@ CONTAINS
             CALL SYSTEM_CLOCK(mnd)
             Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
             Rdx=0.1*RScale*Rdx/ABS(Rdx) ! small change in current variable (RScale/10)is dx
-            PRINT*,ind,Rdx
           END IF
+          IF(my_rank.EQ.0) PRINT*,"Rdx=",Rdx
           !===================================== ! send Rdx OUT to all cores
           CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
           !=====================================
+          IF(my_rank.EQ.0) PRINT*,"MPI done"
           RCurrentVar=RVar0
           RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
