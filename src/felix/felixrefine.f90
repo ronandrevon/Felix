@@ -1066,7 +1066,7 @@ CONTAINS
       ! change max gradient vector (RPVec) depending upon max/min gradient situation 
       !--------------------------------------------------------------------      
       
-      IF (nnd.EQ.0) THEN ! max gradient
+      ! max gradient
         DO ind=1,INoOfVariables ! calculate individual gradients
           ! The type of variable being refined 
           IVariableType=IIterativeVariableUniqueIDs(ind,1) 
@@ -1104,6 +1104,8 @@ CONTAINS
           !=====================================
           RCurrentVar=RVar0
           RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
+          IF(my_rank.EQ.0) PRINT*,"0",RCurrentVar
+          IF(my_rank.EQ.5) PRINT*,"5",RCurrentVar
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! Do not increment iteration here nor write iteration output
@@ -1115,19 +1117,6 @@ CONTAINS
           RFitVec(ind)=RFigureofMerit
           RPVec(ind)=(RFit0-RFigureofMerit)/Rdx ! -df/dx: need the dx to keep track of sign
         END DO
-        nnd=1 ! do min gradient next time
-      ELSE ! min gradient - to explore along a valley
-        DO ind=1,INoOfVariables
-          ! invert gradient
-          IF (ABS(RPVec(ind)).GT.TINY) THEN ! don't invert zeros
-            RPVec(ind)=1/RPVec(ind)
-          ELSE ! just make them quite big
-            RPVec(ind)=TEN
-          END IF
-        END DO
-        CALL message(LS,"Checking minimum gradient")
-        nnd=0 ! do max gradient next time
-      END IF
       
       !--------------------------------------------------------------------
       ! normalise the max gradient vector RPvec & set the first point
@@ -1163,6 +1152,8 @@ CONTAINS
       R3var(2)=RCurrentVar(1) 
       CALL message(LS,"Refining, point 2 of 3")
       Iter=Iter+1
+          IF(my_rank.EQ.0) PRINT*,"0",RCurrentVar
+          IF(my_rank.EQ.5) PRINT*,"5",RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1179,6 +1170,8 @@ CONTAINS
       R3var(3)=RCurrentVar(1) ! third point
       CALL message( LS, "Refining, point 3 of 3")
       Iter=Iter+1
+          IF(my_rank.EQ.0) PRINT*,"0",RCurrentVar
+          IF(my_rank.EQ.5) PRINT*,"5",RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1217,6 +1210,8 @@ CONTAINS
         RCurrentVar=RVar0+RPvec*RPvecMag
         R3var(lnd)=RCurrentVar(1)! next point
         Iter=Iter+1
+          IF(my_rank.EQ.0) PRINT*,"0",RCurrentVar
+          IF(my_rank.EQ.5) PRINT*,"5",RCurrentVar
         CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
         IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
         CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1242,6 +1237,8 @@ CONTAINS
       CALL message (LS, SPrintString)
       RCurrentVar=RVar0+RPvec*(RvarMin-RVar0(1))/RPvec(1) ! Put prediction into RCurrentVar
       Iter=Iter+1
+          IF(my_rank.EQ.0) PRINT*,"0",RCurrentVar
+          IF(my_rank.EQ.5) PRINT*,"5",RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)

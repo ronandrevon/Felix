@@ -367,18 +367,16 @@ MODULE bloch_mod
                 CFullWavefunctions(1:INoOfLacbedPatterns)
         END IF
       ELSE ! we are using hkl list from felix.hkl
-        IF(IImageFLAG.LE.2) THEN
-          DO pnd = 1,INoOfLacbedPatterns
+        DO pnd = 1,INoOfLacbedPatterns
+          IF(IImageFLAG.LE.2) THEN!Output intensities (i.e. the images)
             RIndividualReflections(pnd,IThicknessIndex,&
                   (IPixelNumber-IFirstPixelToCalculate)+1) = &
                   RFullWaveIntensity(IOutputReflections(pnd))
-          END DO
-        ELSE
-          DO pnd = 1,INoOfLacbedPatterns
+          ELSE!Output amplitude and phase
             CAmplitudeandPhase(pnd,IThicknessIndex,(IPixelNumber-IFirstPixelToCalculate)+1)=&
                  CFullWavefunctions(IOutputReflections(pnd))
-          END DO
-        END IF
+          END IF
+        END DO
       END IF
     END DO
 
@@ -682,4 +680,3 @@ MODULE bloch_mod
   END SUBROUTINE INVERT
 
 END MODULE bloch_mod
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

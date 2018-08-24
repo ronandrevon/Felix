@@ -151,7 +151,9 @@ MODULE refinementcontrol_mod
       IF (IRefineMode(8).EQ.1) THEN ! convergence angle
         ! recalculate resolution in k space
         IF (my_rank.EQ.0) RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND)
+        !===================================== ! Send UgMat to all cores
         CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
+        !===================================== ! Send UgMat to all cores
       ELSE
         ! basis has changed in some way, recalculate unit cell
       !PRINT*,"About to UniqueAtomPositions"
@@ -259,7 +261,6 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND) :: IErr, ind,jnd,knd,pnd, IIterationFLAG, IStartTime
     INTEGER(IKIND) :: IAbsorbTag = 0
     REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImageRoot
-    REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RTempImage 
 
     ! Reset simuation   
     RIndividualReflections = ZERO
@@ -299,7 +300,6 @@ MODULE refinementcontrol_mod
 
     ! Gaussian blur to match experiment using global variable RBlurRadius
     IF (RBlurRadius.GT.TINY) THEN
-       ALLOCATE(RTempImage(2*IPixelCount,2*IPixelCount),STAT=IErr)
        DO ind=1,INoOfLacbedPatterns
           DO jnd=1,IThicknessCount
              CALL BlurG(RImageSimi(:,:,ind,jnd),IPixelCount,RBlurRadius,IErr)
