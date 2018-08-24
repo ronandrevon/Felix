@@ -1099,11 +1099,9 @@ CONTAINS
             Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
             Rdx=0.1*RScale*Rdx/ABS(Rdx) ! small change in current variable (RScale/10)is dx
           END IF
-          IF(my_rank.EQ.0) PRINT*,"Rdx=",Rdx
           !===================================== ! send Rdx OUT to all cores
           CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
           !=====================================
-          IF(my_rank.EQ.0) PRINT*,"MPI done"
           RCurrentVar=RVar0
           RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)

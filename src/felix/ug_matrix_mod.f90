@@ -297,10 +297,10 @@ MODULE ug_matrix_mod
           ! Isotropic D-W factor
           ! exp(-B sin(theta)^2/lamda^2) = exp(-Bs^2) = exp(-Bg^2/16pi^2), see e.g. Bird&King
           ! Anharmonic part for GaAs ONLY, following McIntyre Acta Cryst A36,482(1980) and Stevenson Acta CrystA50,621(1994)
-          !For Ga multiply by (1+i.A(As).h.k.l.(BGa/4pi.a)^3)
-          IF (ICurrentZ.EQ.31) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
-          !For As multiply by (1-i.A(As).h.k.l.(BAs/4pi.a)^3)
-          IF (ICurrentZ.EQ.33) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)/FOUR*PI*RUnitCellA)**3)
+          !For Ga multiply by (1-i.A(Ga).h.k.l.(BGa/4pi.a)^3)
+          IF (ICurrentZ.EQ.31) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
+          !For As multiply by (1+i.A(Ga).h.k.l.(BAs/4pi.a)^3)
+          IF (ICurrentZ.EQ.33) CAnharm=EXP(-RIsoDW(knd)*(RCurrentGMagnitude**2)/(FOUR*TWOPI**2) )*CMPLX(ONE,+RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
         ELSE ! anisotropic Debye-Waller factor
           !?? this will need sorting out, may not work
           RScatteringFactor = RScatteringFactor * &
