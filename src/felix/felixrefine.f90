@@ -1065,17 +1065,16 @@ CONTAINS
           CALL message(LS,SPrintString)
 
           ! Make a random number to vary the sign of dx, using system clock
-          IF (my_rank.EQ.0) THEN
+          IF (my_rank.EQ.0) THEN!has to be core 0 since different cores give different answers
             CALL SYSTEM_CLOCK(mnd)
             Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
-            Rdx=0.1*Rdx*RScale/ABS(Rdx) ! small change in current variable (RScale/10)is dx
+            Rdx=0.5*Rdx*RScale/ABS(Rdx) ! small change in current variable (RScale/10)is dx
           END IF
           !=====================================! send Rdx OUT to all cores
           CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
           !=====================================
           RCurrentVar=RVar0
-          RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
-IF(my_rank.EQ.0) PRINT*,RCurrentVar
+          RCurrentVar(ind)=RCurrentVar(ind)+Rdx
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! Do not increment iteration here nor write iteration output
@@ -1136,7 +1135,6 @@ IF(my_rank.EQ.0) PRINT*,RCurrentVar
       R3var(2)=RCurrentVar(1) 
       CALL message(LS,"Refining, point 2 of 3")
       Iter=Iter+1
-IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1153,7 +1151,6 @@ IF(my_rank.EQ.0) PRINT*,RCurrentVar
       R3var(3)=RCurrentVar(1) ! third point
       CALL message( LS, "Refining, point 3 of 3")
       Iter=Iter+1
-IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1192,7 +1189,6 @@ IF(my_rank.EQ.0) PRINT*,RCurrentVar
         RCurrentVar=RVar0+RPvec*RPvecMag
         R3var(lnd)=RCurrentVar(1)! next point
         Iter=Iter+1
-IF(my_rank.EQ.0) PRINT*,RCurrentVar
         CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
         IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
         CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1218,7 +1214,6 @@ IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL message (LS, SPrintString)
       RCurrentVar=RVar0+RPvec*(RvarMin-RVar0(1))/RPvec(1) ! Put prediction into RCurrentVar
       Iter=Iter+1
-IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
