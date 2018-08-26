@@ -4,7 +4,7 @@
 # ------------------------------------
 
 # control flags
-IWriteFLAG                = 4
+IWriteFLAG                = 1
 IImageFLAG                = 1
 IScatterFactorMethodFLAG  = 0
 IBlochMethodFLAG          = 0
@@ -18,8 +18,8 @@ IByteSize                 = 2
 IPixelCount               = 160
 
 # beam selection criteria
-IMinReflectionPool        = 600
-IMinStrongBeams           = 200
+IMinReflectionPool        = 120
+IMinStrongBeams           = 60
 IMinWeakBeams             = 0
 
 # crystal settings

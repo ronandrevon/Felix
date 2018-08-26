@@ -180,7 +180,7 @@ MODULE refinementcontrol_mod
           CUgMatNoAbs = CUgMatNoAbs + CONJG(CUgMatDummy)
         END IF
         ind=nReflections*nReflections
-        !===================================== ! Send UgMat to all cores
+        !===================================== ! Send CUgMatNoAbs to all cores
         CALL MPI_BCAST(CUgMatNoAbs,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
         !=====================================
         CALL Absorption(IErr)! calculates CUgMat = CUgMatNoAbs + CUgMatPrime

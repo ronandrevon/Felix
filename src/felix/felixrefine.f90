@@ -529,10 +529,10 @@ PROGRAM Felixrefine
         INoOfVariablesForRefinementType(2)=0
       END IF
       ! Occupancy, C
-      INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)+1
-!      INoOfVariablesForRefinementType(3)=1!just anharmonic part
+      INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)
       ! Isotropic DW, D
-      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)
+      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)+1
+!      INoOfVariablesForRefinementType(3)=1!just anharmonic part
       ! Anisotropic DW, E
       INoOfVariablesForRefinementType(5)=IRefineMode(5)*SIZE(IAtomsToRefine)*6
       INoOfVariablesForRefinementType(6)=IRefineMode(6)*3! Unit cell dimensions, F
@@ -625,7 +625,7 @@ PROGRAM Felixrefine
 
             CASE(4) ! Isotropic Debye Waller Factors , D
               IIterativeVariableUniqueIDs(IArrayIndex,1) = ind
-              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
+!              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
 
             CASE(5) ! Anisotropic Debye Waller Factors (a11-a33), E
               !?? not currently implemented
@@ -1074,7 +1074,8 @@ CONTAINS
           CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
           !=====================================
           RCurrentVar=RVar0
-          RCurrentVar(ind)=RCurrentVar(ind)+Rdx
+          RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
+IF(my_rank.EQ.0) PRINT*,RCurrentVar
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! Do not increment iteration here nor write iteration output
@@ -1135,6 +1136,7 @@ CONTAINS
       R3var(2)=RCurrentVar(1) 
       CALL message(LS,"Refining, point 2 of 3")
       Iter=Iter+1
+IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1151,6 +1153,7 @@ CONTAINS
       R3var(3)=RCurrentVar(1) ! third point
       CALL message( LS, "Refining, point 3 of 3")
       Iter=Iter+1
+IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1189,6 +1192,7 @@ CONTAINS
         RCurrentVar=RVar0+RPvec*RPvecMag
         R3var(lnd)=RCurrentVar(1)! next point
         Iter=Iter+1
+IF(my_rank.EQ.0) PRINT*,RCurrentVar
         CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
         IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
         CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
@@ -1214,6 +1218,7 @@ CONTAINS
       CALL message (LS, SPrintString)
       RCurrentVar=RVar0+RPvec*(RvarMin-RVar0(1))/RPvec(1) ! Put prediction into RCurrentVar
       Iter=Iter+1
+IF(my_rank.EQ.0) PRINT*,RCurrentVar
       CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
       IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
       CALL WriteIterationOutputWrapper(Iter,IThicknessIndex,IExitFLAG,IErr)
