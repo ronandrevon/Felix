@@ -148,58 +148,34 @@ MODULE refinementcontrol_mod
       ! Update variables
       CALL UpdateVariables(RIndependentVariable,IErr)
       IF(l_alert(IErr,"SimulateAndFit","UpdateVariables")) RETURN
-      IF (IRefineMode(8).EQ.1) THEN ! convergence angle
-        ! recalculate resolution in k space
-        IF (my_rank.EQ.0) RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND)
-        !===================================== ! Send UgMat to all cores
-        CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
-        !===================================== ! Send UgMat to all cores
-      ELSE
-        ! basis has changed in some way, recalculate unit cell
-      !PRINT*,"About to UniqueAtomPositions"
-        CALL UniqueAtomPositions(IErr)
-        IF(l_alert(IErr,"SimulateAndFit","UniqueAtomPositions")) RETURN
-        !--------------------------------------------------------------------
-        ! update scattering matrix Ug
-        !--------------------------------------------------------------------
-        IF (my_rank.EQ.0) THEN!There is a bug when individual cores calculate UgMat, make it the responsibility of core 0 and broadcast it
-          ! calculate CUgMatNoAbs
-          CUgMatNoAbs = CZERO
-      !PRINT*,"About to CUgMatNoAbs"
-          !duplicated from Ug matrix initialisation.  Ug refinement will no longer work! Should be put into a single subroutine.
-          DO ind=2,nReflections
-            DO jnd=1,ind-1
-              RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
-              ! Sums CVgij contribution from each atom and pseudoatom in Volts
-              CALL GetVgij(RScatteringFactor,ind,jnd,CVgij,IErr)
-              CUgMatNoAbs(ind,jnd)=CVgij
-            ENDDO
-          ENDDO
-          !Convert to Ug
-          CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
-          ! NB Only the lower half of the Vg matrix was calculated, this completes the upper half
-          CUgMatDummy = TRANSPOSE(CUgMatNoAbs)! Dummy just used as a box to avoid the bug when conj(transpose) is used on orac
-          CUgMatNoAbs = CUgMatNoAbs + CONJG(CUgMatDummy)
+      IF (my_rank.EQ.0) THEN!Use core 0 and broadcast 
+        IF (IRefineMode(8).EQ.1) THEN ! convergence angle
+          ! recalculate resolution in k space
+          RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND)
+          !===================================== ! Send RDeltaK to all cores
+          CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
+          !===================================== 
+        ELSE
+          ! basis has changed in some way, recalculate unit cell
+          CALL UniqueAtomPositions(IErr)
+          IF(l_alert(IErr,"SimulateAndFit","UniqueAtomPositions")) RETURN
+          ! update scattering matrix Ug
+           CALL StructureFactorInitialisation(IErr)
+           CALL Absorption(IErr)
+           ind=nReflections*nReflections
+          !===================================== ! Send UgMat to all cores
+          CALL MPI_BCAST(CUgMat,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
+          !=====================================
+          IF(l_alert(IErr,"SimulateAndFit","Absorption")) RETURN
         END IF
-        ind=nReflections*nReflections
-        !===================================== ! Send UgMat to all cores
-        CALL MPI_BCAST(CUgMat,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-        !=====================================
-        CALL Absorption(IErr)! calculates CUgMat = CUgMatNoAbs + CUgMatPrime
-        IF(l_alert(IErr,"SimulateAndFit","Absorption")) RETURN
+        CALL message( LM,dbg3, "recalculated Ug matrix, with absorption (nm^-2)" )
+        DO ind = 1,16
+	      WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
+          CALL message( LM,dbg3, SPrintString)
+        END DO
+        CALL PrintVariables(IErr)
+        IF(l_alert(IErr,"SimulateAndFit","PrintVariables")) RETURN
       END IF
-    END IF
-      !/\----------------------------------------------------------------------
-      CALL message( LM,dbg3, "recalculated Ug matrix, with absorption (nm^-2)" )
-      DO ind = 1,16
-	    WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
-        CALL message( LM,dbg3, SPrintString)
-      END DO
-    
-
-    IF (my_rank.EQ.0) THEN ! send current values to screen
-      CALL PrintVariables(IErr)
-      IF(l_alert(IErr,"SimulateAndFit","PrintVariables")) RETURN
     END IF
 
     ! simulate

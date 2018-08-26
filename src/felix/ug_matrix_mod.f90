@@ -377,7 +377,7 @@ MODULE ug_matrix_mod
     INTEGER(IKIND) :: ind,jnd,knd,lnd,mnd,oddindlorentz,evenindlorentz,&
           oddindgauss,evenindgauss,currentatom,IErr,Iuid,Iplan_forward,IPseudo
     INTEGER(IKIND),DIMENSION(2) :: IPos,ILoc
-    COMPLEX(CKIND) :: CVgij,CFpseudo
+    COMPLEX(CKIND) :: CVgij,CFpseudo,CUgMatTrans(nReflections,nReflections)
     REAL(RKIND) :: RMeanInnerPotentialVolts,RScatteringFactor,&
           RPMag,Rx,Ry,Rr,RPalpha,RTheta,Rfold
     CHARACTER*200 :: SPrintString
@@ -484,74 +484,50 @@ MODULE ug_matrix_mod
     !Convert to Ug
     CUgMatNoAbs=CUgMatNoAbs*TWO*RElectronMass*RRelativisticCorrection*RElectronCharge/((RPlanckConstant**2)*(RAngstromConversion**2))
     ! NB Only the lower half of the Vg matrix was calculated, this completes the upper half
-    CUgMatPrime = TRANSPOSE(CUgMatNoAbs)! Prime is usually the absorptive potential, here just used as a box to avoid the bug when conj(transpose) is used
+    CUgMatTrans = TRANSPOSE(CUgMatNoAbs)! Just to avoid the intel bug when conj(transpose) is used
     CUgMatNoAbs = CUgMatNoAbs + CONJG(CUgMatPrime)
-    CUgMatPrime = CZERO
-    ! set diagonals to zero
-    !DO ind=1,nReflections
-    !  CUgMatNoAbs(ind,ind)=CZERO
-    !END DO
 
     CALL message( LM,dbg3, "Ug matrix, without absorption (nm^-2)" )!LM, dbg3
     DO ind = 1,16
 	  WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMatNoAbs(ind,1:4)
       CALL message( LM,dbg3, SPrintString)
     END DO
-   
-    !--------------------------------------------------------------------
-    ! calculate mean inner potential and wave vector magnitude
-    !--------------------------------------------------------------------
-    ! calculate the mean inner potential as the sum of scattering factors
-    ! at g=0 multiplied by h^2/(2pi*m0*e*CellVolume)
-    RMeanInnerPotential=ZERO
-    RCurrentGMagnitude=ZERO
-    DO ind=1,INAtomsUnitCell
-      ICurrentZ = IAtomicNumber(ind)
-      IF(ICurrentZ.LT.105) THEN ! It's not a pseudoatom
-        CALL AtomicScatteringFactor(RScatteringFactor,IErr)
-        CALL message( LM, dbg3, "Atom ",ind)
-        CALL message( LM, dbg3, "f(theta) at g=0 ",RScatteringFactor)
-        RMeanInnerPotential = RMeanInnerPotential+RScatteringFactor
-      END IF
-    END DO
-    RMeanInnerPotential = RMeanInnerPotential*RScattFacToVolts
-    WRITE(SPrintString,FMT='(A21,F6.2,A6)') "Mean inner potential ",RMeanInnerPotential," Volts"
-    SPrintString=TRIM(ADJUSTL(SPrintString))
-    CALL message(LS,SPrintString)
-
-    ! Wave vector magnitude in crystal
-    ! high-energy approximation (not HOLZ compatible)
-    ! K^2=k^2+U0
-    RBigK= SQRT(RElectronWaveVectorMagnitude**2 + REAL(CUgMatNoAbs(1,1)))
-    CALL message ( LM, dbg3, "K (Angstroms) = ",RBigK )
-    !?? does this match Acta Cryst. (1998). A54, 388-398 equation (3)
 
     !--------------------------------------------------------------------
     
     IF (IInitialSimulationFLAG.EQ.1) THEN
+      !--------------------------------------------------------------------
+      ! calculate mean inner potential and wave vector magnitude
+      !--------------------------------------------------------------------
+      ! calculate the mean inner potential as the sum of scattering factors
+      ! at g=0 multiplied by h^2/(2pi*m0*e*CellVolume)
+      RMeanInnerPotential=ZERO
+      RCurrentGMagnitude=ZERO
+      DO ind=1,INAtomsUnitCell
+        ICurrentZ = IAtomicNumber(ind)
+        IF(ICurrentZ.LT.105) THEN ! It's not a pseudoatom
+          CALL AtomicScatteringFactor(RScatteringFactor,IErr)
+          CALL message( LM, dbg3, "Atom ",ind)
+          CALL message( LM, dbg3, "f(theta) at g=0 ",RScatteringFactor)
+          RMeanInnerPotential = RMeanInnerPotential+RScatteringFactor
+        END IF
+      END DO
+      RMeanInnerPotential = RMeanInnerPotential*RScattFacToVolts
+      WRITE(SPrintString,FMT='(A21,F6.2,A6)') "Mean inner potential ",RMeanInnerPotential," Volts"
+      SPrintString=TRIM(ADJUSTL(SPrintString))
+      CALL message(LS,SPrintString)
+
+      ! Wave vector magnitude in crystal
+      ! high-energy approximation (not HOLZ compatible)
+      ! K^2=k^2+U0
+      RBigK= SQRT(RElectronWaveVectorMagnitude**2 + REAL(CUgMatNoAbs(1,1)))
+      CALL message ( LM, dbg3, "K (Angstroms) = ",RBigK )
+      !?? does this match Acta Cryst. (1998). A54, 388-398 equation (3)
+
 
       !--------------------------------------------------------------------
       ! count equivalent Ugs
       !--------------------------------------------------------------------
-      
-      ! IEquivalentUgKey is used later in absorption case 2 Bird & king
-!RB moved to refine.f90 line ~460
-!      RgSumMat = ZERO
-      ! equivalent Ug's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2...
-!      DO ind = 1,nReflections
-!        DO jnd = 1,nReflections
-!          RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,2)-Rhkl(jnd,2))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
-!            RUnitCellA*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RUnitCellB*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
-!            RUnitCellC*(Rhkl(ind,3)-Rhkl(jnd,3))**TWO
-!        END DO
-!      END DO
-
-!      CALL message ( LM, dbg3, "hkl: g Sum matrix" )
-!      DO ind =1,16
-!	  	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
-!        CALL message ( LM, dbg3, SPrintString )!LM, dbg3
-!      END DO
-
       ISymmetryRelations = 0_IKIND 
       Iuid = 0_IKIND 
       DO jnd = 1,nReflections
