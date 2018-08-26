@@ -1223,7 +1223,7 @@ CONTAINS
 
       ! now make a prediction
       CALL Parabo3(R3var,R3fit,RvarMin,RfitMin,IErr)
-      WRITE(SPrintString,FMT='(A32,F7.4,A16,F7.4)') &
+      WRITE(SPrintString,FMT='(A32,F10.4,A16,F7.4)') &
       "Concave set, predict minimum at ",RvarMin," with fit index ",RfitMin
       SPrintString=TRIM(ADJUSTL(SPrintString))
       CALL message (LS, SPrintString)
