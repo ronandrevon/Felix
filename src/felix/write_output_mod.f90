@@ -368,7 +368,7 @@ MODULE write_output_mod
     END DO
 
     WRITE(STotalOutputVariables,*) ITotalOutputVariables
-    WRITE(SFormat,*) "(I5.1,1X,F13.9,1X,"//TRIM(ADJUSTL(STotalOutputVariables))//"(F13.9,1X))"
+    WRITE(SFormat,*) "(I5.1,1X,F16.9,1X,"//TRIM(ADJUSTL(STotalOutputVariables))//"(F16.9,1X))"
 
     OPEN(UNIT=IChOutSimplex,FILE='iteration_log.txt',FORM='formatted',STATUS='unknown',&
           POSITION='append')

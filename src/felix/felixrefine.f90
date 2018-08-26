@@ -178,9 +178,9 @@ PROGRAM Felixrefine
   ! total possible atoms/unit cell
   IMaxPossibleNAtomsUnitCell=SIZE(RBasisAtomPosition,1)*SIZE(RSymVec,1)
   ! over-allocate since actual size not known before calculation of unique positions 
-  ! (atoms in special positions will be duplicated before being deleted)
+  ! (atoms in special positions will be duplicated)
 
-  ! allocations using RBasisAtomPosition, RSymVec have now been setup
+  ! allocations using that RBasisAtomPosition, RSymVec have now been setup
   ! fractional unit cell coordinates are used for RAtomPosition, like BasisAtomPosition
   ALLOCATE(RAtomPosition(IMaxPossibleNAtomsUnitCell,ITHREE),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate RAtomPosition")) CALL abort
@@ -204,7 +204,8 @@ PROGRAM Felixrefine
   !--------------------------------------------------------------------
   ! set up unique atom positions, reflection pool
   !--------------------------------------------------------------------
-  ! fills unit cell from basis and applies symmetry, removes duplicate atoms at special positions
+
+  ! fills unit cell from basis and symmetry, removes duplicate atoms at special positions
   CALL UniqueAtomPositions(IErr)
   IF(l_alert(IErr,"felixrefine","UniqueAtomPositions")) CALL abort
   !?? RB could re-allocate RAtomCoordinate,SAtomName,RIsoDW,ROccupancy,
@@ -494,34 +495,30 @@ PROGRAM Felixrefine
 !      PRINT*, SPrintString
 !    END DO
 !  END IF
-
-  !--------------------------------------------------------------------
+    
   ! structure factor initialization
-  !--------------------------------------------------------------------
-  IF (my_rank.EQ.0) THEN!Use core 0 and broadcast it
-    CALL StructureFactorInitialisation(IErr)
-    IF(l_alert(IErr,"felixrefine","StructureFactorInitialisation")) CALL abort
-    ! NB IEquivalentUgKey and CUniqueUg allocated in here
-    ! CUniqueUg vector produced here to later fill RIndependentVariable
-    ! calculate absorptive scattering factors
-    CALL SYSTEM_CLOCK( IStartTime2 )
-    CALL message(LS,dbg3,"Starting absorption calculation... ")
-    CALL Absorption (IErr)
-    ind=nReflections*nReflections
-    !===================================== ! Send UgMat to all cores
-    CALL MPI_BCAST(CUgMat,ind,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
-    !=====================================
-    CALL message( LM, "Initial Ug matrix, with absorption (nm^-2)" )
-    DO ind = 1,16
-	  WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
-      CALL message( LM,dbg3, SPrintString)
-    END DO
-    IF(l_alert(IErr,"felixrefine","Absorption")) CALL abort
-    CALL PrintEndTime(LS,IStartTime2, "Absorption" )
-    CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
-    CALL SYSTEM_CLOCK( IStartTime2 )
-  END IF
+  ! Calculate Ug matrix for each entry in CUgMatNoAbs(1:nReflections,1:nReflections)
+  CALL StructureFactorInitialisation(IErr)
+  IF(l_alert(IErr,"felixrefine","StructureFactorInitialisation")) CALL abort
+  ! NB IEquivalentUgKey and CUniqueUg allocated in here
+  ! CUniqueUg vector produced here to later fill RIndependentVariable
   
+  !--------------------------------------------------------------------
+  ! calculate absorptive scattering factors
+  !--------------------------------------------------------------------
+  CALL SYSTEM_CLOCK( IStartTime2 )
+  CALL message(LS,dbg3,"Starting absorption calculation... ")
+  CALL Absorption (IErr)
+  CALL message( LM, "Initial Ug matrix, with absorption (nm^-2)" )
+  DO ind = 1,16
+	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
+    CALL message( LM,dbg3, SPrintString)
+  END DO
+  IF(l_alert(IErr,"felixrefine","Absorption")) CALL abort
+  CALL PrintEndTime(LS,IStartTime2, "Absorption" )
+  CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
+  CALL SYSTEM_CLOCK( IStartTime2 )
+
   !--------------------------------------------------------------------
   ! INoOfVariables calculated depending upon Ug and non-Ug refinement
   !--------------------------------------------------------------------
