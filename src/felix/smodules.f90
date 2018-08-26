@@ -30,7 +30,7 @@
 !
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-! All modules & procedures conatained in this file:
+! All modules & procedures contained in this file:
 ! SConst
 ! IConst
 ! RConst
@@ -50,8 +50,8 @@
 MODULE SConst
 
   CHARACTER*50, PARAMETER :: RStr= "Version: :VERSION: / :BUILD: / :AUTHOR: "
-  CHARACTER*50, PARAMETER :: DStr= "Date: 15 Aug 2018"
-  CHARACTER*50, PARAMETER :: AStr= "Hack to investigate anharmonicity in GaAs ONLY" 
+  CHARACTER*50, PARAMETER :: DStr= "Date: 26-08-2018"
+  CHARACTER*50, PARAMETER :: AStr= "Hack to investigate anharmonicity in GaAs ONLY"
   
   CHARACTER*8 SAllSpaceGrp(230)
   DATA SAllSpaceGrp/"P1","P-1","P2","P21","C2","Pm","Pc","Cm",&
@@ -273,11 +273,12 @@ MODULE RPara
        RInvBaseVec(ITHREE,ITHREE)
   REAL(RKIND), DIMENSION(:,:,:), ALLOCATABLE :: RAnisotropicDebyeWallerFactorTensor
   !Diffraction Pattern Definitions
-  REAL(RKIND), DIMENSION(:), ALLOCATABLE :: RgPoolMag,RSg,RgDotNorm,RgPoolCubAn
+  REAL(RKIND), DIMENSION(:), ALLOCATABLE :: RgPoolMag, RSg,RgPoolCubAn
   REAL(RKIND), DIMENSION(:,:), ALLOCATABLE :: RgPool, RgPoolMagLaueZone
   REAL(RKIND), DIMENSION(ITHREE,ITHREE) :: RTMat
   REAL(RKIND) :: RDeltaK, RMinimumGMag,RGVectorMagnitude
   REAL(RKIND),DIMENSION(ITHREE) :: RGVector
+  REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RgDotNorm
   !Image Initialisation
   REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RhklPositions
   REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImage

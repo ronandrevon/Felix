@@ -121,10 +121,8 @@ PROGRAM Felixrefine
   IF(l_alert(IErr,"felixrefine","ReadInpFile")) CALL abort
   CALL SetMessageMode( IWriteFLAG, IErr )
   IF(l_alert(IErr,"felixrefine","set_message_mod_mode")) CALL abort
-  CALL message(LL,'IBlochMethodFLAG =',IBlochMethodFLAG)
 
-  !number of thicknesses to simulate
-  IThicknessCount= NINT((RFinalThickness-RInitialThickness)/RDeltaThickness) + 1
+  CALL message(LL,'IBlochMethodFLAG =',IBlochMethodFLAG)
 
   CALL read_cif(IErr) ! felix.cif ! some allocations are here
   IF(l_alert(IErr,"felixrefine","ReadCif")) CALL abort
@@ -270,7 +268,7 @@ PROGRAM Felixrefine
       RgPool(ind,jnd) = Rhkl(ind,1)*RarVecM(jnd) + &
             Rhkl(ind,2)*RbrVecM(jnd) + Rhkl(ind,3)*RcrVecM(jnd)
     ENDDO
-	  ! If a g-vector has a non-zero z-component it is not in the ZOLZ
+    ! If a g-vector has a non-zero z-component it is not in the ZOLZ
     IF(ABS(RgPool(ind,3)).GT.TINY.AND.ICutOff.NE.0) THEN
       RGzUnitVec=ABS(RgPool(ind,3))
       ICutOff=0
@@ -362,8 +360,12 @@ PROGRAM Felixrefine
   ! in reciprocal Angstrom units, in the Microscope reference frame
   ALLOCATE(RgPoolMag(INhkl),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate RgPoolMag")) CALL abort
+  ! cubic anharmonic number h*k*l
+  ALLOCATE(RgPoolCubAn(INhkl),STAT=IErr)
+  IF(l_alert(IErr,"felixrefine","allocate RgPoolCubAn")) CALL abort
   DO ind=1,INhkl
-     RgPoolMag(ind)= SQRT(DOT_PRODUCT(RgPool(ind,:),RgPool(ind,:)))
+    RgPoolMag(ind)= SQRT(DOT_PRODUCT(RgPool(ind,:),RgPool(ind,:)))
+    RgPoolCubAn(ind) = Rhkl(ind,1)*Rhkl(ind,2)*Rhkl(ind,3)
   END DO
   CALL message(LL,dbg7,"g-vectors and magnitude (1/A), in the microscope reference frame" )
   DO ind = 1,SIZE(Rhkl,1)
@@ -372,14 +374,11 @@ PROGRAM Felixrefine
   END DO
 
   ! g-vector components parallel to the surface unit normal
-  ! cubic anharmonic number h*k*l
   ALLOCATE(RgDotNorm(INhkl),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate RgDotNorm")) CALL abort
-  ALLOCATE(RgPoolCubAn(INhkl),STAT=IErr)
-  IF(l_alert(IErr,"felixrefine","allocate RgPoolMag")) CALL abort
+
   DO ind =1,INhkl
     RgDotNorm(ind) = DOT_PRODUCT(RgPool(ind,:),RNormDirM)
-    RgPoolCubAn(ind) = Rhkl(ind,1)*Rhkl(ind,2)*Rhkl(ind,3)
   END DO
   CALL message(LL,dbg7,"g.n list")
   DO ind = 1,SIZE(Rhkl,1)
@@ -448,7 +447,6 @@ PROGRAM Felixrefine
   IF(l_alert(IErr,"felixrefine","allocate RgSumMat")) CALL abort
   ! Matrix of products of indices - for cubic anharmonic components
   ALLOCATE(RgCubAnMat(nReflections,nReflections),STAT=IErr) 
-  IF(l_alert(IErr,"felixrefine","allocate RgCubAnMat")) CALL abort
   ! Matrix with numbers marking equivalent Ug's
   ALLOCATE(ISymmetryRelations(nReflections,nReflections),STAT=IErr)
   IF(l_alert(IErr,"felixrefine","allocate ISymmetryRelations")) CALL abort
@@ -457,45 +455,19 @@ PROGRAM Felixrefine
   ! calculate reflection matrix & initialise structure factors
   !--------------------------------------------------------------------
   ! Calculate matrix  of g-vectors that corresponds to the Ug matrix
-  ! in reciprocal angstroms, microscope reference frame
+  IThicknessCount= NINT((RFinalThickness-RInitialThickness)/RDeltaThickness) + 1
   DO ind=1,nReflections
     DO jnd=1,nReflections
-      RgMatrix(ind,jnd,:)= RgPool(ind,:)-RgPool(jnd,:)!NB antisymmetric and diagonal is zero
-    END DO
-  END DO
-  CALL message(LXL,dbg3,"first 16 g-vectors", RgMatrix(1:16,1,:)) 
-  ! Now the other g-vector matrices
-  DO ind=1,nReflections
-    DO jnd=1,ind!only have to calculate half since they are symmetric or antisymmetric
-      !g-vector magnitudes in reciprocal angstroms, microscope reference frame
-      RgMatrixMagnitude(ind,jnd)=SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
+      RgMatrix(ind,jnd,:)= RgPool(ind,:)-RgPool(jnd,:)
+      RgMatrixMagnitude(ind,jnd) = & 
+           SQRT(DOT_PRODUCT(RgMatrix(ind,jnd,:),RgMatrix(ind,jnd,:)))
       !g-vector products h*k*l/(4pia)^3 for cubic anharmonicity
       RgCubAnMat(ind,jnd)=((Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,1)-Rhkl(jnd,1))*(Rhkl(ind,3)-Rhkl(jnd,3)))/((FOUR*PI*RUnitCellA)**3)
-      ! equivalent g's are identified by abs(h)+abs(k)+abs(l)+a*h^2+b*k^2+c*l^2
-      RgSumMat(ind,jnd)=ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,1)-Rhkl(jnd,1))+ABS(Rhkl(ind,3)-Rhkl(jnd,3))+ &
-        RUnitCellA*(Rhkl(ind,1)-Rhkl(jnd,1))**TWO+RUnitCellB*(Rhkl(ind,2)-Rhkl(jnd,2))**TWO+ &
-        RUnitCellC*(Rhkl(ind,3)-Rhkl(jnd,3))**TWO
-    END DO
-  END DO
-  RgMatrixMagnitude=RgMatrixMagnitude+TRANSPOSE(RgMatrixMagnitude)
-  RgCubAnMat=RgCubAnMat-TRANSPOSE(RgCubAnMat)
-  RgSumMat=RgSumMat+TRANSPOSE(RgSumMat)
+    ENDDO
+  ENDDO
   CALL message(LL,dbg3,"g-vector magnitude matrix (2pi/A)", RgMatrixMagnitude(1:16,1:8)) 
-  CALL message ( LM, dbg3, "hkl: g Sum matrix and Anharmonic matrix" )
-  DO ind =1,16
-	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgSumMat(ind,1:12)
-    CALL message ( LM, dbg3, SPrintString )
-    WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
-    CALL message ( LM, dbg3, SPrintString )
-  END DO
-!For debugging to see Anharmonic matrix
-!  IF (my_rank.EQ.0) THEN
-!    DO ind =1,16
-!      WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,12(F6.1,1X))') NINT(Rhkl(ind,:)),": ",RgCubAnMat(ind,1:8)*1000000.0
-!      PRINT*, SPrintString
-!    END DO
-!  END IF
-    
+  CALL message(LXL,dbg3,"first 16 g-vectors", RgMatrix(1:16,1,:)) 
+
   ! structure factor initialization
   ! Calculate Ug matrix for each entry in CUgMatNoAbs(1:nReflections,1:nReflections)
   CALL StructureFactorInitialisation(IErr)
@@ -511,7 +483,7 @@ PROGRAM Felixrefine
   CALL Absorption (IErr)
   CALL message( LM, "Initial Ug matrix, with absorption (nm^-2)" )
   DO ind = 1,16
-	WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
+    WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
     CALL message( LM,dbg3, SPrintString)
   END DO
   IF(l_alert(IErr,"felixrefine","Absorption")) CALL abort
@@ -528,7 +500,7 @@ PROGRAM Felixrefine
     IF(IRefineMode(1).EQ.1) THEN ! It's a Ug refinement, A
 
       ! Count the number of Independent Variables
-	    IUgOffset=1  ! can skip Ug's in refinement using offset, 1 is inner potential
+      IUgOffset=1  ! can skip Ug's in refinement using offset, 1 is inner potential
       jnd=1
       DO ind = 1+IUgOffset,INoofUgs+IUgOffset
         IF ( ABS(REAL(CUniqueUg(ind),RKIND)).GE.RTolerance ) jnd=jnd+1
@@ -536,7 +508,7 @@ PROGRAM Felixrefine
       END DO
       IF (IAbsorbFLAG.EQ.1) THEN ! proportional absorption
         INoOfVariables = jnd ! the last variable is for absorption, so included
-	    ELSE
+      ELSE
         INoOfVariables = jnd-1 
       END IF
       IF ( INoOfVariables.EQ.1 ) THEN 
@@ -557,9 +529,10 @@ PROGRAM Felixrefine
         INoOfVariablesForRefinementType(2)=0
       END IF
       ! Occupancy, C
-      INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)
+      INoOfVariablesForRefinementType(3)=IRefineMode(3)*SIZE(IAtomsToRefine)+1
+!      INoOfVariablesForRefinementType(3)=1!just anharmonic part
       ! Isotropic DW, D
-      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)+1!Add one for anharmonic parameter
+      INoOfVariablesForRefinementType(4)=IRefineMode(4)*SIZE(IAtomsToRefine)
       ! Anisotropic DW, E
       INoOfVariablesForRefinementType(5)=IRefineMode(5)*SIZE(IAtomsToRefine)*6
       INoOfVariablesForRefinementType(6)=IRefineMode(6)*3! Unit cell dimensions, F
@@ -568,7 +541,7 @@ PROGRAM Felixrefine
       INoOfVariablesForRefinementType(9)=IRefineMode(9)! Percentage Absorption, I
       INoOfVariablesForRefinementType(10)=IRefineMode(10)! kV, J
       ! Total number of independent variables
-      INoOfVariables = 1!SUM(INoOfVariablesForRefinementType)
+      INoOfVariables = SUM(INoOfVariablesForRefinementType)
       IF(INoOfVariables.EQ.0) THEN 
         ! there's no refinement requested, say so and quit
         IErr = 1
@@ -583,7 +556,6 @@ PROGRAM Felixrefine
     !--------------------------------------------------------------------
     ! assign refinement variables depending upon Ug and non-Ug refinement
     !--------------------------------------------------------------------
-    ! IRefineMode is either 0 or 1 indicating what is to be refined
     IF(IRefineMode(1).EQ.1) THEN ! It's a Ug refinement, A
       ! Fill up the IndependentVariable list with CUgMatNoAbs components
       jnd=1
@@ -591,37 +563,36 @@ PROGRAM Felixrefine
         IF ( ABS(REAL(CUniqueUg(ind),RKIND)).GE.RTolerance ) THEN
           RIndependentVariable(jnd) = REAL(CUniqueUg(ind),RKIND)
           jnd=jnd+1
-	      END IF
+        END IF
         IF ( ABS(AIMAG(CUniqueUg(ind))).GE.RTolerance ) THEN 
           RIndependentVariable(jnd) = AIMAG(CUniqueUg(ind))
           jnd=jnd+1
         END IF
       END DO
       ! Proportional absorption included in structure factor refinement as last variable
-	    IF (IAbsorbFLAG.EQ.1) RIndependentVariable(jnd) = RAbsorptionPercentage
+      IF (IAbsorbFLAG.EQ.1) RIndependentVariable(jnd) = RAbsorptionPercentage
     ELSE ! It's not a Ug refinement 
       ! Fill up the IndependentVariable list 
+      ALLOCATE(RIndependentVariable(INoOfVariables),STAT=IErr)  
       ind=1
-      ALLOCATE(RIndependentVariable(ind),STAT=IErr)  
       IF(IRefineMode(2).EQ.1) THEN ! Atomic coordinates, B
-     DO jnd=1,SIZE(IAtomMoveList)
-          RIndependentVariable(ind)=DOT_PRODUCT(RBasisAtomPosition(IAtomMoveList(jnd),:),RVector(jnd,:))
-          ind=ind+1
+        DO jnd=1,SIZE(IAtomMoveList)
+            RIndependentVariable(ind)=DOT_PRODUCT(RBasisAtomPosition(IAtomMoveList(jnd),:),RVector(jnd,:))
+            ind=ind+1
         END DO
       END IF
       IF(IRefineMode(3).EQ.1) THEN ! Occupancy, C
         DO jnd=1,SIZE(IAtomsToRefine)
-          RIndependentVariable(ind)=RBasisOccupancy(IAtomsToRefine(jnd))
-          ind=ind+1
+            RIndependentVariable(ind)=RBasisOccupancy(IAtomsToRefine(jnd))
+            ind=ind+1
         END DO
       END IF
       IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
-      !  DO jnd=1,SIZE(IAtomsToRefine)
-      !    RIndependentVariable(ind)=RBasisIsoDW(IAtomsToRefine(jnd))
-      !    ind=ind+1
-      !  END DO
+        DO jnd=1,SIZE(IAtomsToRefine)
+            RIndependentVariable(ind)=RBasisIsoDW(IAtomsToRefine(jnd))
+            ind=ind+1
+        END DO
         RIndependentVariable(ind)=RAnharmonic
-        ind=ind+1
       END IF
       IF(IRefineMode(8).EQ.1) THEN ! Convergence angle, H
         RIndependentVariable(ind)=RConvergenceAngle
@@ -634,7 +605,7 @@ PROGRAM Felixrefine
       DO ind = 2,IRefinementVariableTypes ! Loop over iterative variables apart from Ug's
         IF(IRefineMode(ind).EQ.1) THEN
           DO jnd = 1,INoOfVariablesForRefinementType(ind)
-            IArrayIndex = 1!SUM(INoOfVariablesForRefinementType(:(ind-1))) + jnd
+            IArrayIndex = SUM(INoOfVariablesForRefinementType(:(ind-1))) + jnd
 
             SELECT CASE(ind)
 
@@ -654,7 +625,7 @@ PROGRAM Felixrefine
 
             CASE(4) ! Isotropic Debye Waller Factors , D
               IIterativeVariableUniqueIDs(IArrayIndex,1) = ind
-!              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
+              IIterativeVariableUniqueIDs(IArrayIndex,2) = IAtomsToRefine(jnd)
 
             CASE(5) ! Anisotropic Debye Waller Factors (a11-a33), E
               !?? not currently implemented
@@ -774,8 +745,8 @@ PROGRAM Felixrefine
   !--------------------------------------------------------------------
   ! baseline simulation
   !--------------------------------------------------------------------
-  RFigureofMerit=666.666 ! Initial diabolically large value
-  Iter=0
+  RFigureofMerit=666.666 ! Initial large value, diabolically
+  Iter = 0
   ! baseline simulation with timer
   CALL Simulate(IErr)
   IF(l_alert(IErr,"felixrefine","Simulate")) CALL abort
@@ -882,7 +853,7 @@ PROGRAM Felixrefine
   ! These are global variables, see smodules.f90
 
   IF (IRefineMode(1).EQ.0) THEN
-  	DEALLOCATE(IIterativeVariableUniqueIDs,STAT=IErr)
+    DEALLOCATE(IIterativeVariableUniqueIDs,STAT=IErr)
   END IF
   IF (ISimFLAG.EQ.0) THEN
     DEALLOCATE(RImageExpi,STAT=IErr)  
@@ -929,21 +900,21 @@ CONTAINS
     ALLOCATE(RSimplexVariable(INoOfVariables+1,INoOfVariables), STAT=IErr)  
     ALLOCATE(RSimplexFoM(INoOfVariables+1),STAT=IErr)  
     IF(my_rank.EQ.0) THEN !?? Since simplex not random, could be calculated by all cores
-	    ALLOCATE(ROnes(INoOfVariables+1,INoOfVariables), STAT=IErr) ! matrix of ones
+      ALLOCATE(ROnes(INoOfVariables+1,INoOfVariables), STAT=IErr) ! matrix of ones
       IF(l_alert(IErr,"SimplexRefinement","allocate ROnes")) RETURN 
       ! matrix of one +/-RSimplexLengthScale
-	    ALLOCATE(RSimp(INoOfVariables+1,INoOfVariables), STAT=IErr)
+      ALLOCATE(RSimp(INoOfVariables+1,INoOfVariables), STAT=IErr)
       IF(l_alert(IErr,"SimplexRefinement","allocate RSimp")) RETURN 
       ! diagonal matrix of variables as rows
-	    ALLOCATE(RVarMatrix(INoOfVariables,INoOfVariables), STAT=IErr)
+      ALLOCATE(RVarMatrix(INoOfVariables,INoOfVariables), STAT=IErr)
       IF(l_alert(IErr,"SimplexRefinement","allocate RVarMatrix")) RETURN 
-	    ROnes=ONE
-	    RSimp=ONE
-	    RVarMatrix=ZERO
-	    FORALL(ind = 1:INoOfVariables) RSimp(ind,ind) = -1.0
-	    RSimp=RSimp*RSimplexLengthScale + ROnes
-	    FORALL(ind = 1:INoOfVariables) RVarMatrix(ind,ind) = RIndependentVariable(ind)
-	    RSimplexVariable=MATMUL(RSimp,RVarMatrix)
+      ROnes=ONE
+      RSimp=ONE
+      RVarMatrix=ZERO
+      FORALL(ind = 1:INoOfVariables) RSimp(ind,ind) = -1.0
+      RSimp=RSimp*RSimplexLengthScale + ROnes
+      FORALL(ind = 1:INoOfVariables) RVarMatrix(ind,ind) = RIndependentVariable(ind)
+      RSimplexVariable=MATMUL(RSimp,RVarMatrix)
     END IF
     !===================================== ! send RSimplexVariable OUT to all cores
     CALL MPI_BCAST(RSimplexVariable,(INoOfVariables+1)*(INoOfVariables),&
@@ -1066,7 +1037,7 @@ CONTAINS
       ! change max gradient vector (RPVec) depending upon max/min gradient situation 
       !--------------------------------------------------------------------      
       
-      ! max gradient
+      IF (nnd.EQ.0) THEN ! max gradient
         DO ind=1,INoOfVariables ! calculate individual gradients
           ! The type of variable being refined 
           IVariableType=IIterativeVariableUniqueIDs(ind,1) 
@@ -1094,16 +1065,16 @@ CONTAINS
           CALL message(LS,SPrintString)
 
           ! Make a random number to vary the sign of dx, using system clock
-          IF(my_rank.EQ.0) THEN
+          IF (my_rank.EQ.0) THEN
             CALL SYSTEM_CLOCK(mnd)
             Rdx=(REAL(MOD(mnd,10))/TEN)-0.45 ! numbers 0-4 give minus, 5-9 give plus
-            Rdx=0.1*RScale*Rdx/ABS(Rdx) ! small change in current variable (RScale/10)is dx
+            Rdx=0.1*Rdx*RScale/ABS(Rdx) ! small change in current variable (RScale/10)is dx
           END IF
-          !===================================== ! send Rdx OUT to all cores
+          !=====================================! send Rdx OUT to all cores
           CALL MPI_BCAST(Rdx,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
           !=====================================
           RCurrentVar=RVar0
-          RCurrentVar(ind)=RCurrentVar(ind)*(1+Rdx)
+          RCurrentVar(ind)=RCurrentVar(ind)+Rdx
           CALL SimulateAndFit(RCurrentVar,Iter,IThicknessIndex,IErr)
           IF(l_alert(IErr,"MaxGradientRefinement","SimulateAndFit")) RETURN
           ! Do not increment iteration here nor write iteration output
@@ -1115,6 +1086,20 @@ CONTAINS
           RFitVec(ind)=RFigureofMerit
           RPVec(ind)=(RFit0-RFigureofMerit)/Rdx ! -df/dx: need the dx to keep track of sign
         END DO
+        nnd=1 ! do min gradient next time
+
+      ELSE ! min gradient - to explore along a valley
+        DO ind=1,INoOfVariables
+          ! invert gradient
+          IF (ABS(RPVec(ind)).GT.TINY) THEN ! don't invert zeros
+            RPVec(ind)=1/RPVec(ind)
+          ELSE ! just make them quite big
+            RPVec(ind)=TEN
+          END IF
+        END DO
+        CALL message(LS,"Checking minimum gradient")
+        nnd=0 ! do max gradient next time
+      END IF
       
       !--------------------------------------------------------------------
       ! normalise the max gradient vector RPvec & set the first point
@@ -1223,7 +1208,7 @@ CONTAINS
 
       ! now make a prediction
       CALL Parabo3(R3var,R3fit,RvarMin,RfitMin,IErr)
-      WRITE(SPrintString,FMT='(A32,F10.4,A16,F7.4)') &
+      WRITE(SPrintString,FMT='(A32,F7.4,A16,F7.4)') &
       "Concave set, predict minimum at ",RvarMin," with fit index ",RfitMin
       SPrintString=TRIM(ADJUSTL(SPrintString))
       CALL message (LS, SPrintString)
@@ -1688,4 +1673,3 @@ CONTAINS
   END SUBROUTINE Parabo3 
 
 END PROGRAM Felixrefine
-                                                                                                                        

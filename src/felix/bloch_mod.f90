@@ -367,16 +367,18 @@ MODULE bloch_mod
                 CFullWavefunctions(1:INoOfLacbedPatterns)
         END IF
       ELSE ! we are using hkl list from felix.hkl
-        DO pnd = 1,INoOfLacbedPatterns
-          IF(IImageFLAG.LE.2) THEN!Output intensities (i.e. the images)
+        IF(IImageFLAG.LE.2) THEN
+          DO pnd = 1,INoOfLacbedPatterns
             RIndividualReflections(pnd,IThicknessIndex,&
                   (IPixelNumber-IFirstPixelToCalculate)+1) = &
                   RFullWaveIntensity(IOutputReflections(pnd))
-          ELSE!Output amplitude and phase
+          END DO
+        ELSE
+          DO pnd = 1,INoOfLacbedPatterns
             CAmplitudeandPhase(pnd,IThicknessIndex,(IPixelNumber-IFirstPixelToCalculate)+1)=&
                  CFullWavefunctions(IOutputReflections(pnd))
-          END IF
-        END DO
+          END DO
+        END IF
       END IF
     END DO
 
@@ -421,9 +423,8 @@ MODULE bloch_mod
     COMPLEX(CKIND) :: CPsi0(nBeams),CAlphaWeightingCoefficients(nBeams),&
           CWaveFunctions(nBeams),CEigenValueDependentTerms(nBeams,nBeams)
     INTEGER(IKIND) :: ind,jnd,knd,hnd,ifullind,iuniind,gnd,ichnk
-    
-    IErr=0!there is nowhere in this subroutine to flag an eror, actually
-    
+
+    IErr=0!Actually there is no error flagging in this subroutine    
     ! The top surface boundary conditions
     CPsi0 = CZERO ! all diffracted beams are zero
     CPsi0(1) = CONE ! the 000 beam has unit amplitude
@@ -680,3 +681,4 @@ MODULE bloch_mod
   END SUBROUTINE INVERT
 
 END MODULE bloch_mod
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    

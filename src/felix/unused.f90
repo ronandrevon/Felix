@@ -1705,11 +1705,11 @@ SUBROUTINE RefinementVariableSetup(RIndependentVariable,IErr)
      CASE(6)
         SELECT CASE(IIterativeVariableUniqueIDs(ind,3))
         CASE(1)
-           RIndependentVariable(ind) = RLengthX
+           RIndependentVariable(ind) = RUnitCellA
         CASE(2)
-           RIndependentVariable(ind) = RLengthY
+           RIndependentVariable(ind) = RUnitCellB
         CASE(3)
-           RIndependentVariable(ind) = RLengthZ
+           RIndependentVariable(ind) = RUnitCellC
         END SELECT
      CASE(7)
         SELECT CASE(IIterativeVariableUniqueIDs(ind,3))

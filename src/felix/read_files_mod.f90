@@ -57,7 +57,7 @@ MODULE read_files_mod
           IMinStrongBeams, IMinWeakBeams, INoOfLacbedPatterns, ISimFLAG, IRefineMode, &
           IWeightingFLAG, IRefineMethodFLAG, ICorrelationFLAG, IImageProcessingFLAG, &
           INoofUgs, IPrint, IPixelCount, IBlochMethodFLAG
-    USE RPARA, ONLY : RDebyeWallerConstant, RAnharmonic, RConvergenceAngle, &
+    USE RPARA, ONLY : RDebyeWallerConstant,RAnharmonic,RConvergenceAngle, &
           RZDirC, RXDirC, RNormDirC, RAcceleratingVoltage, RAcceptanceAngle, &
           RInitialThickness, RFinalThickness, RDeltaThickness, RBlurRadius, &
           RSimplexLengthScale, RExitCriteria

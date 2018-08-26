@@ -151,11 +151,10 @@ MODULE refinementcontrol_mod
       IF (IRefineMode(8).EQ.1) THEN ! convergence angle
         ! recalculate resolution in k space
         IF (my_rank.EQ.0) RDeltaK = RMinimumGMag*RConvergenceAngle/REAL(IPixelCount,RKIND)
-        !===================================== ! Send UgMat to all cores
         CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
-        !===================================== ! Send UgMat to all cores
       ELSE
         ! basis has changed in some way, recalculate unit cell
+      !PRINT*,"About to UniqueAtomPositions"
         CALL UniqueAtomPositions(IErr)
         IF(l_alert(IErr,"SimulateAndFit","UniqueAtomPositions")) RETURN
         !--------------------------------------------------------------------
@@ -164,12 +163,13 @@ MODULE refinementcontrol_mod
         IF (my_rank.EQ.0) THEN!There is a bug when individual cores calculate UgMat, make it the responsibility of core 0 and broadcast it
           ! calculate CUgMatNoAbs
           CUgMatNoAbs = CZERO
+      !PRINT*,"About to CUgMatNoAbs"
           !duplicated from Ug matrix initialisation.  Ug refinement will no longer work! Should be put into a single subroutine.
           DO ind=2,nReflections
             DO jnd=1,ind-1
               RCurrentGMagnitude = RgMatrixMagnitude(ind,jnd) ! g-vector magnitude, global variable
               ! Sums CVgij contribution from each atom and pseudoatom in Volts
-              CALL GetVgij(RScatteringFactor,ind,jnd,CVgij,IErr)
+              CALL GetVgContributionij(RScatteringFactor,ind,jnd,CVgij,IErr)
               CUgMatNoAbs(ind,jnd)=CVgij
             ENDDO
           ENDDO
@@ -190,7 +190,7 @@ MODULE refinementcontrol_mod
       !/\----------------------------------------------------------------------
       CALL message( LM,dbg3, "recalculated Ug matrix, with absorption (nm^-2)" )
       DO ind = 1,16
-	    WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
+        WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,8(F7.4,1X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:4)
         CALL message( LM,dbg3, SPrintString)
       END DO
     
@@ -259,6 +259,7 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND) :: IErr, ind,jnd,knd,pnd, IIterationFLAG, IStartTime
     INTEGER(IKIND) :: IAbsorbTag = 0
     REAL(RKIND),DIMENSION(:,:,:),ALLOCATABLE :: RFinalMontageImageRoot
+    REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RTempImage 
 
     ! Reset simuation   
     RIndividualReflections = ZERO
@@ -298,6 +299,7 @@ MODULE refinementcontrol_mod
 
     ! Gaussian blur to match experiment using global variable RBlurRadius
     IF (RBlurRadius.GT.TINY) THEN
+       ALLOCATE(RTempImage(2*IPixelCount,2*IPixelCount),STAT=IErr)
        DO ind=1,INoOfLacbedPatterns
           DO jnd=1,IThicknessCount
              CALL BlurG(RImageSimi(:,:,ind,jnd),IPixelCount,RBlurRadius,IErr)
@@ -361,12 +363,12 @@ MODULE refinementcontrol_mod
     ! The thickness with the lowest figure of merit for each image
     IBestImageThicknessIndex = 1 
 
-!    ! write out PatternFits.txt
-!	OPEN(UNIT=IChOut,FILE='PatternFits.txt',FORM='formatted',STATUS='unknown',POSITION='append')
-!	WRITE(IChOut,FMT='(A10,I4)') "Iteration ",Iter
+    ! write out PatternFits.txt
+!    OPEN(UNIT=IChOut,FILE='PatternFits.txt',FORM='formatted',STATUS='unknown',POSITION='append')
+!    WRITE(IChOut,FMT='(A10,I4)') "Iteration ",Iter
     !\/----------------------------------------------------------------------
     DO jnd = 1,IThicknessCount
-!	  WRITE(IChOut,FMT='(A10,I4)') "Thickness ",NINT(RInitialThickness+(jnd-1)*RDeltaThickness)
+!      WRITE(IChOut,FMT='(A10,I4)') "Thickness ",NINT(RInitialThickness+(jnd-1)*RDeltaThickness)
       RTotalCorrelation = ZERO ! The sum of all individual correlations, initialise at 0
       DO ind = 1,INoOfLacbedPatterns
         RSimulatedImage = RImageSimi(:,:,ind,jnd)
@@ -420,8 +422,8 @@ MODULE refinementcontrol_mod
 
         CALL message(LXL,dbg6,"For Pattern ",ind,", thickness ",jnd)
         CALL message(LXL,dbg6,"  the FoM = ",RImageCorrelation)
-!		WRITE(IChOut,FMT='(3I5.1,F13.9)') NINT(Rhkl(IOutPutReflections(ind),:)),RImageCorrelation
-		
+!        WRITE(IChOut,FMT='(3I5.1,F13.9)') NINT(Rhkl(IOutPutReflections(ind),:)),RImageCorrelation
+
         ! Determine which thickness matches best for each LACBED pattern
         ! which is later used to find the range of viable thicknesses 
         IF(RImageCorrelation.LT.RBestCorrelation(ind)) THEN
@@ -483,7 +485,7 @@ MODULE refinementcontrol_mod
     USE message_mod 
 
     ! global inputs
-    USE IPARA, ONLY : INoOfVariables,IRefineMode,IAtomMoveList,IAtomsToRefine
+    USE IPARA, ONLY : INoOfVariables, IRefineMode, IIterativeVariableUniqueIDs,IAtomMoveList 
     USE RPARA, ONLY : RVector,RAnharmonic
 
     ! global outputs
@@ -497,14 +499,11 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND) :: IVariableType,IVectorID,IAtomID,IErr,ind,jnd
 
     ind=1
-!    IF(IRefineMode(4).EQ.1) THEN ! Isotropic DW, D
-!      DO jnd=1,SIZE(IAtomsToRefine)
-!          RBasisIsoDW(jnd)=RIndependentVariable(ind)
-!          ind=ind+1
-!	  END DO
+      DO jnd=1,2
+          RBasisIsoDW(jnd)=RIndependentVariable(ind)
+          ind=ind+1
+	  END DO
       RAnharmonic=RIndependentVariable(ind)
-!	END IF
-
 
   END SUBROUTINE UpdateVariables
 

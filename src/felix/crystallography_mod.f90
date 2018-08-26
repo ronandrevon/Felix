@@ -75,7 +75,7 @@ MODULE crystallography_mod
     RaVecO(2)= ZERO
     RaVecO(3)= ZERO
 
-    RbVecO(1)= RUnitCellA*COS(RGamma)
+    RbVecO(1)= RUnitCellB*COS(RGamma)
     RbVecO(2)= RUnitCellB*SIN(RGamma)
     RbVecO(3)= ZERO
 

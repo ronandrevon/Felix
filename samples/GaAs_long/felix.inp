@@ -4,7 +4,7 @@
 # ------------------------------------
 
 # control flags
-IWriteFLAG                = 1
+IWriteFLAG                = 4
 IImageFLAG                = 1
 IScatterFactorMethodFLAG  = 0
 IBlochMethodFLAG          = 0
@@ -24,7 +24,7 @@ IMinWeakBeams             = 0
 
 # crystal settings
 RDebyeWallerConstant      = 0.0
-RAnharmonic               = 0.1
+RAnharmonic               = 100.0
 
 # microscope settings
 ROuterConvergenceAngle    = 3.0039
