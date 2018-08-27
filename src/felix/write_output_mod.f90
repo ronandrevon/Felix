@@ -342,7 +342,7 @@ MODULE write_output_mod
         RDataOut(IStart:IEnd) = RBasisOccupancy
       CASE(4)
         RDataOut(IStart:IEnd) = RBasisIsoDW
-        RDataOut(IEnd+1) = RAnharmonic
+        RDataOut(IEnd+1) = (RAnharmonic*TEN*THOUSAND)
       CASE(5)
         RDataOut(IStart:IEnd) = &
               RESHAPE(RAnisotropicDebyeWallerFactorTensor,SHAPE(RDataOut(IStart:IEnd)))
@@ -373,7 +373,7 @@ MODULE write_output_mod
     END DO
 
     WRITE(STotalOutputVariables,*) ITotalOutputVariables
-    WRITE(SFormat,*) "(I5.1,1X,F13.9,1X,"//TRIM(ADJUSTL(STotalOutputVariables))//"(F13.9,1X))"
+    WRITE(SFormat,*) "(I5.1,1X,F15.9,1X,"//TRIM(ADJUSTL(STotalOutputVariables))//"(F15.9,1X))"
 
     OPEN(UNIT=IChOutSimplex,FILE='iteration_log.txt',FORM='formatted',STATUS='unknown',&
           POSITION='append')

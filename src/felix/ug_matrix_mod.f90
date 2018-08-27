@@ -300,9 +300,11 @@ MODULE ug_matrix_mod
 !Anharmonic hack
           ! Anharmonic part for GaAs ONLY, following McIntyre Acta Cryst A36,482(1980) and Stevenson Acta CrystA50,621(1994)
           !For Ga multiply by (1-i.A(Ga).h.k.l.(BGa/4pi.a)^3)
-          IF (ICurrentZ.EQ.31) CAnharm=CMPLX(ONE,-RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
+          IF (ICurrentZ.EQ.31) CAnharm=CMPLX(ONE,-RAnharmonic*TEN*THOUSAND*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
+!          IF (ICurrentZ.EQ.31) CAnharm=CMPLX(ONE,ZERO)
           !For As multiply by (1+i.A(Ga).h.k.l.(BAs/4pi.a)^3)
-          IF (ICurrentZ.EQ.33) CAnharm=CMPLX(ONE,+RAnharmonic*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
+          IF (ICurrentZ.EQ.33) CAnharm=CMPLX(ONE,+RAnharmonic*TEN*THOUSAND*RgCubAnMat(ind,jnd)*(RIsoDW(knd)**3))
+!          IF (ICurrentZ.EQ.33) CAnharm=CMPLX(ONE,ZERO)
         ELSE ! anisotropic Debye-Waller factor
           !?? this will need sorting out, may not work
           RScatteringFactor = RScatteringFactor * &

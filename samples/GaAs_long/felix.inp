@@ -24,7 +24,7 @@ IMinWeakBeams             = 0
 
 # crystal settings
 RDebyeWallerConstant      = 0.0
-RAnharmonic               = 100.0
+RAnharmonic               = 500.0
 
 # microscope settings
 ROuterConvergenceAngle    = 3.0039
@@ -46,7 +46,7 @@ IWeightingFLAG           = 0
 IRefineMethodFLAG        = 2
 ICorrelationFLAG         = 2
 IImageProcessingFLAG     = 4
-RBlurRadius              = 0.0
+RBlurRadius              = 2.2
 INoofUgs                 = 1
 IAtomicSites             = (1,2)
 IPrint                   = 2

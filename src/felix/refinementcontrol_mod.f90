@@ -570,7 +570,7 @@ MODULE refinementcontrol_mod
             WRITE(SPrintString,FMT='(A4,A4,F7.4)') "    ",SBasisAtomLabel(jnd),RBasisIsoDW(jnd)
             CALL message(LS,SPrintString)
           END DO
-          WRITE(SPrintString,FMT='(A33,F10.2)') "    Anharmonicity parameter A(Ga)",RAnharmonic
+          WRITE(SPrintString,FMT='(A33,F10.2)') "    Anharmonicity parameter A(Ga)",(RAnharmonic*TEN*THOUSAND)
           CALL message(LS,SPrintString)
 
         CASE(5)

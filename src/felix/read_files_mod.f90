@@ -198,7 +198,8 @@ MODULE read_files_mod
     ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RDebyeWallerConstant
     ! RAnharmonic         ! for anharmonic thermal vibrations
     ILine= ILine+1; READ(IChInp,'(27X,F18.9)',ERR=20,END=30) RAnharmonic
-
+    RAnharmonic=RAnharmonic/(TEN*THOUSAND)
+    
     !--------------------------------------------------------------------
     ! microscope settings
     !--------------------------------------------------------------------
