@@ -54,6 +54,7 @@ MODULE SConst
   CHARACTER*50, PARAMETER :: AStr= "(:RLSTATUS:) multipole atom test & debug" 
   
   CHARACTER*8 SAllSpaceGrp(230)
+  !NEED TO CODE ALTERNATIVE ORIENTATIONS (a few hundred!)
   DATA SAllSpaceGrp/"P1","P-1","P2","P21","C2","Pm","Pc","Cm",&
        "Cc","P2/m","P21/m","C2/m","P2/c","P21/c","C2/c", &
        "P222","P2221","P21212","P212121","C2221","C222","F222", &

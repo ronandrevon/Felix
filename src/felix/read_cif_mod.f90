@@ -75,8 +75,7 @@ MODULE read_cif_mod
     USE RPARA, ONLY : RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, RGamma, RVolume, &
           RAnisotropicDebyeWallerFactorTensor, RBasisAtomPosition, RBasisIsoDW, &
           RBasisOccupancy, RSymMat, RSymVec
-    USE IPARA, ONLY : IVolumeFLAG, IBasisAtomicNumber, IMaxPossibleNAtomsUnitCell, &
-          ISymCount, IBasisAnisoDW
+    USE IPARA, ONLY : IVolumeFLAG, IBasisAtomicNumber,ISymCount,IBasisAnisoDW
 
     ! global inputs
     USE SConst, ONLY : SAllSpaceGrp
@@ -236,7 +235,7 @@ MODULE read_cif_mod
     END IF
 
     SSpaceGroupName=TRIM(name(1:1))
-    SSpaceGrp = TRIM(ADJUSTL(name))
+    SSpaceGrp = TRIM(ADJUSTL(name))!A global variable
     
     !sometimes space group is input in lowercase letters - below changes the first letter to uppercase
     IF (SCAN(alphabet,SSpaceGroupName).GT.26) THEN
@@ -254,7 +253,6 @@ MODULE read_cif_mod
       IAtomCount= IAtomCount+1
       IF(loop_ .NEQV. .TRUE.) EXIT
     END DO
-    IF (my_rank.EQ.0) PRINT*, IAtomCount
     IF (SIZE(IAtomsToRefine,DIM=1).GT.IAtomCount) THEN
       IErr=1; IF(l_alert(IErr,"ReadCif",&
             "Number of atomic sites to refine is larger than the number of atoms. "//&
@@ -284,7 +282,6 @@ MODULE read_cif_mod
     !initialise variables
     IBasisAtomicNumber = 0
     RAnisotropicDebyeWallerFactorTensor = ZERO
-    IMaxPossibleNAtomsUnitCell = 0
     ! input data loop
     DO ind=1,IAtomCount
       B = ZERO
@@ -293,7 +290,6 @@ MODULE read_cif_mod
       SBasisAtomLabel(ind)=name
       f1 = char_('_atom_site_type_symbol', name)
       SBasisAtomName(ind)=name(1:2)
-      IF (my_rank.EQ.0) PRINT*, ind, SBasisAtomName(ind)
       ! remove the oxidation state numbers
       Ipos=SCAN(SBasisAtomName(ind),"1234567890")
       IF (Ipos.GT.0) WRITE(SBasisAtomName(ind),'(A1,A1)') name(1:1)," "
