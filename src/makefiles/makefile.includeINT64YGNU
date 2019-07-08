@@ -12,7 +12,7 @@ CPPFLAGS=-E
 # which C-compiler do we use
 CC=cc
 # C compiler options
-CCFLAGS= -O  -m64 -mcmodel=medium -fPIC
+CCFLAGS= -O  -mcmodel=medium -fPIC
 #CCFLAGS= -g
 
 
@@ -42,7 +42,7 @@ LONGINTEGER=
 # which fortran compiler is used
 F90=mpif90
 # its flags
-F90FLAGS= -O2 -m64 -DF90 -fexternal-blas \
+F90FLAGS= -O2 -DF90 -fexternal-blas \
 	  -ffree-line-length-none -fbounds-check \
 	  -fno-range-check -fimplicit-none -fdefault-integer-8
 #F90LAGS=  -g
@@ -52,7 +52,7 @@ F90FLAGS= -O2 -m64 -DF90 -fexternal-blas \
 # which fortran compiler is used
 FF=gfortran
 # its flags
-FFFLAGS=  -O4 -m64  -mcmodel=medium -fdefault-integer-8 -fPIC 
+FFFLAGS=  -O4  -mcmodel=medium -fdefault-integer-8 -fPIC 
 #FFFLAGS=  -g
 
 
@@ -70,7 +70,7 @@ FCOMPILE=$(FF)  $(FFFLAGS)  -I$(INCDIR) $(ARITHMETIC) $(LONGINTEGER) -c -o $@ $<
 # which linker do we use
 LD=$(FF)
 # its flags
-LDFLAGS=  -O4 -m64  -mcmodel=medium -fPIC
+LDFLAGS=  -O4  -mcmodel=medium -fPIC
 
 
 

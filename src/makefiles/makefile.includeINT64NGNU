@@ -15,7 +15,7 @@ CPPFLAGS=-E
 # which C-compiler do we use
 CC=gcc
 # C compiler options
-CCFLAGS= -O -m64  -mcmodel=medium -fPIC
+CCFLAGS= -O  -mcmodel=medium -fPIC
 #CCFLAGS= -g
 
 
@@ -48,9 +48,10 @@ LIBS= -lopenblas -lfftw3
 
 # -------------------------------
 # which fortran compiler is used
-F90=mpif90
+#F90=mpif90
+F90=gfortran
 # its flags
-F90FLAGS= -O2 -m64 -DF90 -fexternal-blas \
+F90FLAGS= -O2 -DF90 -fexternal-blas \
 	  -ffree-line-length-none -fbounds-check \
 	  -fno-range-check -fimplicit-none
 #F90FLAGS= -pg -fprofile-arcs -O2 -m64 -DF90 -fexternal-blas \
@@ -63,7 +64,7 @@ F90FLAGS= -O2 -m64 -DF90 -fexternal-blas \
 # which fortran compiler is used
 FF=gfortran
 # its flags
-FFFLAGS=  -O -fbounds-check -fno-range-check -m64 
+FFFLAGS=  -O -fbounds-check -fno-range-check 
 #FFFLAGS=  -g
 
 
@@ -81,7 +82,7 @@ FCOMPILE=$(FF)  $(FFFLAGS)  -I$(INCDIR) $(ARITHMETIC) $(LONGINTEGER) -c -o $@ $<
 # which linker do we use
 LD=$(F90)
 # its flags
-LDFLAGS=-O -m64  -mcmodel=medium -fPIC -L$(STARTDIR)/../lib 
+LDFLAGS=-O  -mcmodel=medium -fPIC -L$(STARTDIR)/../lib 
 
 
 
