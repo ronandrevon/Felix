@@ -92,7 +92,7 @@ $(PRECISION)%.o: %.f90
 	$(F90) $(F90FLAGS) -c -o $@ $<
 
 $(PRECISION)%.o: %.f
-#	@ echo --- --- compiling F77 code
+	@ echo --- --- compiling F77 code
 	$(FF) $(FFFLAGS) -c -o $@ $<
 
 $(PRECISION)%.o: %.c

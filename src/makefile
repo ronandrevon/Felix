@@ -24,9 +24,12 @@ MYPRECISION="d"
 STARTDIR=$(PWD)
 MYSTARTDIR=$(STARTDIR)
 
+#this is where the user gives the platform we will use
 include user.mk
 MYPLATFORM=$(PLATFORM)
+#look in the list of platforms and include the appropriate one
 include makefiles/platforms.mk
+#now compilei files as set out in defaullt.mk
 include makefiles/default.mk
 
 DIRCIFTBX=ciftbx/
@@ -47,6 +50,7 @@ quadpack:
 
 ciftbx:
 	@ echo --- COMPILING CIFTBX routines
+	@ echo --- platform = $(MYPLATFORM) 
 	@ cd $(DIRCIFTBX); \
         $(MAKE) "ARITHMETIC=-D_DOUBLE_REAL_" "PRECISION=$(MYPRECISION)" "MYPLATFORM=$(PLATFORM)" \
         "MYSTARTDIR=$(STARTDIR)"
@@ -78,9 +82,6 @@ $(FINALEXE):
 	@ cd $(DIRFELIX);\
 	$(F90) $(F90FLAGS) -o ../$(MAIN).$(PLATFORM).$(MYPRECISION) *.o \
 	-L$(LIBDIR) -l$(MYPRECISION)quadpack -l$(MYPRECISION)ciftbx $(LIBS)
-#        $(MAKE) exe "MYSTARTDIR=$(STARTDIR)" "PRECISION=$(MYPRECISION)" \
-#	"MYPLATFORM=$(PLATFORM)" \
-#	"MYLIBCIFTBX=$(LIBCIFTBX)" "MYLIBQUADPACK=$(LIBQUADPACK)"
 	@ echo executable $(FINALEXE) can be found in the current directory
 
 print:

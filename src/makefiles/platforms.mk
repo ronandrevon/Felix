@@ -17,130 +17,108 @@
 
 ifeq ($(MYPLATFORM),INT32GNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT32GNU
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64NGNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64NGNU
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64YGNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64YGNU
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT32GNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT32GNU
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64NGNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64NGNU
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64YGNU)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64YGNU
+endif
 
-else
 ifeq ($(MYPLATFORM),ITA64Nifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeITA64Nifort
+endif
 
-else
 ifeq ($(MYPLATFORM),ITA64Yifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeITA64Yifort
+endif
 
-else
 ifeq ($(MYPLATFORM),INT32ifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT32ifort
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64Nifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64Nifort
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64Yifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64Yifort
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT32ifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT32ifort
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64Nifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64Nifort
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64Yifort)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64Yifort
+endif
 
-else
 ifeq ($(MYPLATFORM),INT32pgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT32pgf
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64Npgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64Npgf
+endif
 
-else
 ifeq ($(MYPLATFORM),INT64Ypgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeINT64Ypgf
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT32pgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT32pgf
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64Npgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64Npgf
+endif
 
-else
 ifeq ($(MYPLATFORM),OPT64Ypgf)
 include $(MYSTARTDIR)/makefiles/makefile.includeOPT64Ypgf
+endif
 
-else
 ifeq ($(MYPLATFORM),AIXxlf90)
 include $(MYSTARTDIR)/makefiles/makefile.includeAIXxlf90
+endif
 
-else
 ifeq ($(MYPLATFORM),alpha)
 include $(MYSTARTDIR)/makefiles/makefile.includealpha
+endif
 
-else
 ifeq ($(MYPLATFORM),sun)
 include $(MYSTARTDIR)/makefiles/makefile.includesun
+endif
 
-else
 ifeq ($(MYPLATFORM),hpux)
 include $(MYSTARTDIR)/makefiles/makefile.includehpux
+endif
 
-else
 ifeq ($(MYPLATFORM),irix)
 include $(MYSTARTDIR)/makefiles/makefile.includeirix
+endif
 
-else
 ifeq ($(MYPLATFORM),sgi)
 include $(MYSTARTDIR)/makefiles/makefile.includesgi
+endif
 
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
-endif
+ifeq ($(MYPLATFORM),INT64Nftn)
+include $(MYSTARTDIR)/makefiles/makefile.includeINT64Nftn
 endif

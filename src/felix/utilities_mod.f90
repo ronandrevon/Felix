@@ -193,7 +193,7 @@ MODULE utilities_mod
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
   !!
   REAL(RKIND) FUNCTION ResidualSumofSquares(RImage1,RImage2,IErr)
-    !todo - this is excessively small underused subroutine & the message should be on debug mode
+    !essentially redundant
     USE MyNumbers
     
     USE SConst; USE IConst
@@ -205,20 +205,14 @@ MODULE utilities_mod
 
     IMPLICIT NONE
     
-    INTEGER(IKIND) :: &
-         IErr
-    REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: &
-         RImage1,RImage2
+    INTEGER(IKIND) :: IErr
+    REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RImage1,RImage2
 
     RImage2 =  RImage2/(2.0**16.0)
-
-    CALL message ( LM, "Residual Sum of Squares Before",&
-          (/ ResidualSumofSquares,MAXVAL(RImage1),MAXVAL(RImage2) /) )
-
+    !CALL message ( LM, "Residual Sum of Squares Before",&
+    !      (/ ResidualSumofSquares,MAXVAL(RImage1),MAXVAL(RImage2) /) )
     ResidualSumofSquares = SUM((RImage2-RImage1)**2)
-
     CALL message ( LM, "Residual Sum of Squares After",ResidualSumofSquares )
-
   END FUNCTION ResidualSumofSquares
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -277,7 +271,7 @@ MODULE utilities_mod
     REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: Rimg1,Rimg2,RBinaryMask
     REAL(RKIND) :: Rimg1Mean,Rimg2Mean,Rimg1StDev,Rimg2StDev,RPixelTotal,&
                    Rimg1Min,Rimg2Min,Rimg1Max,Rimg2Max
-    CHARACTER*200 :: path
+    CHARACTER(200) :: path
 
     IF (SUM(RBinaryMask).GT.ZERO) THEN
       RPixelTotal = SUM(RBinaryMask)!Mask has value 1 for pixels of interest and zero elsewhere

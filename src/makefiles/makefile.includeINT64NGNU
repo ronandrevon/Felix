@@ -111,3 +111,8 @@ RM=rm
 MV=mv
 CP=cp
 CPLN=cp
+
+.PHONY: print_out
+print_out:
+	echo $(FCOMPILE)
+

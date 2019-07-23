@@ -65,7 +65,7 @@ CONTAINS
   SUBROUTINE CalculateElementS ( lambda, A, Bmatrix, nnd, mnd, max_q, S )
 
     ! INPUTS
-    INTEGER(4),INTENT(IN) :: nnd, mnd, max_q
+    INTEGER,INTENT(IN) :: nnd, mnd, max_q
     COMPLEX(CKIND),INTENT(IN) :: lambda, Bmatrix(:,:), A(:,:)
     ! OUTPUTS
     COMPLEX(CKIND),INTENT(OUT) :: S
@@ -73,7 +73,7 @@ CONTAINS
     COMPLEX(CKIND) :: Ccoeff, B(SIZE(Bmatrix,1)),&
                   sumproduct,& ! to store an iterative product
                   element
-    INTEGER(4) :: ind,jnd, & ! a generic looping index
+    INTEGER :: ind,jnd, & ! a generic looping index
                   q, N, l(0:max_q)
     CHARACTER(100) :: formatting ! for writing terminal output
 
@@ -203,13 +203,12 @@ CONTAINS
   ! converted into fortran from python https://docs.python.org/2/library/itertools.html
   SUBROUTINE GetCombinations ( bigN, q, nnd, mnd, A, B, lambda, S )
 
-    INTEGER(4),INTENT(IN) :: bigN, q, nnd, mnd
+    INTEGER,INTENT(IN) :: bigN, q, nnd, mnd
     COMPLEX(CKIND),INTENT(IN) :: A(:,:), B(:), lambda ! constant inputs !?? could be global
     COMPLEX(CKIND),INTENT(INOUT) :: S
-    INTEGER(4) :: r
-    INTEGER(4) :: indices(0:q-1-1),i,n
-    !INTEGER(4) :: pool(0:2)
-    INTEGER(4) :: pool(0:bigN-1), l(0:q)
+    INTEGER :: r
+    INTEGER :: indices(0:q-1-1),i,n
+    INTEGER :: pool(0:bigN-1), l(0:q)
 
     CALL SYSTEM_CLOCK(time13)
 
@@ -250,8 +249,8 @@ CONTAINS
 
     implicit none
 
-    INTEGER(4),INTENT(IN) :: l(0:) ! this acts as l
-    INTEGER(4),INTENT(IN) :: q, mnd, nnd
+    INTEGER,INTENT(IN) :: l(0:) ! this acts as l
+    INTEGER,INTENT(IN) :: q, mnd, nnd
     COMPLEX(CKIND),INTENT(IN) :: A(:,:), B(:), lambda ! constant inputs !?? could be global
     COMPLEX(CKIND),INTENT(INOUT) :: S
     COMPLEX(CKIND) :: Ccoeff, sumproduct
@@ -324,10 +323,10 @@ CONTAINS
 
     COMPLEX(CKIND),INTENT(OUT) :: Ccoeff
     COMPLEX(CKIND),INTENT(IN) :: B(:), lambda
-    INTEGER(4),INTENT(IN) :: l(0:), q
+    INTEGER,INTENT(IN) :: l(0:), q
     COMPLEX(CKIND) :: bprime(0:q), Dcoeff, CIterationProduct, CSummationR, CPreviousValue, &
                       CLambdaBprimeValue, CLambdaJprimeFactorial, CExpLambdaBprimeValue
-    INTEGER(4) :: d(0:q), u, jprime, k, r, ind
+    INTEGER :: d(0:q), u, jprime, k, r, ind
     CHARACTER(50) :: formatting ! for writing terminal output
 
     CALL SYSTEM_CLOCK(time11)
@@ -408,9 +407,9 @@ CONTAINS
 
     COMPLEX(CKIND),INTENT(IN) :: B(:)
     COMPLEX(CKIND),INTENT(INOUT) :: bprime(0:)
-    INTEGER(4),INTENT(INOUT) :: d(0:)
-    INTEGER(4),INTENT(IN) :: l(0:), q
-    INTEGER(4) :: ind, jnd, k, &
+    INTEGER,INTENT(INOUT) :: d(0:)
+    INTEGER,INTENT(IN) :: l(0:), q
+    INTEGER :: ind, jnd, k, &
                   u, & ! number of unique elements minus 1
                   UniqueListValuesL (0:q)
     LOGICAL :: IsUnique
@@ -437,10 +436,10 @@ CONTAINS
   SUBROUTINE CalculateDcoeff ( B, l, q, bprime, k, d, u, jprime, Dcoeff )
 
     COMPLEX(CKIND),INTENT(IN) :: B(:), bprime(0:)
-    INTEGER(4),INTENT(IN) :: l(0:), q, k, d(0:), u, jprime
+    INTEGER,INTENT(IN) :: l(0:), q, k, d(0:), u, jprime
     COMPLEX(CKIND),INTENT(OUT) :: Dcoeff
-    INTEGER(4) :: ind, INoOfPermittedr, r_index
-    INTEGER(4) :: r(d(k) - jprime), permitted_r_values(q+1), r_permitted_referance(d(k) - jprime)
+    INTEGER :: ind, INoOfPermittedr, r_index
+    INTEGER :: r(d(k) - jprime), permitted_r_values(q+1), r_permitted_referance(d(k) - jprime)
     COMPLEX(CKIND) :: rsum(d(k) - jprime)
     LOGICAL :: productdefined, NotFinished
     CHARACTER(50) :: formatting ! for writing terminal output
@@ -564,8 +563,8 @@ CONTAINS
 
 
   PURE RECURSIVE FUNCTION factorial ( n ) result ( f )
-    INTEGER(4),INTENT(IN) :: n
-    INTEGER(4) :: f
+    INTEGER,INTENT(IN) :: n
+    INTEGER :: f
     IF(n.EQ.1.OR.n.EQ.0) THEN
       f = 1
     ELSE

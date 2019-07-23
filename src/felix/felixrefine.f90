@@ -63,8 +63,8 @@ PROGRAM Felixrefine
         IBSMaxLocGVecAmp,ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,&
         IPrintFLAG,ICycle,INumInitReflections,IZerothLaueZoneLevel,xnd,&
         INumFinalReflections,IThicknessIndex,IVariableType,IArrayIndex,&
-        IAnisotropicDebyeWallerFactorElementNo,ISpaceGrp
-  INTEGER(IKIND) :: IStartTime,IStartTime2
+        IAnisotropicDebyeWallerFactorElementNo,ISpaceGrp,IStartTime,IStartTime2
+  INTEGER(4) :: IErr4
   REAL(RKIND) :: REmphasis,RHOLZAcceptanceAngle,RLaueZoneGz,RMaxGMag,&
         RPvecMag,RScale,RMaxUgStep,Rdx,RStandardDeviation,RMean,RGzUnitVec,&
         RMinLaueZoneValue,Rdf,RLastFit,RBestFit,RMaxLaueZoneValue,&
@@ -97,12 +97,12 @@ PROGRAM Felixrefine
   IInitialSimulationFLAG = 1
 
   ! MPI initialization
-  CALL MPI_Init(IErr) 
-  IF(l_alert(IErr,"felixrefine","MPI_Init")) CALL abort
-  CALL MPI_Comm_rank(MPI_COMM_WORLD,my_rank,IErr) ! get rank of the current process
-  IF(l_alert(IErr,"felixrefine","MPI_Comm_rank")) CALL abort
-  CALL MPI_Comm_size(MPI_COMM_WORLD,p,IErr) ! get size of the current communicator
-  IF(l_alert(IErr,"felixrefine","MPI_Comm_size")) CALL abort
+  CALL MPI_Init(IErr4) 
+  IF(l_alert(INT(REAL(IErr4)),"felixrefine","MPI_Init")) CALL abort
+  CALL MPI_Comm_rank(MPI_COMM_WORLD,my_rank,IErr4) ! get rank of the current process
+  IF(l_alert(INT(REAL(IErr4)),"felixrefine","MPI_Comm_rank")) CALL abort
+  CALL MPI_Comm_size(MPI_COMM_WORLD,p,IErr4) ! get size of the current communicator
+  IF(l_alert(INT(REAL(IErr4)),"felixrefine","MPI_Comm_size")) CALL abort
 
   ! startup terminal output
   CALL message(LS,"-----------------------------------------------------------------")

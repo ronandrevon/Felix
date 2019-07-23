@@ -92,8 +92,8 @@ MODULE bloch_mod
     REAL(RKIND) :: RThickness,RKn,Rk0(3),RkPrime(3)
     COMPLEX(CKIND) sumC,sumD
     COMPLEX(CKIND), DIMENSION(:,:), ALLOCATABLE :: CBeamTranspose,CUgMatPartial,CDummyEigenVectors
-    CHARACTER*40 surname
-    CHARACTER*100 SindString,SjndString,SPixelCount,SnBeams,SWeakBeamIndex
+    CHARACTER(40) surname
+    CHARACTER(100) SindString,SjndString,SPixelCount,SnBeams,SWeakBeamIndex
 
     ! variables used for koch spence method development
     COMPLEX(CKIND),ALLOCATABLE :: CDiagonalSgMatrix(:,:), COffDiagonalSgMatrix(:,:)

@@ -12,7 +12,7 @@ IMaskFLAG                 = 1
 IHolzFLAG                 = 0
 IAbsorbFLAG               = 2
 IAnisoDebyeWallerFlag     = 0
-IByteSize                 = 2
+IByteSize                 = 8
 
 # radius of the beam in pixels
 IPixelCount               = 40

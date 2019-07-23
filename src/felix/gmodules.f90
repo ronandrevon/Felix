@@ -127,7 +127,7 @@ MODULE MyMPI !?? grants MPI, so use of both in the code is unnecessary
   USE MPI
   USE MyNumbers, ONLY : IKIND
 
-  INTEGER(IKIND) :: my_rank, p, srce, dest
+  INTEGER(4) :: my_rank, p, srce, dest
   INTEGER, PARAMETER :: root = 0
   INTEGER, DIMENSION(MPI_STATUS_SIZE) :: status_info
   

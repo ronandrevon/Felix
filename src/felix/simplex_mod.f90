@@ -104,7 +104,7 @@ MODULE simplex_mod
           IF(i.NE.ihi) inhi=i
         END IF
       ENDDO
-	    !compute the range from highest to lowest
+      !compute the range from highest to lowest
       rtol=2.*ABS(y(ihi)-y(ilo))/(ABS(y(ihi))+ABS(y(ilo)))
 
       IF(rtol.LT.ftol) THEN !returning, put the best point in slot 1
@@ -141,15 +141,12 @@ MODULE simplex_mod
       END IF
        
       CALL message( LM, "------------------------------------------")
-
       CALL message( LM, "Iteration = ",iter)
       CALL message( LM, "  current best fit = ",y(ilo) )
-
       CALL message( LM, "Simplex range ",rtol)
       CALL message( LM, "    will end at ",ftol)
-
       CALL message( LM, "------------------------------------------")
-	
+
       iter=iter+2
       !begin a new iteration, reflect the simplex from the high point
       Rytry = SimplexExtrapolate(RSimplexVariable,y,psum,mp,np,ndim,ihi,-1.0D0,iter,IErr)

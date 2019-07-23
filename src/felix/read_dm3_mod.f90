@@ -74,8 +74,8 @@ MODULE read_dm3_mod
     !?? despite the pixel sizes RImageMatrixDM3 is outputted as square using max side, refer to module notes above
 
     CHARACTER(*),INTENT(IN) :: SFilePath
-    INTEGER(4), INTENT(IN) :: IYPixels, IXPixels !?? despite these, RImageArray is outputted as square
-    INTEGER(4),INTENT(OUT) :: IErr
+    INTEGER, INTENT(IN) :: IYPixels, IXPixels !?? despite these, RImageArray is outputted as square
+    INTEGER,INTENT(OUT) :: IErr
     REAL(4),INTENT(OUT) :: RImageMatrixDM3(MAX(IYPixels,IXPixels),MAX(IYPixels,IXPixels))
     ! RImageMatrixDM3( x_pixel, y_pixel )
 
@@ -88,11 +88,11 @@ MODULE read_dm3_mod
       ICorrespondingImageDataTag = 2   ! specifies which 'Data' tag corresponds to image data 
 
     ! local variables
-    INTEGER(4) :: i,j, INoOfBytes, INoOfTags, INoOfDataTags, INoOfPreDataBytes, Iy, Ix
+    INTEGER :: i,j, INoOfBytes, INoOfTags, INoOfDataTags, INoOfPreDataBytes, Iy, Ix
     LOGICAL :: LFindingTags, LReadingImageData, LLookingForDataTags
     CHARACTER(36) :: STagLabel
-    INTEGER(1) :: IPrevious4Bytes(4), IPreviousBytes(40), IByte
-    INTEGER(4) :: I4bytePreData, IDataLengthBigEndian
+    INTEGER :: IPrevious4Bytes(4), IPreviousBytes(40), IByte
+    INTEGER :: I4bytePreData, IDataLengthBigEndian
     REAL(4) :: RDataBytes ! image data is assumed to be 32bit float type Little Endian
     ! intialise output variables
     RImageMatrixDM3=0 

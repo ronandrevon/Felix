@@ -247,20 +247,18 @@ MODULE refinementcontrol_mod
     RImageSimi = ZERO
     ind = 0
     DO jnd = 1,2*IPixelCount
-       DO knd = 1,2*IPixelCount
-          ind = ind+1
-          RImageSimi(jnd,knd,:,:) = RSimulatedPatterns(:,:,ind)
-       END DO
+      DO knd = 1,2*IPixelCount
+        ind = ind+1
+        RImageSimi(jnd,knd,:,:) = RSimulatedPatterns(:,:,ind)
+      END DO
     END DO
-
     ! Gaussian blur to match experiment using global variable RBlurRadius
     IF (RBlurRadius.GT.TINY) THEN
-!       ALLOCATE(RTempImage(2*IPixelCount,2*IPixelCount),STAT=IErr)
-       DO ind=1,INoOfLacbedPatterns
-          DO jnd=1,IThicknessCount
-             CALL BlurG(RImageSimi(:,:,ind,jnd),IPixelCount,RBlurRadius,IErr)
-          END DO
-       END DO
+      DO ind=1,INoOfLacbedPatterns
+        DO jnd=1,IThicknessCount
+          CALL BlurG(RImageSimi(:,:,ind,jnd),IPixelCount,RBlurRadius,IErr)
+        END DO
+      END DO
     END IF
 
     ! We have done at least one simulation now

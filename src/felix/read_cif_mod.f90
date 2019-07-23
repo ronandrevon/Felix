@@ -242,7 +242,7 @@ MODULE read_cif_mod
        SSpaceGroupName=SAlphabetarray(SCAN(alphabet,SSpaceGroupName)-26)
     END IF
 
-    WRITE(SPrintString,FMT='(A10,A,A2,A)'),"Material: ",SChemicalFormula(1:ILN),", ",SSpaceGrp
+    WRITE(SPrintString,FMT='(A10,A,A2,A)') "Material: ",SChemicalFormula(1:ILN),", ",SSpaceGrp
     CALL message( LS, dbg3, SPrintString)
     
     ! ----------------------------------------------------------
