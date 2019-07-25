@@ -280,7 +280,6 @@ MODULE read_cif_mod
     IF(l_alert(IErr,"ReadCif","RAnisotropicDebyeWallerFactorTensor()")) RETURN
     ALLOCATE(IBasisAnisoDW(IAtomCount),STAT=IErr)
     IF(l_alert(IErr,"ReadCif","IBasisAnisoDW()")) RETURN
-
     !initialise variables
     IBasisAtomicNumber = 0
     RAnisotropicDebyeWallerFactorTensor = ZERO
@@ -293,22 +292,36 @@ MODULE read_cif_mod
       f1 = char_('_atom_site_label', name)
       SBasisAtomLabel(ind)=name
       f1 = char_('_atom_site_type_symbol', name)
-      SBasisAtomName(ind)=name(1:2)
-      ! remove the oxidation state numbers
-      Ipos=SCAN(SBasisAtomName(ind),"1234567890+-")
-      IF (Ipos.GT.0) WRITE(SBasisAtomName(ind),'(A1,A1)') name(1:1)," "
-      ! convert second letter to lower case
-      SAtomChar2=TRIM(name(2:2))
-      IF (SCAN(alphabet,SAtomChar2).LE.26) THEN
-        SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
-        WRITE(SBasisAtomName(ind),'(A1,A1)') name(1:1),SAtomChar2
+      ! accommodate cifs without atom symbols by using the label
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",0,",SBasisAtomLabel(ind)
+      IF(name.EQ."") THEN
+        SBasisAtomName(ind)=SBasisAtomLabel(ind)
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",1,",SBasisAtomLabel(ind)
+      ELSE
+        SBasisAtomName(ind)=name(1:2)
       END IF
+      ! checks on second letter of name
+      SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
+      IF (SAtomChar2.NE." ") THEN
+        ! check to convert second letter to lower case
+        IF (SCAN(alphabet,SAtomChar2).LT.26) THEN
+          SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
+          WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
+        END IF
+        ! remove the oxidation state numbers from single-letter elements (O,F etc.)
+        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &
+                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
+      END IF
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",2,",SBasisAtomLabel(ind)
+
       !get atomic number
+      IBasisAtomicNumber(ind)=0
       DO jnd=1,INElements!NB must match SElementSymbolMatrix defined in smodules line 73
         IF(TRIM(SBasisAtomName(ind)).EQ.TRIM(SElementSymbolMatrix(jnd))) THEN
           IBasisAtomicNumber(ind)=jnd
         END IF
       END DO
+IF(my_rank.EQ.0)PRINT*,"oink",ind
       IF (IBasisAtomicNumber(ind).EQ.0) THEN
         WRITE(SPrintString,'(A,I0,A,A)') &
               "Could not find Z for atom",ind,"with symbol",SBasisAtomName(ind)
@@ -317,7 +330,12 @@ MODULE read_cif_mod
       END IF
       !Wyckoff symbol
       f1 = char_('_atom_site_Wyckoff_symbol',name)
-      SWyckoffSymbol(ind) = name
+      !If there is no Wyckoff symbol use 'x'.  To be picked up later if coord refinement is attempted!
+      IF (name.NE."") THEN
+        SWyckoffSymbol(ind) = name
+      ELSE
+        SWyckoffSymbol(ind) = "x"
+      END IF
       !coordinates
       f2 = numb_('_atom_site_fract_x', x, sx)
       RBasisAtomPosition(ind,1)= x
@@ -384,7 +402,6 @@ MODULE read_cif_mod
       IF(loop_ .NEQV. .TRUE.) EXIT
     END DO
 
-    ALLOCATE(RSymVec(ISymCount,ITHREE),STAT=IErr)
     ALLOCATE(SSymString(ISymCount),STAT=IErr)
     ALLOCATE(RSymMat(ISymCount,ITHREE,ITHREE),STAT=IErr)
     IF(l_alert(IErr,"ReadCif","allocate RSymMat")) RETURN
