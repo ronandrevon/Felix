@@ -99,6 +99,7 @@ MODULE read_cif_mod
     CHARACTER(62)  alphabetnum
     CHARACTER(2)   rs
     CHARACTER(1)   slash
+    CHARACTER(1)   SAtomChar2
     REAL(RKIND),DIMENSION(:),ALLOCATABLE :: RPrint
     REAL          cela,celb,celc,siga,sigb,sigc
     REAL          x,y,z,u,su,sx,sy,sz,B,sB,sOcc,Uso,suso,Occ
@@ -139,7 +140,6 @@ MODULE read_cif_mod
     IF(.NOT.ocif_(name)) THEN
       IErr=1; IF(l_alert(IErr,"ReadCif","Cannot find .cif")) RETURN
     END IF
-
     ! Assign the data block to be accessed
     IF(.NOT.data_(' ')) THEN
       IErr=1; IF(l_alert(IErr,"ReadCif","No cif data_ statement found")) RETURN
@@ -155,7 +155,6 @@ MODULE read_cif_mod
         END IF
       END IF
     END IF
-
     ! strip spaces/brackets and set global variable SChemicalFormula
     ILN=0!Global variable with length of chemical formula string
     DO jnd = 1,LEN(TRIM(name))
@@ -164,7 +163,7 @@ MODULE read_cif_mod
         SChemicalFormula(ILN:ILN) = name(jnd:jnd)
       END IF
     END DO
-
+    
     ! Extract some cell dimensions; test all is OK
     ! NEED TO PUT IN A CHECK FOR LENGTH UNITS
     siga = 0.
@@ -178,7 +177,7 @@ MODULE read_cif_mod
         IErr=1; IF(l_alert(IErr,"ReadCif","Cell dimension(s) missing")) RETURN
     END IF
     RLengthX=cela; RLengthY=celb; RLengthZ=celc !global variables
-
+    
     siga = 0.
     sigb = 0.
     sigc = 0.
@@ -188,7 +187,7 @@ MODULE read_cif_mod
     IF(.NOT.(f1.AND.f2.AND.f3)) THEN
         IErr=1; IF(l_alert(IErr,"ReadCif","Cell angles(s) missing")) RETURN
     END IF
-
+    
     ! convert angles from degrees to radians
     IF (cela.GT.TWOPI) THEN!assume this angle is expressed in degrees
       RAlpha=cela*DEG2RADIAN;
@@ -200,7 +199,6 @@ MODULE read_cif_mod
       RGamma=celc*DEG2RADIAN;
     END IF
     CALL message( LXL, dbg14, "Unit cell angles alpha, beta, gamma", (/ RAlpha*RADIAN2DEG,RBeta*RADIAN2DEG,RGamma*RADIAN2DEG /) )
-
     f1 = numb_('_cell_volume', cela, siga)
     !Cell volume
     IF((f1) .EQV. .FALSE.) THEN
@@ -213,7 +211,7 @@ MODULE read_cif_mod
       IVolumeFLAG= 1
     END IF
     CALL message ( LXL, dbg14, "Unit cell volume", RVolume )
-
+    
     ! Extract space group notation (expected char string)
     f1 = char_('_symmetry_space_group_name_H-M', name)
     !different types of space groups as well as different phrasing of Hall space groups
@@ -233,10 +231,9 @@ MODULE read_cif_mod
         END IF
       END IF
     END IF
-
     SSpaceGroupName=TRIM(name(1:1))
     SSpaceGrp = TRIM(ADJUSTL(name))
-
+    
     !sometimes space group is input in lowercase letters - below changes the first letter to uppercase
     IF (SCAN(alphabet,SSpaceGroupName).GT.26) THEN
        SSpaceGroupName=SAlphabetarray(SCAN(alphabet,SSpaceGroupName)-26)
@@ -259,7 +256,7 @@ MODULE read_cif_mod
             "Number of atomic sites to refine is larger than the number of atoms. "//&
             "Please correct in felix.inp")) RETURN
     END IF
-
+    
     !allocate variables
     !coordinates of the basis
     ALLOCATE(RBasisAtomPosition(IAtomCount,ITHREE),STAT=IErr)
@@ -300,6 +297,12 @@ MODULE read_cif_mod
       ! remove the oxidation state numbers
       Ipos=SCAN(SBasisAtomName(ind),"1234567890+-")
       IF (Ipos.GT.0) WRITE(SBasisAtomName(ind),'(A1,A1)') name(1:1)," "
+      ! convert second letter to lower case
+      SAtomChar2=TRIM(name(2:2))
+      IF (SCAN(alphabet,SAtomChar2).LE.26) THEN
+        SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
+        WRITE(SBasisAtomName(ind),'(A1,A1)') name(1:1),SAtomChar2
+      END IF
       !get atomic number
       DO jnd=1,INElements!NB must match SElementSymbolMatrix defined in smodules line 73
         IF(TRIM(SBasisAtomName(ind)).EQ.TRIM(SElementSymbolMatrix(jnd))) THEN
