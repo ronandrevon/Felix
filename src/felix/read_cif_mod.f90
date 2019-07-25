@@ -293,10 +293,8 @@ MODULE read_cif_mod
       SBasisAtomLabel(ind)=name
       f1 = char_('_atom_site_type_symbol', name)
       ! accommodate cifs without atom symbols by using the label
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",0,",SBasisAtomLabel(ind)
       IF(name.EQ."") THEN
         SBasisAtomName(ind)=SBasisAtomLabel(ind)
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",1,",SBasisAtomLabel(ind)
       ELSE
         SBasisAtomName(ind)=name(1:2)
       END IF
@@ -312,8 +310,6 @@ IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",1,",SBasisAtomLabel(ind)
         IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &
                 WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
       END IF
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",2,",SBasisAtomLabel(ind)
-
       !get atomic number
       IBasisAtomicNumber(ind)=0
       DO jnd=1,INElements!NB must match SElementSymbolMatrix defined in smodules line 73
@@ -321,7 +317,6 @@ IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),",2,",SBasisAtomLabel(ind)
           IBasisAtomicNumber(ind)=jnd
         END IF
       END DO
-IF(my_rank.EQ.0)PRINT*,"oink",ind
       IF (IBasisAtomicNumber(ind).EQ.0) THEN
         WRITE(SPrintString,'(A,I0,A,A)') &
               "Could not find Z for atom",ind,"with symbol",SBasisAtomName(ind)
