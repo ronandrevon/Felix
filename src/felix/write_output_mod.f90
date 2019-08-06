@@ -436,9 +436,9 @@ MODULE write_output_mod
     !Introductory lines
     WRITE(IChOutSimplex,FMT='(A31)') "#(C) 2019 University of Warwick"
     WRITE(IChOutSimplex,FMT='(A16)') "data_felixrefine"
-    WRITE(IChOutSimplex,FMT='(A31)') "_audit_creation_date 2019-06-06"!need to find out how to get a date!
+    WRITE(IChOutSimplex,FMT='(A31)') "_audit_creation_date 2019-08-06"!need to find out how to get a date!
 !IF(my_rank.EQ.0)PRINT*,SChemicalFormula,LEN_TRIM(SChemicalFormula)
-    WRITE(IChOutSimplex,FMT='(A21,A)') "_chemical_formula_sum ",TRIM(ADJUSTL(SChemicalFormula))
+    WRITE(IChOutSimplex,FMT='(A22,A)') "_chemical_formula_sum ",TRIM(ADJUSTL(SChemicalFormula))
 
 ! Citation data would go here
 
@@ -459,7 +459,7 @@ MODULE write_output_mod
     WRITE(IChOutSimplex,FMT='(A27)') "_symmetry_equiv_pos_site_id"
     WRITE(IChOutSimplex,FMT='(A26)') "_symmetry_equiv_pos_as_xyz"
     DO jnd = 1,SIZE(SSymString,DIM=1)!
-      WRITE(IChOutSimplex,FMT='(I2,1X,A30)') jnd,SSymString(jnd)
+      WRITE(IChOutSimplex,FMT='(I3,1X,A30)') jnd,SSymString(jnd)
     END DO
     !atom coordinates etc
     WRITE(IChOutSimplex,FMT='(A5)') "loop_"

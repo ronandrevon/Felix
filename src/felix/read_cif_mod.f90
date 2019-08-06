@@ -399,6 +399,7 @@ MODULE read_cif_mod
 
     ALLOCATE(SSymString(ISymCount),STAT=IErr)
     ALLOCATE(RSymMat(ISymCount,ITHREE,ITHREE),STAT=IErr)
+    ALLOCATE(RSymVec(ISymcount,ITHREE),STAT=IErr)
     IF(l_alert(IErr,"ReadCif","allocate RSymMat")) RETURN
     
     RSymVec=ZERO
