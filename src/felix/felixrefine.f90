@@ -63,7 +63,7 @@ PROGRAM Felixrefine
         IBSMaxLocGVecAmp,ILaueLevel,INumTotalReflections,ITotalLaueZoneLevel,&
         IPrintFLAG,ICycle,INumInitReflections,IZerothLaueZoneLevel,xnd,&
         INumFinalReflections,IThicknessIndex,IVariableType,IArrayIndex,&
-        IAnisotropicDebyeWallerFactorElementNo,ISpaceGrp,IStartTime,IStartTime2
+        IAnisotropicDebyeWallerFactorElementNo,IStartTime,IStartTime2
   INTEGER(4) :: IErr4
   REAL(RKIND) :: REmphasis,RHOLZAcceptanceAngle,RLaueZoneGz,RMaxGMag,&
         RPvecMag,RScale,RMaxUgStep,Rdx,RStandardDeviation,RMean,RGzUnitVec,&
@@ -503,7 +503,6 @@ PROGRAM Felixrefine
       END IF
       
       IF (IRefineMode(6).EQ.1) THEN ! Lattice parameters, F
-        CALL ConvertSpaceGroupToNumber(ISpaceGrp,IErr)
         IF(l_alert(IErr,"felixrefine","ConvertSpaceGroupToNumber")) CALL abort
         !This section needs work to include rhombohedral cells and non-standard
         !settings!!!
@@ -1805,13 +1804,10 @@ CONTAINS
 
     ! called once in felixrefine IF(IRefineMode(2)==1) atom coordinate refinement, B
 
-    INTEGER(IKIND) :: IErr,knd,jnd,ind,ISpaceGrp
+    INTEGER(IKIND) :: IErr,knd,jnd,ind
     INTEGER(IKIND),DIMENSION(:),ALLOCATABLE :: IDegreesOfFreedom
     REAL(RKIND),DIMENSION(ITHREE,ITHREE) :: RMoveMatrix
     
-    CALL ConvertSpaceGroupToNumber(ISpaceGrp,IErr)
-    IF(l_alert(IErr,"SetupAtomMovements","ConvertSpaceGroupToNumber")) RETURN  
-
     ALLOCATE(IDegreesOfFreedom(SIZE(IAtomsToRefine)),STAT=IErr)
     IF(l_alert(IErr,"SetupAtomMovements","allocate IDegreesOfFreedom")) RETURN  
     IDegreesOfFreedom=0

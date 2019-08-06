@@ -408,7 +408,7 @@ MODULE write_output_mod
     USE setup_space_group_mod!required for the subroutine ConvertSpaceGroupToNumber
  
     ! global inputs
-    USE IPARA, ONLY : ILN,IIndependentVariableAtom,IIndependentVariableType
+    USE IPARA, ONLY : ISpaceGrp,ILN,IIndependentVariableAtom,IIndependentVariableType
     USE RPARA, ONLY : RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, RGamma, &
           RBasisAtomPosition, RBasisAtomDelta, RIndependentDelta, RBasisIsoDW, RBasisOccupancy, RVolume
     USE SPARA, ONLY : SSpaceGrp, SBasisAtomLabel, SBasisAtomName,SChemicalFormula,&
@@ -420,7 +420,7 @@ MODULE write_output_mod
     CHARACTER(200), INTENT(IN) :: path
     INTEGER(IKIND), INTENT(IN) :: Iter
     INTEGER(IKIND), INTENT(OUT) :: IErr
-    INTEGER(IKIND) :: ind,jnd,ISpaceGrp
+    INTEGER(IKIND) :: ind,jnd
     CHARACTER(200) :: filename, fullpath
     CHARACTER(100) :: String
     CHARACTER(14) :: Sout
@@ -437,7 +437,6 @@ MODULE write_output_mod
     WRITE(IChOutSimplex,FMT='(A31)') "#(C) 2019 University of Warwick"
     WRITE(IChOutSimplex,FMT='(A16)') "data_felixrefine"
     WRITE(IChOutSimplex,FMT='(A31)') "_audit_creation_date 2019-08-06"!need to find out how to get a date!
-!IF(my_rank.EQ.0)PRINT*,SChemicalFormula,LEN_TRIM(SChemicalFormula)
     WRITE(IChOutSimplex,FMT='(A22,A)') "_chemical_formula_sum ",TRIM(ADJUSTL(SChemicalFormula))
 
 ! Citation data would go here
@@ -453,7 +452,6 @@ MODULE write_output_mod
     WRITE(IChOutSimplex,FMT='(A12,1X,F7.2)') "_cell_volume",RVolume
     !symmetry
     WRITE(IChOutSimplex,FMT='(A,A,A)') "_symmetry_space_group_name_H-M  '",TRIM(ADJUSTL(SSpaceGrp)),"'"
-    CALL ConvertSpaceGroupToNumber(ISpaceGrp,IErr)
     WRITE(IChOutSimplex,FMT='(A27,1X,I3)') "_symmetry_Int_Tables_number",ISpaceGrp
     WRITE(IChOutSimplex,FMT='(A5)') "loop_"
     WRITE(IChOutSimplex,FMT='(A27)') "_symmetry_equiv_pos_site_id"

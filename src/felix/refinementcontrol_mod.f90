@@ -637,7 +637,7 @@ MODULE refinementcontrol_mod
 
     IMPLICIT NONE
 
-    INTEGER(IKIND) :: IErr,ind,IVariableType,ISpacegrp,jnd,knd
+    INTEGER(IKIND) :: IErr,ind,IVariableType,jnd,knd
     CHARACTER(14) :: Sout
 
     DO ind = 1,IRefinementVariableTypes
@@ -708,7 +708,7 @@ MODULE refinementcontrol_mod
           END DO
 
         CASE(6)
-          CALL ConvertSpaceGroupToNumber(ISpaceGrp,IErr)
+!          CALL ConvertSpaceGroupToNumber(ISpaceGrp,IErr)
           CALL message(LS,"Current Lattice parameters")
           !assume here that lattice parameters are NOT being refined at the same time as anything else!
           CALL UncertBrak(RLengthX,RIndependentDelta(1),Sout,IErr)

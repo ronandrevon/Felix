@@ -76,7 +76,7 @@ MODULE read_cif_mod
           RAnisotropicDebyeWallerFactorTensor, RBasisAtomPosition, RBasisIsoDW, &
           RBasisOccupancy, RSymMat, RSymVec, RBasisAtomDelta
     USE IPARA, ONLY : IVolumeFLAG, IBasisAtomicNumber, IMaxPossibleNAtomsUnitCell, &
-          ISymCount, IBasisAnisoDW
+          ISymCount, IBasisAnisoDW,ISpaceGrp
 
     ! global inputs
     USE SConst, ONLY : SAllSpaceGrp,SElementSymbolMatrix
@@ -211,33 +211,31 @@ MODULE read_cif_mod
       IVolumeFLAG= 1
     END IF
     CALL message ( LXL, dbg14, "Unit cell volume", RVolume )
-    
-    ! Extract space group notation (expected char string)
-    f1 = char_('_symmetry_space_group_name_H-M', name)
-    !different types of space groups as well as different phrasing of Hall space groups
-    IF (SCAN(name,alphabet).EQ.0) THEN
-      f1 = char_('_symmetry_space_group_name_Hall',name)
+
+    ! Extract space group
+    !try the number first
+    f1 = numb_('_symmetry_Int_tables_number',numb,sx)
+    IF (numb.LT.TINY) f1 = numb_('_space_group_IT_number',numb,sx)
+    !if no number, look for a string
+    IF (numb.LT.TINY) THEN
+      f1 = char_('_symmetry_space_group_name_H-M', name)
+      IF (SCAN(name,alphabet).EQ.0) f1 = char_('_symmetry_space_group_name_Hall',name)
+      !If we still have nothing, we have run out of options
       IF (SCAN(name,alphabet).EQ.0) THEN
-        f1 = numb_('_symmetry_Int_tables_number',numb,sx)
-        IF (numb.LT.TINY) THEN
-          f1 = numb_('_space_group_IT_number',numb,sx)
-          IF (numb.LT.TINY) THEN
-            IErr=1; IF(l_alert(IErr,"ReadCif","No Space Group")) RETURN
-          ELSE
-            name = SAllSpaceGrp(NINT(numb))
-          END IF
-        ELSE 
-          name = SAllSpaceGrp(NINT(numb))
-        END IF
+        IErr=1; IF(l_alert(IErr,"ReadCif","No Space Group")) RETURN
+      ELSE!we have a string
+        SSpaceGrp = TRIM(ADJUSTL(name))
+        !Get ISpaceGrp (global variable)
+        CALL ConvertSpaceGroupToNumber(IErr)
+        IF (l_alert(IErr,"ReadCif","error converting sapce group")) RETURN
       END IF
+    ELSE!we have a number
+      ISpaceGrp = numb
+      SSpaceGrp = SAllSpaceGrp(ISpaceGrp)
     END IF
-    SSpaceGroupName=TRIM(name(1:1))
-    SSpaceGrp = TRIM(ADJUSTL(name))
-    
-    !sometimes space group is input in lowercase letters - below changes the first letter to uppercase
-    IF (SCAN(alphabet,SSpaceGroupName).GT.26) THEN
-       SSpaceGroupName=SAlphabetarray(SCAN(alphabet,SSpaceGroupName)-26)
-    END IF
+    !SpaceGroupName is the first letter of the spacegroup, used to determine reflection rules
+    SSpaceGroupName=TRIM(SSpaceGrp(1:1))
+    IF (SCAN(alphabet,SSpaceGroupName).GT.26) SSpaceGroupName=SAlphabetarray(SCAN(alphabet,SSpaceGroupName)-26)
 
     WRITE(SPrintString,FMT='(A10,A,A2,A)') "Material: ",SChemicalFormula(1:ILN),", ",SSpaceGrp
     CALL message( LS, dbg3, SPrintString)
@@ -256,7 +254,6 @@ MODULE read_cif_mod
             "Number of atomic sites to refine is larger than the number of atoms. "//&
             "Please correct in felix.inp")) RETURN
     END IF
-    
     !allocate variables
     !coordinates of the basis
     ALLOCATE(RBasisAtomPosition(IAtomCount,ITHREE),STAT=IErr)
@@ -295,20 +292,24 @@ MODULE read_cif_mod
       ! accommodate cifs without atom symbols by using the label
       IF(name.EQ."") THEN
         SBasisAtomName(ind)=SBasisAtomLabel(ind)
+        SAtomChar2=TRIM(SBasisAtomLabel(ind)(2:2))
+        ! remove numbers from single-letter elements (O,F etc.)
+        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &      
+                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "    
       ELSE
         SBasisAtomName(ind)=name(1:2)
       END IF
       ! checks on second letter of name
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
+        ! remove numbers from single-letter elements (O,F etc.)
+        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &
+                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
         ! check to convert second letter to lower case
         IF (SCAN(alphabet,SAtomChar2).LT.26) THEN
           SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
           WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
         END IF
-        ! remove the oxidation state numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &
-                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
       END IF
       !get atomic number
       IBasisAtomicNumber(ind)=0
@@ -320,8 +321,8 @@ MODULE read_cif_mod
       IF (IBasisAtomicNumber(ind).EQ.0) THEN
         WRITE(SPrintString,'(A,I0,A,A)') &
               "Could not find Z for atom",ind,"with symbol",SBasisAtomName(ind)
+        IErr=1
         IF(l_alert(IErr,"ReadCif",SPrintString)) RETURN
-        IErr=1; RETURN
       END IF
       !Wyckoff symbol
       f1 = char_('_atom_site_Wyckoff_symbol',name)
@@ -350,15 +351,15 @@ MODULE read_cif_mod
           RBasisIsoDW(ind) = RDebyeWallerConstant
         END IF
       END IF
-      !occupancy
+      !occupancy is assumed to be 1.0 
+      RBasisOccupancy(ind) = ONE
       f2 = numb_('_atom_site_occupancy',Occ, sOcc)
-      RBasisOccupancy(ind) = Occ
-
-      CALL message( LXL, dbg7, "For Atom ",ind)
-      CALL message( LXL, dbg7, SBasisAtomLabel(ind)//SBasisAtomName(ind)//&
+      IF(Occ.GT.TINY) RBasisOccupancy(ind) = Occ
+      CALL message( LM, dbg7, "For Atom ",ind)
+      CALL message( LM, dbg7, SBasisAtomLabel(ind)//SBasisAtomName(ind)//&
             " Z=",IBasisAtomicNumber(ind) )
-      CALL message( LXL, dbg7, "RBasisAtomPosition", RBasisAtomPosition(ind,:) )
-      CALL message( LXL, dbg7, "(DWF, occupancy) respectively = ",&
+      CALL message( LM, dbg7, "RBasisAtomPosition", RBasisAtomPosition(ind,:) )
+      CALL message( LM, dbg7, "(DWF, occupancy) respectively = ",&
             (/ RBasisIsoDW(ind), RBasisOccupancy(ind) /) )
       
       IF(loop_ .NEQV. .TRUE.) EXIT
@@ -497,5 +498,104 @@ MODULE read_cif_mod
     END DO
     SStripped = SPaddedStripped(1:n)
   END SUBROUTINE
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  !>
+  !! Procedure-description: Convert SSpacegrp to lower case and Compare
+  !! SSpaceGrpNoSpaces with every space group
+  !!
+  !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
+  !!
+  SUBROUTINE ConvertSpaceGroupToNumber(IErr)
+
+    ! called from read_cif
+    USE MyNumbers
+    USE message_mod
+
+    ! global inputs
+    USE SPARA, ONLY : SSpaceGrp
+    USE SConst, ONLY : SAllSpaceGrp
+    USE IPARA, ONLY : ISpaceGrp
+
+    IMPLICIT NONE
+
+    INTEGER(IKIND),INTENT(OUT) :: IErr
+    INTEGER(IKIND) :: jnd, IIndex, ind
+    CHARACTER(LEN(SSpaceGrp)) :: SSpaceGrpNoSpaces
+    CHARACTER(20) :: SSpaceGrpToCompare
+
+    ! Push Spaces In SSpaceGrp to the end of the String
+
+    jnd = 0
+    ISpaceGrp = 0
+    SSpaceGrpNoSpaces = ' '
+    SSpaceGrpToCompare = ' '
+
+    DO ind = 1,LEN(SSpaceGrp)
+       IF(INDEX(STRING='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567879-/',&
+            SUBSTRING=SSpaceGrp(ind:ind)).NE.0) THEN
+          jnd = jnd + 1
+          SSpaceGrpNoSpaces(jnd:jnd) = SSpaceGrp(ind:ind)
+       END IF
+    END DO
+
+    ! Convert SSpacegrp to lower case 
+
+    CALL StrLowCase( SSpaceGrpNoSpaces,SSpaceGrpNoSpaces,IErr )
+
+    ! Compare SSpaceGrpNoSpaces with every space group 
+
+    DO ind = 1,SIZE(SAllSpaceGrp)
+
+       CALL StrLowCase( SAllSpaceGrp(ind),SSpaceGrpToCompare,IErr )
+       IIndex = INDEX(TRIM(ADJUSTL(SSpaceGrpToCompare)),TRIM(ADJUSTL(SSpaceGrpNoSpaces)))
+       IF (IIndex.NE.0) THEN
+          ISpaceGrp = ind
+          EXIT
+       END IF
+    END DO
+
+!DBG IF (my_rank.EQ.0) PRINT*, ISpaceGrp
+    IF(ISpaceGrp.EQ.0) THEN
+      IErr = 1
+      IF(l_alert(IErr,"ConvertSpaceGroupToNumber",&
+            "Space Group was not found. Check .cif file")) RETURN
+    END IF
+
+  END SUBROUTINE ConvertSpaceGroupToNumber
+
+  !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+  !>
+  !! Procedure-description: 
+  !!
+  !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
+  !!
+  SUBROUTINE StrLowCase( Input_String,Output_String,IErr )
+    ! used twice in ConvertSpaceGroupToNumber
+
+    USE MyNumbers
+
+    IMPLICIT NONE
+
+    CHARACTER(*), INTENT(IN) :: Input_String
+    CHARACTER(LEN(Input_String)), INTENT(OUT) :: Output_String
+    INTEGER(IKIND), INTENT(OUT) :: IErr
+    CHARACTER(*), PARAMETER :: LOWER_CASE = 'abcdefghijklmnopqrstuvwxyz',&
+         UPPER_CASE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    INTEGER(IKIND) :: ind, n
+
+    IErr=0
+    ! Copy input string
+    Output_String = Input_String
+
+    ! Convert case character by character
+    DO ind = 1, LEN(Output_String,KIND=IKIND)
+       n = INDEX(UPPER_CASE, Output_String(ind:ind))
+       IF ( n.NE.0 ) Output_String(ind:ind) = LOWER_CASE(n:n)
+    END DO
+  END SUBROUTINE  StrLowCase
 
 END MODULE read_cif_mod
