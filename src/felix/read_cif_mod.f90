@@ -292,14 +292,16 @@ MODULE read_cif_mod
       ! accommodate cifs without atom symbols by using the label
       IF(name.EQ."") THEN
         SBasisAtomName(ind)=SBasisAtomLabel(ind)
-        SAtomChar2=TRIM(SBasisAtomLabel(ind)(2:2))
-        ! remove numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &      
-                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "    
       ELSE
         SBasisAtomName(ind)=name(1:2)
       END IF
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       ! checks on second letter of name
+      SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
+      ! remove numbers from single-letter elements (O,F etc.)
+      IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
+              WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
         ! check to convert second letter to lower case
@@ -307,10 +309,8 @@ MODULE read_cif_mod
           SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
           WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
         END IF
-        ! remove numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
-                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
       END IF
+IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       !get atomic number
       IBasisAtomicNumber(ind)=0
       DO jnd=1,INElements!NB must match SElementSymbolMatrix defined in smodules line 73
@@ -365,26 +365,26 @@ MODULE read_cif_mod
       IF(loop_ .NEQV. .TRUE.) EXIT
     END DO
 
-    ! Anisotropic D-W factor !?? should check that it exists
-    DO ind=1,IAtomCount
-      f2 = numb_('_atom_site_aniso_U_11',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,1,1) = u
-      f2 = numb_('_atom_site_aniso_U_22',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,2,2) = u
-      f2 = numb_('_atom_site_aniso_U_33',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,3,3) = u
-      f2 = numb_('_atom_site_aniso_U_23',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,2,3) = u
-      f2 = numb_('_atom_site_aniso_U_12',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,1,2) = u
-      f2 = numb_('_atom_site_aniso_U_13',u,su) 
-      RAnisotropicDebyeWallerFactorTensor(ind,1,3) = u
-      IBasisAnisoDW(ind) = ind
-      IF(IAnisoDebyeWallerFactorFlag.EQ.1) THEN
-        CALL message( LM,"RAnisotropicDebyeWallerFactorTensor, index = ",ind)
-        CALL message( LM, "..",RAnisotropicDebyeWallerFactorTensor(ind,:,:) )
-      END IF
-    END DO
+!    ! Anisotropic D-W factor
+!    DO ind=1,IAtomCount
+!      f2 = numb_('_atom_site_aniso_U_11',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,1,1) = u
+!      f2 = numb_('_atom_site_aniso_U_22',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,2,2) = u
+!      f2 = numb_('_atom_site_aniso_U_33',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,3,3) = u
+!      f2 = numb_('_atom_site_aniso_U_23',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,2,3) = u
+!      f2 = numb_('_atom_site_aniso_U_12',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,1,2) = u
+!      f2 = numb_('_atom_site_aniso_U_13',u,su) 
+!      RAnisotropicDebyeWallerFactorTensor(ind,1,3) = u
+!      IBasisAnisoDW(ind) = ind
+!      IF(IAnisoDebyeWallerFactorFlag.EQ.1) THEN
+!        CALL message( LM,"RAnisotropicDebyeWallerFactorTensor, index = ",ind)
+!        CALL message( LM, "..",RAnisotropicDebyeWallerFactorTensor(ind,:,:) )
+!      END IF
+!    END DO
 
     ! count how many symmetry elements
     ISymCount=0
