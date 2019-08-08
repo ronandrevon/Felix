@@ -303,7 +303,7 @@ MODULE read_cif_mod
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
         ! remove numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &
+        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
                 WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
         ! check to convert second letter to lower case
         IF (SCAN(alphabet,SAtomChar2).LT.26) THEN
