@@ -294,7 +294,7 @@ MODULE read_cif_mod
         SBasisAtomName(ind)=SBasisAtomLabel(ind)
         SAtomChar2=TRIM(SBasisAtomLabel(ind)(2:2))
         ! remove numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-").GT.0) &      
+        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &      
                 WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "    
       ELSE
         SBasisAtomName(ind)=name(1:2)
@@ -302,14 +302,14 @@ MODULE read_cif_mod
       ! checks on second letter of name
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
-        ! remove numbers from single-letter elements (O,F etc.)
-        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
-                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
         ! check to convert second letter to lower case
         IF (SCAN(alphabet,SAtomChar2).LT.26) THEN
           SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
           WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
         END IF
+        ! remove numbers from single-letter elements (O,F etc.)
+        IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
+                WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
       END IF
       !get atomic number
       IBasisAtomicNumber(ind)=0
