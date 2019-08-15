@@ -80,15 +80,11 @@ MODULE read_dm3_mod
     ! RImageMatrixDM3( x_pixel, y_pixel )
 
     ! parameters (some of these could be inputs but currently unncessary)
-    LOGICAL,PARAMETER  ::  &
-      LGetImageData = .TRUE.,&
-      LPrintTags = .FALSE.,&
-      LPrintingAllowed = .FALSE.       ! if false, excluding errors, printing to terminal is suppressed
-    INTEGER(1),PARAMETER :: &
-      ICorrespondingImageDataTag = 2   ! specifies which 'Data' tag corresponds to image data 
+    LOGICAL,PARAMETER  :: LGetImageData = .TRUE., LPrintTags = .FALSE., LPrintingAllowed = .FALSE.       ! if false, excluding errors, printing to terminal is suppressed
+    INTEGER(1),PARAMETER :: ICorrespondingImageDataTag = 2   ! specifies which 'Data' tag corresponds to image data 
 
     ! local variables
-    INTEGER :: i,j, INoOfBytes, INoOfTags, INoOfDataTags, INoOfPreDataBytes, Iy, Ix
+    INTEGER :: i,j,INoOfBytes,INoOfTags,INoOfDataTags,INoOfPreDataBytes,Ix,Iy,IRerr
     LOGICAL :: LFindingTags, LReadingImageData, LLookingForDataTags
     CHARACTER(36) :: STagLabel
     INTEGER :: IPrevious4Bytes(4), IPreviousBytes(40), IByte
@@ -96,39 +92,35 @@ MODULE read_dm3_mod
     REAL(4) :: RDataBytes ! image data is assumed to be 32bit float type Little Endian
     ! intialise output variables
     RImageMatrixDM3=0 
-    IErr=0
+    IErr=1!this is only cancelled if we actually read an image (not just tags)
     ! intialise local variables
     LFindingTags=.TRUE.; LReadingImageData=.FALSE.; LLookingForDataTags=.TRUE.
     INoOfBytes=0; INoOfTags=0; INoOfPreDataBytes=0; INoOfDataTags=0; Iy=0; Ix=1;
     IPrevious4Bytes=0; IPreviousBytes=0; I4bytePreData=0;
     RDataBytes=0; IDataLengthBigEndian=0;
 
-    OPEN(UNIT=1,FILE=SFilePath,STATUS='OLD',ACCESS='STREAM',ACTION='READ',IOSTAT=IErr, CONVERT='LITTLE_ENDIAN')
-    IF(IErr.NE.0) THEN
+    OPEN(UNIT=1,FILE=SFilePath,STATUS='OLD',ACCESS='STREAM',ACTION='READ',IOSTAT=IRerr, CONVERT='BIG_ENDIAN')
+    IF(IRerr.NE.0) THEN
       WRITE(*,'(A)') 'Error in ReadDM3TagsAndImage(). Opening .dm3 file, file path =', TRIM(SFilePath)
       RETURN
     ENDIF
-
     DO i = 1,4000000 ! should exit due to end of file before this is reached
       ! each iterationa a set of bytes are read in from the file
       ! depending upon what is being read-in, this can be 1-4 bytes at a time
-
       IF( LFindingTags ) THEN ! read another byte to search and find tags
-
         ! remove oldest (leftmost) byte and move list of bytes left by 1
         IPreviousBytes = CSHIFT(IPreviousBytes,1)
         IPrevious4Bytes = CSHIFT(IPrevious4Bytes,1)
-        
         ! read byte from file
-        READ(1,IOSTAT=IErr) IPreviousBytes(SIZE(IPreviousBytes)) ! read byte into end of IPreviousBytes array
-        IF(IErr.LT.0) THEN ! End of file reached
-          IF(LPrintTags.AND.LPrintingAllowed) WRITE(*,'(A43,I15)') 'End Of File Reached, Total bytes =         ',INoOfBytes
-          IErr=0
+        READ(1,IOSTAT=IRerr) IPreviousBytes(SIZE(IPreviousBytes)) ! read byte into end of IPreviousBytes array
+        IF(IRerr.LT.0) THEN ! End of file reached
+          IF(LPrintTags.AND.LPrintingAllowed) WRITE(*,'(A43,I15)') &
+                  'End Of File Reached, Total bytes =         ',INoOfBytes
           EXIT
         ENDIF
         INoOfBytes = INoOfBytes + 1
         IPrevious4Bytes(4) = IPreviousBytes(SIZE(IPreviousBytes))
-
+!IF(my_rank.EQ.0)PRINT*,"reading tags",IPrevious4Bytes
         ! check if at a DM3 tag delimiter '%%%%' ('%' is 37 in ASCII)
         ! and read tag label
         IF( ALL(IPrevious4Bytes.EQ.[37,37,37,37]) ) THEN 
@@ -149,6 +141,7 @@ MODULE read_dm3_mod
             IF(INoOfDataTags.EQ.ICorrespondingImageDataTag) THEN
               LLookingForDataTags=.FALSE.
               IF(LPrintingAllowed) WRITE(*,'(A)') 'Now reading image data'
+              IErr=0
               LFindingTags = .FALSE.
               LReadingImageData = .TRUE.
             ENDIF
@@ -173,15 +166,19 @@ MODULE read_dm3_mod
             CALL MVBITS( I4bytePreData, 0,  8, IDataLengthBigEndian, 24 )
             IF(IDataLengthBigEndian.NE.IYPixels*IXPixels) THEN ! error
               IErr=1
-              WRITE(*,'(A,I0)') 'Error in ReadDM3TagsAndImage(). Data array length does not match inputted pixel size.'
-              WRITE(*,'(A,I0,A,I0)') 'Error in ReadDM3TagsAndImage(). Data array length = ',IDataLengthBigEndian,', IYPixels*IXPixels = ', IYPixels*IXPixels
+              WRITE(*,'(A,I0)') 'Error in ReadDM3TagsAndImage(). &
+                      Data array length does not match inputted pixel size.'
+              WRITE(*,'(A,I0,A,I0)') 'Error in ReadDM3TagsAndImage(). &
+                      Data array length = ',IDataLengthBigEndian,', IYPixels*IXPixels = ', IYPixels*IXPixels
               RETURN
             ENDIF 
+!IF(my_rank.EQ.0)PRINT*,IDataLengthBigEndian,"poop"
           ENDIF
           INoOfBytes = INoOfBytes + 4
           INoOfPreDataBytes = INoOfPreDataBytes + 4
         ELSE ! read image data bytes
           READ(1,IOSTAT=IErr) RDataBytes
+!IF(my_rank.EQ.0)PRINT*,RDataBytes 
           IF(IErr.NE.0) THEN ! error reading dm3
             WRITE(*,'(A,I0)') 'Error in ReadDM3TagsAndImage(). while reading data, Byte number = ',INoOfBytes
             RETURN
@@ -201,8 +198,8 @@ MODULE read_dm3_mod
         ENDIF
 
       ELSE ! error, this should never happen
-        IErr=1; WRITE(*,'(A)') 'Error in ReadDM3TagsAndImage(). Reading DM3, cannot search for tags nor read image data'; RETURN
-
+        IErr=1; WRITE(*,'(A)') 'Error in ReadDM3TagsAndImage(). Reading DM3, cannot search for tags nor read image data'
+        RETURN
       ENDIF
 
     ENDDO    

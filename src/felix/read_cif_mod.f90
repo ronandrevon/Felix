@@ -295,13 +295,11 @@ MODULE read_cif_mod
       ELSE
         SBasisAtomName(ind)=name(1:2)
       END IF
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       ! checks on second letter of name
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       ! remove numbers from single-letter elements (O,F etc.)
       IF (SCAN(SAtomChar2,"1234567890+-()").GT.0) &
               WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
         ! check to convert second letter to lower case
@@ -310,7 +308,6 @@ IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
           WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
         END IF
       END IF
-IF(my_rank.EQ.0)PRINT*,SBasisAtomName(ind),SBasisAtomLabel(ind)
       !get atomic number
       IBasisAtomicNumber(ind)=0
       DO jnd=1,INElements!NB must match SElementSymbolMatrix defined in smodules line 73

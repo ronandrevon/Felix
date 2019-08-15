@@ -245,6 +245,9 @@ MODULE utilities_mod
     Rimg2StDev=SQRT(SUM(((Rimg2-Rimg2Mean)**2)/RPixelTotal))
     Normalised2DCrossCorrelation=SUM(((Rimg1-Rimg1Mean)*(Rimg2-Rimg2Mean)))/&
          (Rimg1StDev*Rimg2StDev*RPixelTotal)
+    !Throw an error if we get a divide by zero
+    IF(Rimg1StDev.LT.TINY) IErr=1
+    IF(Rimg2StDev.LT.TINY) IErr=1
 
   END FUNCTION Normalised2DCrossCorrelation
 
