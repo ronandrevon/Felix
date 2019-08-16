@@ -384,7 +384,8 @@ MODULE write_output_mod
     OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
 
     DO ind = 1,INhkl
-      WRITE(IChOut,FMT='(3I5.1,4F13.9)') NINT(Rhkl(ind,:)),RgPool(ind,1),RgPool(ind,2),CUgMat(ind,1)
+      WRITE(IChOut,FMT='(3I5.1,2(1X,F13.9),2(1X,E14.6))') NINT(Rhkl(ind,:)),&
+              RgPool(ind,1),RgPool(ind,2),CUgMat(ind,1)
     END DO
 
     CLOSE(IChOut)    
