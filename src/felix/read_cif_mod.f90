@@ -302,11 +302,18 @@ MODULE read_cif_mod
               WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1)," "
       SAtomChar2=TRIM(SBasisAtomName(ind)(2:2))
       IF (SAtomChar2.NE." ") THEN
-        ! check to convert second letter to lower case
+        ! convert second letter to lower case
         IF (SCAN(alphabet,SAtomChar2).LT.26) THEN
           SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)+26)
           WRITE(SBasisAtomName(ind),'(A1,A1)') SBasisAtomName(ind)(1:1),SAtomChar2
         END IF
+      END IF
+      !checks on first letter of name
+      SAtomChar2=TRIM(SBasisAtomName(ind)(1:1))
+      ! convert first letter to upper case
+      IF (SCAN(alphabet,SAtomChar2).GT.26) THEN
+        SAtomChar2=SAlphabetarray(SCAN(alphabet,SAtomChar2)-26)
+        WRITE(SBasisAtomName(ind),'(A1,A1)') SAtomChar2,SBasisAtomName(ind)(2:2)
       END IF
       !get atomic number
       IBasisAtomicNumber(ind)=0
