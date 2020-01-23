@@ -322,6 +322,8 @@ MODULE read_cif_mod
           IBasisAtomicNumber(ind)=jnd
         END IF
       END DO
+      !Deuterium - replace with hydrogen
+      IF(IBasisAtomicNumber(ind).EQ.104) IBasisAtomicNumber(ind)=1
       IF (IBasisAtomicNumber(ind).EQ.0) THEN
         WRITE(SPrintString,'(A,I0,A,A)') &
               "Could not find Z for atom",ind,"with symbol",SBasisAtomName(ind)
