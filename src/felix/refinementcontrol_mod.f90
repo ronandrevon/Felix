@@ -561,10 +561,6 @@ MODULE refinementcontrol_mod
         
       END SELECT
     END DO
-    !Atom movement constraints to preserve mirror symmetry in [110] patterns: O2x=O3x; O2z=-O3z
-    RBasisAtomPosition(6,1)=RBasisAtomPosition(5,1)
-    RBasisAtomPosition(6,3)=1.0-RBasisAtomPosition(5,3)
-
 
     !--------------------------------------------------------------------  
     ! now do appropriate recalculations 
@@ -586,6 +582,18 @@ MODULE refinementcontrol_mod
 
         CASE(4) ! D: iso DWF
           !basis has changed, recalculate unit cell
+
+          !Atom movement constraints to preserve mirror symmetry in [110] patterns:
+          !O2x=O3x; O2z=-O3z
+          RBasisAtomPosition(1,3)=0.75
+          RBasisAtomPosition(2,3)=0.75
+          RBasisAtomPosition(3,3)=0.25
+          RBasisAtomPosition(4,3)=0.25
+          RBasisAtomPosition(6,3)=1.0-RBasisAtomPosition(5,3)
+          RBasisAtomPosition(7,3)=0.25
+          !not needed for symmetry but maintains octahedral rigidity
+          RBasisAtomPosition(6,1)=RBasisAtomPosition(5,1)
+
           CALL UniqueAtomPositions(IErr)
           IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
 
