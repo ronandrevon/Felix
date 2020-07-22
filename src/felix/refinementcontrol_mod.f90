@@ -572,18 +572,9 @@ MODULE refinementcontrol_mod
       
         CASE(2) ! B: atomic coordinates
           !basis has changed, recalculate unit cell
-          CALL UniqueAtomPositions(IErr)
-          IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
 
-        CASE(3) ! C: occupancy
-          !basis has changed, recalculate unit cell
-          CALL UniqueAtomPositions(IErr)
-          IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
-
-        CASE(4) ! D: iso DWF
-          !basis has changed, recalculate unit cell
-
-          !Atom movement constraints to preserve mirror symmetry in [110] patterns:
+          !Atom movement constraints to preserve mirror symmetry in [110]
+          !patterns:
           !O2x=O3x; O2z=-O3z
           RBasisAtomPosition(1,3)=0.75
           RBasisAtomPosition(2,3)=0.75
@@ -594,6 +585,16 @@ MODULE refinementcontrol_mod
           !not needed for symmetry but maintains octahedral rigidity
           RBasisAtomPosition(6,1)=RBasisAtomPosition(5,1)
 
+          CALL UniqueAtomPositions(IErr)
+          IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
+
+        CASE(3) ! C: occupancy
+          !basis has changed, recalculate unit cell
+          CALL UniqueAtomPositions(IErr)
+          IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
+
+        CASE(4) ! D: iso DWF
+          !basis has changed, recalculate unit cell
           CALL UniqueAtomPositions(IErr)
           IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
 
