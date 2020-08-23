@@ -5976,7 +5976,7 @@ MODULE setup_space_group_mod
 !!$  CASE(33)
 !!$  CASE(34)
 !!$  CASE(35)
-    CASE(36)
+    CASE(36)!C m c 21
       !NEED TO CODE ALTERNATIVE ORIENTATIONS Ccm21,Bb21m,Bm21b,A21ma,A21am
       SELECT CASE (SWyckoff)
       CASE('a')!point symmetry m, coordinate [0,y,z],
