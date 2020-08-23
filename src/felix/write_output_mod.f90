@@ -67,10 +67,12 @@ MODULE write_output_mod
     !infinity and NaN check
     IF (ABS(Rval)-1.GT.ABS(Rval).OR.ABS(Rval).NE.ABS(Rval)) THEN
       IErr=1
+!      Sout=""
       RETURN
     END IF
     IF (ABS(Rerr)-1.GT.ABS(Rerr).OR.ABS(Rerr).NE.ABS(Rerr)) THEN
       IErr=1
+!      Sout=""
       RETURN
     END IF
 
