@@ -133,6 +133,8 @@ MODULE setup_space_group_mod
  
         CASE('b')!point symmetry 1, coordinate [x,y,z], no reassignment
 
+        CASE('c')!point symmetry 1, coordinate [x,y,z], no reassignment
+
         CASE DEFAULT
           IErr = 1
           IF(l_alert(IErr,"PreferredBasis",&
@@ -1264,6 +1266,7 @@ MODULE setup_space_group_mod
       END SELECT    
 !!$  CASE(36)   
     CASE(36)!C m c 21
+      IF(my_rank.EQ.0) PRINT*,"SWyckoff",SWyckoff
       SELECT CASE (SWyckoff)
       CASE('a')!point symmetry m *** changed for CMO hack
         IVectors = 1
