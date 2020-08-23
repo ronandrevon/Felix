@@ -1265,9 +1265,11 @@ MODULE setup_space_group_mod
 !!$  CASE(36)   
     CASE(36)!C m c 21
       SELECT CASE (SWyckoff)
-      CASE('a')!point symmetry m
+      CASE('a')!point symmetry m *** changed for CMO hack
+        IVectors = 1
+      CASE('b')!point symmetry 1 *** CHANGED for CMO hack
         IVectors = 2
-      CASE('b')!point symmetry 1
+      CASE('c')!*** CMO hack
         IVectors = 3
       CASE DEFAULT
         IErr = 1
@@ -5979,8 +5981,10 @@ MODULE setup_space_group_mod
       SELECT CASE (SWyckoff)
       CASE('a')!point symmetry m, coordinate [0,y,z],
         RMoveMatrix(1,:) = (/ZERO, ONE, ZERO/)
-        RMoveMatrix(2,:) = (/ZERO, ZERO, ONE/)
       CASE('b')!point symmetry 1, coordinate [x,y,z],
+        RMoveMatrix(1,:) = (/ONE, ZERO, ZERO/)
+        RMoveMatrix(2,:) = (/ZERO, ONE, ZERO/)
+      CASE('c')!point symmetry 1, coordinate [x,y,z],
         RMoveMatrix(1,:) = (/ONE, ZERO, ZERO/)
         RMoveMatrix(2,:) = (/ZERO, ONE, ZERO/)
         RMoveMatrix(3,:) = (/ZERO, ZERO, ONE/)
