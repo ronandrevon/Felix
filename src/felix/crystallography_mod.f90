@@ -291,6 +291,14 @@ MODULE crystallography_mod
     !--------------------------------------------------------------------  
     ! apply symmetry elements to generate all equivalent positions 
     !--------------------------------------------------------------------  
+
+    !CMO hack: Atom movement constraints to preserve mirror symmetry in [110] patterns:
+    !O2x=O3x; O2z=-O3z
+    RBasisAtomPosition(6,1)=RBasisAtomPosition(5,1)
+    RBasisAtomPosition(6,2)=RBasisAtomPosition(5,3)
+    RBasisAtomPosition(6,3)=1.0-RBasisAtomPosition(5,3)
+    RBasisAtomPosition(5,2)=0.5+RBasisAtomPosition(5,3)
+
     knd=1
     DO ind=1, SIZE(RSymVec,1)  
       DO jnd=1, SIZE(RBasisAtomPosition,1)

@@ -1266,14 +1266,13 @@ MODULE setup_space_group_mod
       END SELECT    
 !!$  CASE(36)   
     CASE(36)!C m c 21
-      IF(my_rank.EQ.0) PRINT*,"SWyckoff",SWyckoff
       SELECT CASE (SWyckoff)
       CASE('a')!point symmetry m *** changed for CMO hack
         IVectors = 1
       CASE('b')!point symmetry 1 *** CHANGED for CMO hack
         IVectors = 2
       CASE('c')!*** CMO hack
-        IVectors = 3
+        IVectors = 2
       CASE DEFAULT
         IErr = 1
         IF(l_alert(IErr,"DetermineAllowedMovements",&
@@ -5989,8 +5988,7 @@ MODULE setup_space_group_mod
         RMoveMatrix(2,:) = (/ZERO, ONE, ZERO/)
       CASE('c')!point symmetry 1, coordinate [x,y,z],
         RMoveMatrix(1,:) = (/ONE, ZERO, ZERO/)
-        RMoveMatrix(2,:) = (/ZERO, ONE, ZERO/)
-        RMoveMatrix(3,:) = (/ZERO, ZERO, ONE/)
+        RMoveMatrix(2,:) = (/ZERO, ZERO, ONE/)
       CASE DEFAULT
         IErr = 1
         IF(l_alert(IErr,"DetermineAllowedMovements",&
