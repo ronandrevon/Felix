@@ -189,10 +189,10 @@ MODULE setup_reflections_mod
     
     IMPLICIT NONE
 
-    REAL(RKIND),INTENT(IN) :: RGlimit!RTol   
+    REAL(RKIND),INTENT(IN) :: RGlimit   
     INTEGER(IKIND) :: IErr, ISel, Ih, Ik, Il, inda,indb,indc, jnda,jndb,jndc, knd,lnd
-    REAL(RKIND) :: RarMag, RbrMag, RcrMag, RGtestMag, RGpluskMag, RShell
-    REAL(RKIND),DIMENSION(ITHREE) :: RGtestM, RGtest 
+    REAL(RKIND) :: RarMag, RbrMag, RcrMag, RGtestMag, RGpluskMag, RShell, Rsinphi
+    REAL(RKIND),DIMENSION(ITHREE) :: RGtestM, RGtest, RGtestU 
    
     !The upper limit for g-vector magnitudes
     !If the g-vectors we are counting are bigger than this there is something wrong
@@ -222,21 +222,25 @@ MODULE setup_reflections_mod
     indb=NINT(RGlimit/RbrMag)
     indc=NINT(RGlimit/RcrMag)
     DO WHILE (knd.LT.INhkl .AND. REAL(lnd)*RShell.LT.RGlimit)
-      lnd=lnd+1
+      lnd = lnd+1
 !DBG    IF(my_rank.EQ.0)PRINT*,REAL(lnd-1)*RShell,"to",REAL(lnd)*RShell
-      DO Ih=-inda,inda
-         DO Ik=-indb,indb
-            DO Il=-indc,indc
+      DO Ih = -inda,inda
+         DO Ik = -indb,indb
+            DO Il = -indc,indc
               !Make a g-vector hkl
-              RGtest=REAL( (/ Ih,Ik,Il /),RKIND )
-              RGtestM=REAL(Ih)*RarVecM+REAL(Ik)*RbrVecM+REAL(Il)*RcrVecM
-              RGtestMag=SQRT(DOT_PRODUCT(RGtestM,RGtestM))
+              RGtest = REAL( (/ Ih,Ik,Il /),RKIND )
+              RGtestM = REAL(Ih)*RarVecM+REAL(Ik)*RbrVecM+REAL(Il)*RcrVecM
+              RGtestMag = SQRT(DOT_PRODUCT(RGtestM,RGtestM))
               !is it in the shell
               IF (RGtestMag.GT.REAL(lnd-1)*RShell.AND.RGtestMag.LE.REAL(lnd)*RShell) THEN
-!DBG    IF(my_rank.EQ.0)PRINT*,NINT(RGtest),RGtestMag
-!DBG    IF(my_rank.EQ.0)PRINT*,"in shell",lnd
-                IF (ABS(DOT_PRODUCT(RGtest,RzDirC)).LT.TINY) THEN !it's in the ZOLZ 
-                 !check that it's allowed by selection rules
+                !In the microscope ref frame the z-direction is [0,0,1]
+                !Angle phi between Gtest and z is given by cos(phi) = |Gtest|(3)
+                !or equivalently sin(phi)=sqrt(|Gtest|(1)^2+|Gtest|(2)^2) 
+                RGtestU = RGtestM/RGtestMag
+                Rsinphi = SQRT(RGtestM(1)**2+RGtestM(2)**2)
+                ! sin(2.87 deg) = 0.05
+                IF (Rsinphi.LT.0.05) THEN !it's near the ZOLZ 
+                  !check that it's allowed by selection rules
                   ISel=0
                   CALL SelectionRules(Ih, Ik, Il, ISel, IErr)
                   !add it to the pool and increment the counter
