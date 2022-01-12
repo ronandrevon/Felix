@@ -10,21 +10,21 @@
 ! Date:    :DATE: 16-01-2019
 ! Time:    :TIME:
 ! Status:  :RLSTATUS:
-! Build:   :BUILD: Mode F: test different lattice types" 
+! Build:   :BUILD: Mode F: test different lattice types"
 ! Author:  :AUTHOR: r.beanland
-! 
+!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Felix is free software: you can redistribute it and/or modify
 !  it under the terms of the GNU General Public License as published by
 !  the Free Software Foundation, either version 3 of the License, or
 !  (at your option) any later version.
-!  
+!
 !  Felix is distributed in the hope that it will be useful,
 !  but WITHOUT ANY WARRANTY; without even the implied warranty of
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !  GNU General Public License for more details.
-!  
+!
 !  You should have received a copy of the GNU General Public License
 !  along with Felix.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -40,7 +40,8 @@ MODULE write_output_mod
 
   IMPLICIT NONE
   PRIVATE
-  PUBLIC :: WriteIterationOutputWrapper, WriteIterationOutput, WriteOutVariables, &
+  PUBLIC :: WriteIterationOutputWrapper, WriteIterationOutput,&
+        WriteIntensities,WritePreProcess,WriteMatrix,WriteEigen, WriteOutVariables, &
         NormaliseExperimentalImagesAndWriteOut,WriteDifferenceImages,UncertBrak
 
   CONTAINS
@@ -146,7 +147,7 @@ MODULE write_output_mod
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
-  !! A subroutine to call subroutines, not sure why it is needed 
+  !! A subroutine to call subroutines, not sure why it is needed
   !!
   !! Major-Authors: Jacob Richardson (2017)
   !!
@@ -158,7 +159,7 @@ MODULE write_output_mod
     ! global inputs/outputs
     USE IPARA, ONLY : IPrint, IPreviousPrintedIteration
     USE SPARA, ONLY : SPrintString
-    
+
     IMPLICIT NONE
     INTEGER(IKIND),INTENT(IN) :: Iter,IThicknessIndex,IPrintFLAG
     INTEGER(IKIND),INTENT(OUT) :: IErr
@@ -169,24 +170,24 @@ MODULE write_output_mod
     IF(my_rank.EQ.0) THEN
       ! use IPrint and IPrintFLAG to specify how often to write Iteration output
       SELECT CASE(IPrintFLAG)
-      
+
         CASE(0)!We print a simulation only if IPrint<>0 and it's been a while
           IF(IPrint.NE.0.AND.(Iter.GE.(IPreviousPrintedIteration+IPrint))) THEN
             WRITE(SPrintString,FMT='(A16,I2,A35)') ".  Writing output; ",&
               Iter-IPreviousPrintedIteration," iterations since the previous save"
             CALL message (LS,SPrintString)
             CALL WriteIterationOutput(Iter,IThicknessIndex,IErr)
-            IPreviousPrintedIteration = Iter 
+            IPreviousPrintedIteration = Iter
           END IF
-          
+
         CASE(1)!We print a simulation after a refinement cycle has completed
             CALL message (LS,".  Writing output; end of this refinement cycle")
             CALL WriteIterationOutput(Iter,IThicknessIndex,IErr)
-          
+
         CASE(2)!We print the final simulation
           CALL message ( LS, ".  Writing output; final simulation" )
           CALL WriteIterationOutput(Iter,IThicknessIndex,IErr)
-          
+
       END SELECT
       IF(l_alert(IErr,"WriteIterationOutputWrapper","WriteIterationOutput")) RETURN
 
@@ -197,21 +198,21 @@ MODULE write_output_mod
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
-  !! Procedure-description: Writes difference images during gradient determination if IImageFLAG=1 
+  !! Procedure-description: Writes difference images during gradient determination if IImageFLAG=1
   !!
   !! Major-Authors: Richard Beanland (2019)
   !!
   SUBROUTINE WriteDifferenceImages(Iter,IThicknessIndex,IVar,Rx,Rdx,IErr)
-  
+
     USE MyNumbers
     USE message_mod
-    
+
     ! global inputs
     USE IPARA, ONLY : ILN,IPixelCount,ISimFLAG,IOutPutReflections,INoOfLacbedPatterns,INhkl,IByteSize
     USE SPARA, ONLY : SChemicalFormula
     USE RPARA, ONLY : Rhkl,RInitialThickness,RDeltaThickness,   RImageSimi
     USE IChannels, ONLY : IChOutWIImage, IChOut
-    
+
     IMPLICIT NONE
 
     INTEGER(IKIND), INTENT(OUT) :: IErr
@@ -224,7 +225,7 @@ MODULE write_output_mod
     CHARACTER(200) :: path,filename,fullpath
 
     IErr=0
-    IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm 
+    IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm
 
     !Directory for difference image
     IF (IVar.LT.10) THEN
@@ -272,13 +273,13 @@ MODULE write_output_mod
       RImageToWrite = RImageSimi(:,:,ind,IThicknessIndex)
       ! Writes data to output image .bin files
       OPEN(UNIT=IChOutWIImage, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(fullpath)),&
-          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
-      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN      
+          FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize*2*IPixelCount*IByteSize)
+      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN
       DO jnd = 1,2*IPixelCount
         WRITE(IChOutWIImage,rec=jnd) RImageToWrite(jnd,:)
       END DO
-      CLOSE(IChOutWIImage,IOSTAT=IErr) 
-      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN       
+      CLOSE(IChOutWIImage,IOSTAT=IErr)
+      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN
     END DO
 
     !Output of delta values - not necessary since it is already captured in
@@ -288,14 +289,14 @@ MODULE write_output_mod
 !          POSITION='append')
 !    WRITE(UNIT=IChOut,FMT='(I4,1X,F12.9)') Iter,Rdelta
 !    CLOSE(IChOut)
-    
+
   END SUBROUTINE WriteDifferenceImages
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
-  !! Procedure-description: Writes output for interations including simulated .bin files, 
-  !! structureFactors.txt and structure.cif 
+  !! Procedure-description: Writes output for interations including simulated .bin files,
+  !! structureFactors.txt and structure.cif
   !!
   !! Major-Authors: 'kidwhizz' (2015), Richard Beanland (2016)
   !!
@@ -303,11 +304,11 @@ MODULE write_output_mod
 
     USE MyNumbers
     USE message_mod
-    
+
     ! global inputs
-    USE IPARA, ONLY : ILN,IPixelCount,ISimFLAG,IOutPutReflections,INoOfLacbedPatterns,INhkl,IByteSize
+    USE IPARA, ONLY : ILN,IPixelCount,ISimFLAG,IOutPutReflections,INoOfLacbedPatterns,INhkl,IByteSize,IAtomicNumber, ICurrentZ,INAtomsUnitCell
     USE CPARA, ONLY : CUgMat
-    USE RPARA, ONLY : Rhkl,RgPool, RImageSimi, RInitialThickness, RDeltaThickness
+    USE RPARA, ONLY : Rhkl,RgPool, RImageSimi, RInitialThickness, RDeltaThickness,RAtomCoordinate,RAtomPosition
     USE SPARA, ONLY : SChemicalFormula
     USE IChannels, ONLY : IChOutWIImage, IChOut
 
@@ -315,19 +316,19 @@ MODULE write_output_mod
 
     INTEGER(IKIND), INTENT(OUT) :: IErr
     INTEGER(IKIND), INTENT(IN) :: Iter,IThicknessIndex
-    INTEGER(IKIND) :: IThickness,ind,jnd
+    INTEGER(IKIND) :: IThickness,ind,jnd,knd
     REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RImageToWrite
     CHARACTER(10) :: hString,kString,lString
     CHARACTER(200) :: path,filename,fullpath
-    
-    IErr=0 
+
+    IErr=0
 
     IF (ISimFLAG.EQ.0) THEN !felixrefine output
-      IThickness = NINT((RInitialThickness +(IThicknessIndex-1)*RDeltaThickness)/TEN)!in nm 
+      IThickness = NINT((RInitialThickness +(IThicknessIndex-1)*RDeltaThickness)/TEN)!in nm
       WRITE(path,"(A1,I4.4,A1,I3.3,A3,I3.3,A1,I3.3)") &
             "I",Iter,"_",IThickness,"nm_",2*IPixelcount,"x",2*IPixelcount
     ELSE ! Sim Output
-    IThickness = NINT(RInitialThickness +(IThicknessIndex-1)*RDeltaThickness)!in A 
+    IThickness = NINT(RInitialThickness +(IThicknessIndex-1)*RDeltaThickness)!in A
       WRITE(path,"(A4,I4.4,A2,I3.3,A1,I3.3)") &
             "Sim_",IThickness,"A_",2*IPixelcount,"x",2*IPixelcount
     END IF
@@ -370,17 +371,17 @@ MODULE write_output_mod
       ! Writes data to output image .bin files
       OPEN(UNIT=IChOutWIImage, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(fullpath)),&
           FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*IByteSize)
-      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN      
+      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN
       DO jnd = 1,2*IPixelCount
         WRITE(IChOutWIImage,rec=jnd) RImageToWrite(jnd,:)
       END DO
-      CLOSE(IChOutWIImage,IOSTAT=IErr) 
-      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN       
+      CLOSE(IChOutWIImage,IOSTAT=IErr)
+      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN
     END DO
 
     ! writes out structure.cif
-    CALL WriteIterationCIF(Iter,path,IErr)
-    IF(l_alert(IErr,"WriteIterationOutput","WriteIterationCIF")) RETURN   
+    ! CALL WriteIterationCIF(Iter,path,IErr)
+    IF(l_alert(IErr,"WriteIterationOutput","WriteIterationCIF")) RETURN
     IErr=0
     ! write out StructureFactors.txt
     WRITE(filename,*) "StructureFactors.txt"
@@ -388,15 +389,188 @@ MODULE write_output_mod
     OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
 
     DO ind = 1,INhkl
-      WRITE(IChOut,FMT='(3I5.1,2(1X,F13.9),2(1X,E14.6))') NINT(Rhkl(ind,:)),&
-              RgPool(ind,1),RgPool(ind,2),CUgMat(ind,1)
+      WRITE(IChOut,FMT='(3I5.1,3(1X,F13.9),2(1X,E14.6))') NINT(Rhkl(ind,:)),&
+              RgPool(ind,1),RgPool(ind,2),RgPool(ind,3),CUgMat(ind,1)
     END DO
 
-    CLOSE(IChOut)    
-    
-    RETURN  
-    
+    CLOSE(IChOut)
+
+    ! write all atoms.txt
+    WRITE(filename,*) "atoms.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO knd=1,INAtomsUnitCell
+      ICurrentZ = IAtomicNumber(knd)
+      WRITE(IChOut,FMT='(1I3,3(1X,F13.9))') ICurrentZ,&
+              RAtomCoordinate(knd,1),RAtomCoordinate(knd,2),RAtomCoordinate(knd,3)
+              ! RAtomPosition(knd,1),RAtomPosition(knd,2),RAtomPosition(knd,3)
+    END DO
+    CLOSE(IChOut)
+
+    RETURN
+
   END SUBROUTINE WriteIterationOutput
+
+
+
+  ! testing stuffs
+  SUBROUTINE WritePreProcess(IErr)
+    USE MyNumbers
+    USE message_mod
+
+    ! USE IPARA, ONLY : ILN,IPixelCount,ISimFLAG,IOutPutReflections,INoOfLacbedPatterns,INhkl,IByteSize,IAtomicNumber, ICurrentZ,INAtomsUnitCell
+    USE IPARA, ONLY : INhkl,IByteSize,IAtomicNumber, ICurrentZ,INAtomsUnitCell
+    USE IPARA, ONLY : IByteSize,IAtomicNumber, ICurrentZ,INAtomsUnitCell
+    USE CPARA, ONLY : CUgMat
+    USE RPARA, ONLY : Rhkl,RgPool, RAtomCoordinate,RAtomPosition
+    ! USE SPARA, ONLY : SChemicalFormula
+    ! USE IChannels, ONLY : IChOutWIImage, IChOut
+    USE IChannels, ONLY : IChOut
+
+    IMPLICIT NONE
+
+    INTEGER(IKIND), INTENT(OUT) :: IErr
+    ! INTEGER(IKIND), INTENT(IN) :: Iter,IThicknessIndex
+    ! INTEGER(IKIND) :: IThickness,ind,jnd,knd
+    INTEGER(IKIND) :: ind,jnd,knd
+    ! REAL(RKIND),DIMENSION(2*IPixelCount,2*IPixelCount) :: RImageToWrite
+    CHARACTER(10) :: hString,kString,lString
+    CHARACTER(200) :: path,filename,fullpath
+
+    IErr=0
+    CALL message(LS,"Writing preprocess info ...")
+    ! write out StructureFactors.txt
+    WRITE(filename,*) "StructureFactors.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename)) !TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO ind = 1,INhkl
+      WRITE(IChOut,FMT='(3I5.1,3(1X,F13.9),2(1X,E14.6))') NINT(Rhkl(ind,:)),&
+              RgPool(ind,1),RgPool(ind,2),RgPool(ind,3),CUgMat(ind,1)
+    END DO
+
+    CLOSE(IChOut)
+
+    ! write all atoms.txt
+    WRITE(filename,*) "atoms.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO knd=1,INAtomsUnitCell
+      ICurrentZ = IAtomicNumber(knd)
+      WRITE(IChOut,FMT='(1I3,3(1X,F13.9))') ICurrentZ,&
+              RAtomCoordinate(knd,1),RAtomCoordinate(knd,2),RAtomCoordinate(knd,3)
+              ! RAtomPosition(knd,1),RAtomPosition(knd,2),RAtomPosition(knd,3)
+    END DO
+    CLOSE(IChOut)
+  END SUBROUTINE WritePreProcess
+
+
+
+  SUBROUTINE WriteMatrix(CugSgMatrix,nBeams)
+    USE MyNumbers
+    USE message_mod
+    USE RPARA, ONLY : Rhkl
+    USE IChannels, ONLY : IChOut
+
+    IMPLICIT NONE
+    INTEGER(IKIND),INTENT(IN):: nBeams
+    COMPLEX(RKIND),INTENT(IN):: CUgSgMatrix(nBeams,nBeams)
+
+    INTEGER(IKIND) :: ind,jnd
+    CHARACTER(10) :: hString,kString,lString
+    CHARACTER(200) :: path,filename,fullpath
+
+    CALL message(LS,"Writing matrix to file with strong beams",nBeams )
+    WRITE(filename,*) "matrix.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename)) !TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO ind = 1,nBeams
+      WRITE(IChOut,FMT='(3(I5,1X))',ADVANCE="NO") NINT(Rhkl(ind,:))
+      DO jnd = 1,nBeams
+        WRITE(IChOut,FMT='(2(F9.4,1X))',ADVANCE="NO") 100*CUgSgMatrix(ind,jnd)
+      END DO
+      WRITE(IChOut,FMT='(A2)') " "
+    END DO
+
+    CLOSE(IChOut)
+  END SUBROUTINE WriteMatrix
+
+
+  SUBROUTINE WriteEigen(CEigenValues,CEigenVectors,nBeams)
+    USE MyNumbers
+    USE message_mod
+    USE RPARA, ONLY : Rhkl
+    USE IChannels, ONLY : IChOut
+
+    IMPLICIT NONE
+    INTEGER(IKIND),INTENT(IN):: nBeams
+    COMPLEX(RKIND),INTENT(IN):: CEigenValues(nBeams),CEigenVectors(nBeams,nBeams)
+
+    INTEGER(IKIND) :: ind,jnd
+    CHARACTER(10) :: hString,kString,lString
+    CHARACTER(200) :: path,filename,fullpath
+
+    CALL message(LS,"Writing CEigenValues to file ...")
+    ! CALL message(LS,"nBeams",nBeams)
+    WRITE(filename,*) "eigenvals.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename)) !TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO ind = 1,nBeams
+      ! CALL message(LS,"nBeams",ind)
+      WRITE(IChOut,FMT='(3(I5,1X),2(F9.4,1X))') NINT(Rhkl(ind,:)),CEigenValues(ind)
+    END DO
+
+
+    CALL message(LS,"Writing CEigenVectors to file ...")
+    WRITE(filename,*) "eigenvec.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename)) !TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO ind = 1,nBeams
+      WRITE(IChOut,FMT='(3(I5,1X))',  ADVANCE="NO") NINT(Rhkl(ind,:))
+      DO jnd = 1,nBeams
+        WRITE(IChOut,FMT='(2(F9.4,1X))',  ADVANCE="NO") CEigenVectors(ind,jnd)
+      END DO
+      WRITE(IChOut,FMT='(A2)') " "
+    END DO
+
+  END SUBROUTINE WriteEigen
+
+
+
+
+  SUBROUTINE WriteIntensities(Intensities,nBeams,nthicks)
+    USE MyNumbers
+    USE message_mod
+    USE RPARA, ONLY : Rhkl
+    USE IChannels, ONLY : IChOut
+
+    IMPLICIT NONE
+    INTEGER(IKIND),INTENT(IN):: nBeams,nthicks
+    REAL(RKIND),INTENT(IN):: Intensities(nBeams,nthicks)
+
+    INTEGER(IKIND) :: ind,jnd
+    CHARACTER(10) :: hString,kString,lString
+    CHARACTER(200) :: path,filename,fullpath
+
+    CALL message(LS,"Writing Intensities to file with strong beams ", nBeams)
+    WRITE(filename,*) "intensities.txt"
+    WRITE(fullpath,*) TRIM(ADJUSTL(filename)) !TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
+    OPEN(UNIT=IChOut,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
+
+    DO ind = 1,nBeams
+      WRITE(IChOut,FMT='(3(I5,1X))',  ADVANCE="NO") NINT(Rhkl(ind,:))
+      DO jnd = 1,nthicks
+        WRITE(IChOut,FMT='(1(F9.4,1X))',  ADVANCE="NO") Intensities(ind,jnd)
+      END DO
+      WRITE(IChOut,FMT='(A2)') " "
+    END DO
+
+  END SUBROUTINE WriteIntensities
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -411,7 +585,7 @@ MODULE write_output_mod
     USE MyNumbers
     USE message_mod
     USE setup_space_group_mod!required for the subroutine ConvertSpaceGroupToNumber
- 
+
     ! global inputs
     USE IPARA, ONLY : ISpaceGrp,ILN,IIndependentVariableAtom,IIndependentVariableType
     USE RPARA, ONLY : RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, RGamma, &
@@ -433,11 +607,11 @@ MODULE write_output_mod
     IErr=0
     ! Write out unique atomic positions
     WRITE(filename,"(A1,I4.4,A4)") "_",Iter,".cif"
-    filename=SChemicalFormula(1:ILN) // filename!gives e.g. SrTiO3_0001.cif 
+    filename=SChemicalFormula(1:ILN) // filename!gives e.g. SrTiO3_0001.cif
     WRITE(fullpath,*) TRIM(ADJUSTL(path)),'/',TRIM(ADJUSTL(filename))
 
     OPEN(UNIT=IChOutSimplex,STATUS='UNKNOWN',FILE=TRIM(ADJUSTL(fullpath)))
- 
+
     !Introductory lines
     WRITE(IChOutSimplex,FMT='(A31)') "#(C) 2019 University of Warwick"
     WRITE(IChOutSimplex,FMT='(A16)') "data_felixrefine"
@@ -505,7 +679,7 @@ MODULE write_output_mod
       WRITE(IChOutSimplex,FMT='(A)') String
     END DO
     WRITE(IChOutSimplex,FMT='(A)') "#End of felixrefine cif"
-    
+
     CLOSE(IChOutSimplex)
 
 !    Write out full atomic positions
@@ -539,9 +713,9 @@ MODULE write_output_mod
     USE RPARA, ONLY : RBasisAtomPosition, RBasisOccupancy, RBasisIsoDW, &
                       RAnisotropicDebyeWallerFactorTensor, RFigureofMerit, &
                       RAbsorptionPercentage, RLengthX, RLengthY, RLengthZ, RAlpha, RBeta, &
-                      RGamma, RConvergenceAngle, RAcceleratingVoltage                    
+                      RGamma, RConvergenceAngle, RAcceleratingVoltage
     USE CPARA, ONLY : CUniqueUg
-    USE IChannels, ONLY : IChOutSimplex     
+    USE IChannels, ONLY : IChOutSimplex
 
     IMPLICIT NONE
 
@@ -553,24 +727,24 @@ MODULE write_output_mod
 
     ! Need to Determine total no. of variables to be written out
     ! this is different from the no. of refinement variables
-    
-    IF (IAbsorbFLAG.EQ.2) THEN ! Structure Factors are complex 
+
+    IF (IAbsorbFLAG.EQ.2) THEN ! Structure Factors are complex
       ! so require two output variables each
-      IOutputVariables(1) = IRefineMode(1)*2*INoofUgs+1 
-      ! plus one for proportional absorption     
+      IOutputVariables(1) = IRefineMode(1)*2*INoofUgs+1
+      ! plus one for proportional absorption
     ELSE
-      IOutputVariables(1) = IRefineMode(1)*2*INoofUgs     
+      IOutputVariables(1) = IRefineMode(1)*2*INoofUgs
     END IF
     ! Atom Coordinates
     IOutputVariables(2) = IRefineMode(2)*SIZE(RBasisAtomPosition,DIM=1)* &
           SIZE(RBasisAtomPosition,DIM=2)
     ! Occupancies
-    IOutputVariables(3) = IRefineMode(3)*SIZE(RBasisOccupancy,DIM=1) 
+    IOutputVariables(3) = IRefineMode(3)*SIZE(RBasisOccupancy,DIM=1)
     ! Isotropic Debye Waller Factors
-    IOutputVariables(4) = IRefineMode(4)*SIZE(RBasisIsoDW,DIM=1) 
+    IOutputVariables(4) = IRefineMode(4)*SIZE(RBasisIsoDW,DIM=1)
     ! Anisotropic Debye Waller Factors
     IOutputVariables(5) = IRefineMode(5)*SIZE(RAnisotropicDebyeWallerFactorTensor)
-    IOutputVariables(6) = IRefineMode(6) * 3 ! Lattice Parameters (a,b,c) 
+    IOutputVariables(6) = IRefineMode(6) * 3 ! Lattice Parameters (a,b,c)
     IOutputVariables(7) = IRefineMode(7) * 3 ! Lattice Angles (alpha,beta,gamma)
     IOutputVariables(8) = IRefineMode(8) ! Convergence angle
     IOutputVariables(9) = IRefineMode(9) ! Absorption
@@ -585,7 +759,7 @@ MODULE write_output_mod
       IF(jnd.EQ.1) THEN ! It's an atom coordinate refinement
         IStart = 1
       ELSE
-        IStart = SUM(IOutputVariables(1:(jnd-1)))+1 
+        IStart = SUM(IOutputVariables(1:(jnd-1)))+1
         !?? RB there is probably a better way of doing this
       END IF
       IEND = SUM(IOutputVariables(1:jnd))
@@ -633,7 +807,7 @@ MODULE write_output_mod
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
   !>
-  !! Procedure-description: This can be used as a quick way to visually compare .img input 
+  !! Procedure-description: This can be used as a quick way to visually compare .img input
   !! images and simulated .bin images. This scales each experimental image such that the max value
   !! matches the corresponding final simulated image and writes it out in an equaivalent
   !! .bin format in the current directory.
@@ -651,7 +825,7 @@ MODULE write_output_mod
     USE Spara, ONLY : SChemicalFormula
     USE IChannels, ONLY : IChOutWIImage, IChOut
 
-    IMPLICIT NONE   
+    IMPLICIT NONE
     INTEGER(IKIND), INTENT(OUT) :: IErr
     INTEGER(IKIND), INTENT(IN) :: IThicknessIndex
     CHARACTER(200) :: path, filename, fullpath
@@ -660,7 +834,7 @@ MODULE write_output_mod
 
     CALL message(LS,"Writing out normalised experimental images")
 
-    IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm 
+    IThickness = (RInitialThickness + (IThicknessIndex-1)*RDeltaThickness)/10!in nm
 
     WRITE(path,"(A,A6,I3.3,A1,I3.3)") &
            SChemicalFormula(1:ILN),"_expt_",2*IPixelcount,"x",2*IPixelcount
@@ -669,7 +843,7 @@ MODULE write_output_mod
 
     ! Write Images to disk
     DO ind = 1,INoOfLacbedPatterns
-      ! Make the path/filenames  
+      ! Make the path/filenames
       WRITE(filename,"(A,A,I3.3,A1,I3.3,A1,SP,3(I2.1),A)")&
              SChemicalFormula(1:ILN),"_experi_",2*IPixelcount,"x",2*IPixelcount,&
             "_",NINT(Rhkl(IOutPutReflections(ind),1:3)),'.bin'
@@ -681,13 +855,13 @@ MODULE write_output_mod
       ! Writes data to output image .bin files
       OPEN(UNIT=IChOutWIImage, STATUS= 'UNKNOWN', FILE=TRIM(ADJUSTL(fullpath)),&
             FORM='UNFORMATTED',ACCESS='DIRECT',IOSTAT=IErr,RECL=2*IPixelCount*8)
-      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN       
+      IF(l_alert(IErr,"WriteIterationOutput","OPEN() output .bin file")) RETURN
       DO jnd = 1,2*IPixelCount
         WRITE(IChOutWIImage,rec=jnd) RImageToWrite(jnd,:)
       END DO
-      CLOSE(IChOutWIImage,IOSTAT=IErr) 
-      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN       
-    END DO   
+      CLOSE(IChOutWIImage,IOSTAT=IErr)
+      IF(l_alert(IErr,"WriteIterationOutput","CLOSE() output .bin file")) RETURN
+    END DO
 
   END SUBROUTINE NormaliseExperimentalImagesAndWriteOut
 

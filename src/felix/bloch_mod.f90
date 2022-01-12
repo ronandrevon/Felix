@@ -10,21 +10,21 @@
 ! Date:    :DATE: 16-01-2019
 ! Time:    :TIME:
 ! Status:  :RLSTATUS:
-! Build:   :BUILD: Mode F: test different lattice types" 
+! Build:   :BUILD: Mode F: test different lattice types"
 ! Author:  :AUTHOR: r.beanland
-! 
+!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Felix is free software: you can redistribute it and/or modify
 !  it under the terms of the GNU General Public License as published by
 !  the Free Software Foundation, either version 3 of the License, or
 !  (at your option) any later version.
-!  
+!
 !  Felix is distributed in the hope that it will be useful,
 !  but WITHOUT ANY WARRANTY; without even the implied warranty of
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !  GNU General Public License for more details.
-!  
+!
 !  You should have received a copy of the GNU General Public License
 !  along with Felix.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -54,30 +54,31 @@ MODULE bloch_mod
     USE MyNumbers
     USE MyMPI
     USE message_mod
-    
+
     USE test_koch_mod
-  
+    USE write_output_mod
+
     ! globals - output
     USE RPara, ONLY : RIndividualReflections ! RIndividualReflections( LACBED_ID, thickness_ID, local_pixel_ID )
     USE CPara, ONLY : CAmplitudeandPhase
     USE IPara, ONLY : IPixelComputed
 
-    ! globals - input  
+    ! globals - input
     USE CPara, ONLY : CUgMat
     USE RPara, ONLY : RDeltaK,RDeltaThickness,RInitialThickness,RNormDirM,RgDotNorm,RgPool,&
                       RgPoolMag,Rhkl
     USE IPara, ONLY : IHKLSelectFLAG,IHolzFLAG,IMinStrongBeams,IMinWeakBeams,&
                       INoOfLacbedPatterns,IPixelCount,IThicknessCount,INhkl,&
                       IOutputReflections,IBlochMethodFLAG
-    USE BlochPara, ONLY : RBigK            
+    USE BlochPara, ONLY : RBigK
     USE SPARA, ONLY : SPrintString
-    
+
     IMPLICIT NONE
-    
+
     INTEGER(IKIND),INTENT(IN) :: IYPixelIndex,IXPixelIndex,IPixelNumber,&
           IFirstPixelToCalculate
     INTEGER(IKIND),INTENT(OUT) :: IErr
-    
+
     COMPLEX(CKIND),ALLOCATABLE :: CBeamProjectionMatrix(:,:),&
           CDummyBeamMatrix(:,:),CUgSgMatrix(:,:),CEigenVectors(:,:),CEigenValues(:),&
           CInvertedEigenVectors(:,:),CAlphaWeightingCoefficients(:),&
@@ -88,7 +89,7 @@ MODULE bloch_mod
     INTEGER(IKIND) :: IStrongBeamList(INhkl),IWeakBeamList(INhkl),&
           nBeams,nWeakBeams
     INTEGER(IKIND) :: ind,knd,pnd,IThickness,IThicknessIndex,ILowerLimit,&
-          IUpperLimit       
+          IUpperLimit
     REAL(RKIND) :: RThickness,RKn,Rk0(3),RkPrime(3)
     COMPLEX(CKIND) sumC,sumD
     COMPLEX(CKIND), DIMENSION(:,:), ALLOCATABLE :: CBeamTranspose,CUgMatPartial,CDummyEigenVectors
@@ -97,9 +98,10 @@ MODULE bloch_mod
 
     ! variables used for koch spence method development
     COMPLEX(CKIND),ALLOCATABLE :: CDiagonalSgMatrix(:,:), COffDiagonalSgMatrix(:,:)
+    REAL(RKIND),ALLOCATABLE :: CIntensities(:,:)
     COMPLEX(CKIND) :: CScatteringElement
     INTEGER(IKIND) :: ScatterMatrixRow
-     
+
     IErr=0
     ! we are inside the mask
     IPixelComputed= IPixelComputed + 1
@@ -109,11 +111,13 @@ MODULE bloch_mod
     ! x-position in k-space
     RTiltedK(1)= (REAL(IYPixelIndex,RKIND)-REAL(IPixelCount,RKIND)-0.5_RKIND)*RDeltaK
     ! y-position in k-space
-    RTiltedK(2)= (REAL(IXPixelIndex,RKIND)-REAL(IPixelCount,RKIND)-0.5_RKIND)*RDeltaK 
-    RTiltedK(3)= SQRT(RBigK**2 - RTiltedK(1)**2 - RTiltedK(2)**2) 
+    RTiltedK(2)= (REAL(IXPixelIndex,RKIND)-REAL(IPixelCount,RKIND)-0.5_RKIND)*RDeltaK
+    RTiltedK(3)= SQRT(RBigK**2 - RTiltedK(1)**2 - RTiltedK(2)**2)
+    CALL message(LM,"RTiltedK ",RTiltedK)
     RKn = DOT_PRODUCT(RTiltedK,RNormDirM)
     Rk0 = ZERO
     RkPrime=ZERO
+    RTiltedK=ZERO
     !IF(my_rank.EQ.0) PRINT*,RTiltedK
     ! Compute the deviation parameter for reflection pool
     ! NB RDevPara is in units of (1/A)
@@ -139,10 +143,12 @@ MODULE bloch_mod
       !  2*DOT_PRODUCT(RgPool(knd,:),RTiltedK) - RgPoolMag(knd)**2 )
       !IF(my_rank.EQ.0) PRINT*, "old", RDevPara(knd)
       ! Debugging output
-      IF(knd.EQ.2.AND.IYPixelIndex.EQ.10.AND.IXPixelIndex.EQ.10) THEN
+      ! IF(knd.EQ.2.AND.IYPixelIndex.EQ.10.AND.IXPixelIndex.EQ.10) THEN
+      IF(knd.EQ.5) THEN
         CALL message(LM,"RBigK ",RBigK)!LM,dbg7
         CALL message(LM,"Rhkl(knd) ",Rhkl(knd:knd,:))
         CALL message(LM,"RgPool(knd) ",RgPool(knd:knd,:))
+        CALL message(LM,"RkPrime ",RkPrime(:))
         CALL message(LM,"RTiltedK ",RTiltedK)
         CALL message(LM,"RDevPara ",RDevPara(knd))
       END IF
@@ -155,9 +161,9 @@ MODULE bloch_mod
                     IStrongBeamList,IWeakBeamList,nBeams,nWeakBeams,IErr)
     IF(l_alert(IErr,"BlochCoefficientCalculation",&
           "StrongAndWeakBeamsDetermination()")) RETURN
-    CALL message(LXL,dbg7,"strong beams",nBeams)
-    CALL message(LXL,dbg7,"weak beams",nWeakBeams)
-    CALL message(LXL,dbg7,"INhkl",INhkl)
+    CALL message(LM,dbg7,"strong beams",nBeams)
+    CALL message(LM,dbg7,"weak beams",nWeakBeams)
+    CALL message(LM,dbg7,"INhkl",INhkl)
 
     !--------------------------------------------------------------------
     ! ALLOCATE memory for eigen problem
@@ -175,6 +181,7 @@ MODULE bloch_mod
     ALLOCATE( CUgMatPartial(INhkl,nBeams), STAT=IErr )
     ALLOCATE( CAlphaWeightingCoefficients(nBeams), STAT=IErr )
     ALLOCATE( CEigenValueDependentTerms(nBeams,nBeams), STAT=IErr )
+    ALLOCATE( CIntensities(INhkl,IThicknessCount), STAT=IErr )
     IF(l_alert(IErr,"BlochCoefficientCalculation","allocations")) RETURN
 
     ! allocations used for koch spence method development
@@ -202,6 +209,19 @@ MODULE bloch_mod
     ! CUgSgMatrix = CBeamProjectionMatrix * CUgMatPartial
     CALL ZGEMM('N','N',nBeams,nBeams,INhkl,CONE,CBeamProjectionMatrix, &
               nBeams,CUgMatPartial,INhkl,CZERO,CUgSgMatrix,nBeams)
+
+    ! CALL message( LL, dbg3, "CUgSgMatrix matrix (nm^-2)" )
+    ! DO ind = 1,40
+    !   WRITE(SPrintString,FMT='(3(I5,1X),A2,1X,8(F9.4,1X))') NINT(Rhkl(ind,:)),": ", &
+    !     100*CUgSgMatrix(ind,1:4)
+    !   CALL message( LL, dbg3, SPrintString )
+    ! ENDDO
+    ! CALL message( LL, dbg3, "CUg Matrix matrix (nm^-2)" )
+    ! DO ind = 1,40
+    !   WRITE(SPrintString,FMT='(3(I5,1X),A2,1X,8(F9.4,1X))') NINT(Rhkl(ind,:)),": ", &
+    !     100*CUgMat(ind,1:4)
+    !   CALL message( LL, dbg3, SPrintString )
+    ! ENDDO
 
     !--------------------------------------------------------------------
     ! higher order Laue zones and weak beams
@@ -244,14 +264,23 @@ MODULE bloch_mod
         WHERE (CUgSgMatrix.EQ.CUgSgMatrix(knd,1))
           CUgSgMatrix = CUgSgMatrix(knd,1) - sumC
         END WHERE
+        CALL message(LXL,dbg7,"sumC",sumC)
+        CALL message(LXL,dbg7,"sumD",sumD)
         ! Replace the Sg's
         CUgSgMatrix(knd,knd)= CUgSgMatrix(knd,knd) - TWO*RBigK*sumD/(TWOPI*TWOPI)
       ENDDO
-      !The 4pi^2 is a result of using h, not hbar, in the conversion from VG(ij) to Ug(ij).  Needs to be taken out of the weak beam calculation too 
+      !The 4pi^2 is a result of using h, not hbar, in the conversion from VG(ij) to Ug(ij).  Needs to be taken out of the weak beam calculation too
       !Divide by 2K so off-diagonal elementa are Ug/2K, diagonal elements are Sg, Spence's (1990) 'Structure matrix'
       CUgSgMatrix = TWOPI*TWOPI*CUgSgMatrix/(TWO*RBigK)
+      ! CALL message( LL, dbg3, "CUgSgMatrix matrix (nm^-2)" )
+      ! DO ind = 1,40
+      !   WRITE(SPrintString,FMT='(3(I5,1X),A2,1X,8(F9.4,1X))') NINT(Rhkl(ind,:)),": ", &
+      !     100*CUgSgMatrix(ind,1:4)
+      !   CALL message( LL, dbg3, SPrintString )
+      ! END DO
+
     END IF
-    
+
     !--------------------------------------------------------------------
     ! diagonalize the UgMatEffective
     !--------------------------------------------------------------------
@@ -261,14 +290,17 @@ MODULE bloch_mod
       COffDiagonalSgMatrix = CUgSgMatrix
       CDiagonalSgMatrix = CZERO
       DO ind = 1,SIZE(CUgSgMatrix,2)
-        CDiagonalSgMatrix(ind,ind) = CUgSgMatrix(ind,ind)      
+        CDiagonalSgMatrix(ind,ind) = CUgSgMatrix(ind,ind)
         COffDiagonalSgMatrix(ind,ind) = CZERO
       END DO
     END IF
 
+    CALL WriteMatrix(CUgSgMatrix(:,:),nBeams)
     CALL EigenSpectrum(nBeams,CUgSgMatrix,CEigenValues(:),CEigenVectors(:,:),IErr)
+    CALL WriteEigen(CEigenValues(:),CEigenVectors(:,:),nBeams)
     IF(l_alert(IErr,"BlochCoefficientCalculation","EigenSpectrum()")) RETURN
     ! NB destroys CUgSgMatrix
+
 
     IF (IHolzFLAG.EQ.1) THEN ! higher order laue zone included so adjust Eigen values/vectors
       CEigenValues = CEigenValues * RKn/RBigK
@@ -282,10 +314,14 @@ MODULE bloch_mod
     CDummyEigenVectors = CEigenVectors
     CALL INVERT(nBeams,CDummyEigenVectors(:,:),CInvertedEigenVectors,IErr)
 
+
+
+
+
     !--------------------------------------------------------------------
-    ! fill RIndividualReflections( LACBED_ID , thickness_ID, local_pixel_ID ) 
+    ! fill RIndividualReflections( LACBED_ID , thickness_ID, local_pixel_ID )
     !--------------------------------------------------------------------
-   
+
     ! Calculate intensities for different specimen thicknesses
     !?? Do different g-vectors have different effective thicknesses??
     DO IThicknessIndex=1,IThicknessCount,1
@@ -320,15 +356,15 @@ MODULE bloch_mod
 !        DO ScatterMatrixRow = 1,nBeams
 !          CALL message('',CFullWaveFunctions(ScatterMatrixRow))
 !        END DO
-!        CALL message('(koch series) wavefunction pixel values for this thickness and this core') 
+!        CALL message('(koch series) wavefunction pixel values for this thickness and this core')
 !        DO ScatterMatrixRow = 1,nBeams
 !          CALL CalculateElementS( CMPLX(ZERO,RThickness,CKIND), COffDiagonalSgMatrix, &
 !                CDiagonalSgMatrix, ScatterMatrixRow, 1, 4, CScatteringElement )
 !          CALL message('',CScatteringElement)
 !        END DO
 
-        !test for a single pixel 
-!        IF(IYPixelIndex.EQ.10.AND.IXPixelIndex.EQ.10.AND.IThicknessIndex.EQ.2) THEN 
+        !test for a single pixel
+!        IF(IYPixelIndex.EQ.10.AND.IXPixelIndex.EQ.10.AND.IThicknessIndex.EQ.2) THEN
 !          CALL message('debug reached single pixel thickness test')
 !          ! scale RThickness to help convergence issues
 !          RThickness = RThickness / 1000
@@ -377,16 +413,20 @@ MODULE bloch_mod
                   RFullWaveIntensity(IOutputReflections(ind))
         END DO
       END IF
+
+      CIntensities(:,IThicknessIndex)= RFullWaveIntensity(:)
     END DO
+
+    CALL WriteIntensities(CIntensities(:,:),INhkl,IThicknessCount)
 
 
     ! DEALLOCATE eigen problem memory
     DEALLOCATE(CUgSgMatrix,CBeamTranspose, CUgMatPartial, &
          CInvertedEigenVectors, CAlphaWeightingCoefficients, &
-         CEigenValues,CEigenVectors,CEigenValueDependentTerms, &
+         CEigenValues,CEigenVectors,CIntensities,CEigenValueDependentTerms, &
          CBeamProjectionMatrix, CDummyBeamMatrix,STAT=IErr)
     IF(l_alert(IErr,"BlochCoefficientCalculation","deallocating arrays")) RETURN
-    
+
   END SUBROUTINE BlochCoefficientCalculation
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -404,18 +444,18 @@ MODULE bloch_mod
     USE message_mod
 
     IMPLICIT NONE
-    
+
     REAL(RKIND),INTENT(IN) :: RThickness
     REAL(RKIND),INTENT(OUT) :: RFullWaveIntensity(INhkl)
-    COMPLEX(CKIND),INTENT(OUT) :: CFullWaveFunctions(INhkl) 
+    COMPLEX(CKIND),INTENT(OUT) :: CFullWaveFunctions(INhkl)
     INTEGER(IKIND),INTENT(IN) :: INhkl,nBeams,IStrongBeamList(INhkl)
     COMPLEX(CKIND),INTENT(IN) :: CEigenVectors(nBeams,nBeams),CInvertedEigenVectors(nBeams,nBeams),CEigenValues(nBeams)
-    INTEGER(IKIND),INTENT(OUT) :: IErr 
+    INTEGER(IKIND),INTENT(OUT) :: IErr
     REAL(RKIND) :: RWaveIntensity(nBeams)
     COMPLEX(CKIND) :: CPsi0(nBeams),CAlphaWeightingCoefficients(nBeams),&
           CWaveFunctions(nBeams),CEigenValueDependentTerms(nBeams,nBeams)
     INTEGER(IKIND) :: ind,jnd,knd,hnd,ifullind,iuniind,gnd,ichnk
-    
+
     IErr=0
     ! The top surface boundary conditions
     CPsi0 = CZERO ! all diffracted beams are zero
@@ -423,24 +463,24 @@ MODULE bloch_mod
 
     ! put in the thickness
     ! From EQ 6.32 in Kirkland Advance Computing in EM
-    CAlphaWeightingCoefficients = MATMUL(CInvertedEigenVectors(1:nBeams,1:nBeams),CPsi0) 
+    CAlphaWeightingCoefficients = MATMUL(CInvertedEigenVectors(1:nBeams,1:nBeams),CPsi0)
     CEigenValueDependentTerms= CZERO
     DO hnd=1,nBeams     ! This is a diagonal matrix
       CEigenValueDependentTerms(hnd,hnd) = &
-            EXP(CIMAGONE*CMPLX(RThickness,ZERO,CKIND)*CEigenValues(hnd)) 
+            EXP(CIMAGONE*CMPLX(RThickness,ZERO,CKIND)*CEigenValues(hnd))
     ENDDO
     ! The diffracted intensity for each beam
     ! EQ 6.35 in Kirkland Advance Computing in EM
-    ! C-1*C*alpha 
+    ! C-1*C*alpha
     CWaveFunctions(:) = MATMUL( &
-          MATMUL(CEigenVectors(1:nBeams,1:nBeams),CEigenValueDependentTerms), & 
+          MATMUL(CEigenVectors(1:nBeams,1:nBeams),CEigenValueDependentTerms), &
           CAlphaWeightingCoefficients(:) )
 
     !?? possible small time saving here by only calculating the (tens of) output
     !?? reflections rather than all strong beams (hundreds)
     DO hnd=1,nBeams
        RWaveIntensity(hnd)=CONJG(CWaveFunctions(hnd)) * CWaveFunctions(hnd)
-    ENDDO  
+    ENDDO
 
     CFullWaveFunctions=CZERO
     RFullWaveIntensity=ZERO
@@ -448,7 +488,7 @@ MODULE bloch_mod
        CFullWaveFunctions(IStrongBeamList(knd))=CWaveFunctions(knd)
        RFullWaveIntensity(IStrongBeamList(knd))=RWaveIntensity(knd)
     ENDDO
-    
+
   END SUBROUTINE CreateWavefunctions
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -464,13 +504,13 @@ MODULE bloch_mod
   SUBROUTINE StrongAndWeakBeamsDetermination(INhkl,IMinWeakBeams,&
                     IMinStrongBeams,RDevPara,CUgMat,&
                     IStrongBeamList,IWeakBeamList,nBeams,nWeakBeams,IErr)
-    
+
     ! select only those beams where the Ewald sphere is close to the
     ! reciprocal lattice, i.e. within RBSMaxDeviationPara
 
     USE MyNumbers
     USE MyMPI
-    USE message_mod 
+    USE message_mod
 
     INTEGER(IKIND),INTENT(IN) :: INhkl
     REAL(RKIND),DIMENSION(INhkl),INTENT(IN) :: RDevPara
@@ -521,7 +561,7 @@ MODULE bloch_mod
       END IF
     END DO
     !The no. of strong beams gives the dimension of the Bloch wave problem
-    nBeams=ind-1  
+    nBeams=ind-1
 
     CALL message(LXL,dbg7,"Strong Beam List",IStrongBeamList)
     CALL message(LXL,dbg7,"Sg limit for strong beams = ",RMaxSg)
@@ -529,7 +569,7 @@ MODULE bloch_mod
     IF(SUM(IStrong)+IMinWeakBeams.GT.INhkl) IErr = 1
     IF(l_alert(IErr,"StrongAndWeakBeamsDetermination",&
           "Insufficient reflections to accommodate all Strong and Weak Beams")) RETURN
-    
+
     !----------------------------------------------------------------------------
     ! weak beams
     !----------------------------------------------------------------------------
@@ -587,7 +627,7 @@ MODULE bloch_mod
     INTEGER(IKIND),INTENT(OUT) :: IErr
     INTEGER(IKIND) :: WorkSpaceDimension
     ! dummy vector outputs used while finding respective eigenvectors/values
-    COMPLEX(CKIND),DIMENSION(:), ALLOCATABLE :: CWorkSpace 
+    COMPLEX(CKIND),DIMENSION(:), ALLOCATABLE :: CWorkSpace
     REAL(RKIND), DIMENSION(:), ALLOCATABLE :: WorkSpace
     EXTERNAL ZGEEV
 
@@ -633,15 +673,15 @@ MODULE bloch_mod
   !!
   !! Major-Authors: Rudo Roemer (2014), Richard Beanland (2016)
   !!
-  SUBROUTINE INVERT(MatrixSize,Matrix,InvertedMatrix,IErr)  
+  SUBROUTINE INVERT(MatrixSize,Matrix,InvertedMatrix,IErr)
 
     ! accesses procedure ZGETRF
     USE MyNumbers
     USE message_mod
     USE MyMPI
-    
+
     IMPLICIT NONE
-    
+
     INTEGER(IKIND),INTENT(IN) :: MatrixSize
     COMPLEX(CKIND),INTENT(INOUT) :: Matrix(MatrixSize,MatrixSize) ! destroyed in process
     COMPLEX(CKIND),INTENT(OUT) :: InvertedMatrix(1:MatrixSize,1:MatrixSize)
@@ -650,24 +690,24 @@ MODULE bloch_mod
     INTEGER :: LWORK, INFO, I
     INTEGER, DIMENSION(:), ALLOCATABLE :: IPIV
     COMPLEX(CKIND), DIMENSION(:), ALLOCATABLE :: WORK
-    
+
     ALLOCATE(IPIV(MatrixSize),STAT=IErr)
     IF(l_alert(IErr,"EigenSpectrum","allocate IPIV")) RETURN
-    
+
     CALL ZGETRF(MatrixSize,MatrixSize,Matrix,MatrixSize,IPIV,IErr)
     IF(l_alert(IErr,"EigenSpectrum","ZGETRF()")) RETURN
 
     LWORK = MatrixSize*MatrixSize
-    ALLOCATE(WORK(LWORK),STAT=IErr)   
+    ALLOCATE(WORK(LWORK),STAT=IErr)
     IF(l_alert(IErr,"EigenSpectrum","WORK")) RETURN
-    
+
     CALL ZGETRI(MatrixSize,Matrix,MatrixSize,IPIV,WORK,LWORK,IErr)
     IF(l_alert(IErr,"EigenSpectrum","ZGETRI()")) RETURN
 
     DEALLOCATE(IPIV,WORK,STAT=IErr)
     IF(l_alert(IErr,"EigenSpectrum","deallocate IPIV")) RETURN
 
-    InvertedMatrix = Matrix  
+    InvertedMatrix = Matrix
     RETURN
 
   END SUBROUTINE INVERT

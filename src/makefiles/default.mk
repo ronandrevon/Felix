@@ -12,7 +12,7 @@
 # Status:  :RLSTATUS:
 # Build:   :BUILD:
 # Author:  :AUTHOR:
-# 
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # default EXE name
@@ -34,10 +34,10 @@ $(DIRFELIX)$(PRECISION)setup_reflections_mod.o \
 $(DIRFELIX)$(PRECISION)set_scatter_factors_mod.o \
 $(DIRFELIX)$(PRECISION)crystallography_mod.o \
 $(DIRFELIX)$(PRECISION)ug_matrix_mod.o \
-$(DIRFELIX)$(PRECISION)bloch_mod.o \
 $(DIRFELIX)$(PRECISION)image_initialisation_mod.o \
 $(DIRFELIX)$(PRECISION)setup_space_group_mod.o \
 $(DIRFELIX)$(PRECISION)write_output_mod.o \
+$(DIRFELIX)$(PRECISION)bloch_mod.o \
 $(DIRFELIX)$(PRECISION)refinementcontrol_mod.o \
 $(DIRFELIX)$(PRECISION)simplex_mod.o \
 $(DIRFELIX)$(PRECISION)felixrefine.o \
@@ -54,7 +54,7 @@ SAMPLES=$(MAIN).o
 #MYSTARTDIR=$(STARTDIR)
 
 # Linux
-#LIBS= -lblas -llapack -lfftw3
+LIBS= -lblas -llapack -lfftw3
 
 # HP alpha
 #LIBS=-ljadamilu -llapack -lcxml -lblas -lm -lc -lfor
@@ -106,5 +106,3 @@ $(PRECISION)%.o: %.F
 #$(STARTDIR)/$(MAIN).$(PLATFORM).$(PRECISION): $(FELIX)
 #	@ echo --- linking $(MAIN) executable
 #	$(LD) $(LDFLAGS) -o $@ $(FELIX) -L$(LIBDIR) -l$(LIBQUADPACK)  -l$(LIBCIFTBX)
-
-
