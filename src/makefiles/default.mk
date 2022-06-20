@@ -12,7 +12,7 @@
 # Status:  :RLSTATUS:
 # Build:   :BUILD:
 # Author:  :AUTHOR:
-# 
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # default EXE name
@@ -54,7 +54,7 @@ SAMPLES=$(MAIN).o
 #MYSTARTDIR=$(STARTDIR)
 
 # Linux
-#LIBS= -lblas -llapack -lfftw3
+LIBS= -lblas -llapack -lfftw3
 
 # HP alpha
 #LIBS=-ljadamilu -llapack -lcxml -lblas -lm -lc -lfor
@@ -106,5 +106,3 @@ $(PRECISION)%.o: %.F
 #$(STARTDIR)/$(MAIN).$(PLATFORM).$(PRECISION): $(FELIX)
 #	@ echo --- linking $(MAIN) executable
 #	$(LD) $(LDFLAGS) -o $@ $(FELIX) -L$(LIBDIR) -l$(LIBQUADPACK)  -l$(LIBCIFTBX)
-
-
