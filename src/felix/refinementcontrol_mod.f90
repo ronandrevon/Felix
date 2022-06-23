@@ -10,21 +10,21 @@
 ! Date:    :DATE: 16-01-2019
 ! Time:    :TIME:
 ! Status:  :RLSTATUS:
-! Build:   :BUILD: Mode F: test different lattice types" 
+! Build:   :BUILD: Mode F: test different lattice types"
 ! Author:  :AUTHOR: r.beanland
-! 
+!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Felix is free software: you can redistribute it and/or modify
 !  it under the terms of the GNU General Public License as published by
 !  the Free Software Foundation, either version 3 of the License, or
 !  (at your option) any later version.
-!  
+!
 !  Felix is distributed in the hope that it will be useful,
 !  but WITHOUT ANY WARRANTY; without even the implied warranty of
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !  GNU General Public License for more details.
-!  
+!
 !  You should have received a copy of the GNU General Public License
 !  along with Felix.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -45,7 +45,7 @@ MODULE refinementcontrol_mod
   !! Procedure-description:
   !!
   !! Major-Authors: Richard Beanland (2016)
-  !!  
+  !!
   SUBROUTINE SimulateAndFit(RIndependentVariable,Iter,IThicknessIndex,IErr)
 
     ! JR (very rough) overview:
@@ -54,10 +54,10 @@ MODULE refinementcontrol_mod
     ! UniqueAtomPositions used to recalculate all atoms in lattice from basis atoms
     ! CUgMat = CUgMatNoAbs + CUgMatPrime ( from absoption )
     ! Simulate ( CUgMat + others ) ---> RImageSimi
-    ! On core 0, FigureOfMeritAndThickness includes image processing 
+    ! On core 0, FigureOfMeritAndThickness includes image processing
     ! RImageExpi(x,y,LACBED_ID) are compared to RImageSimi(x,y,LACBED_ID, thickness_ID)
     ! This calculates ---> RFigureofMerit
-    ! MPI_BCAST(RFigureofMerit) then sends RFigureofMerit to all cores    
+    ! MPI_BCAST(RFigureofMerit) then sends RFigureofMerit to all cores
 
     USE MyNumbers
     USE message_mod
@@ -86,14 +86,14 @@ MODULE refinementcontrol_mod
     CHARACTER(200) :: SFormat
     REAL(RKIND),INTENT(INOUT) :: RIndependentVariable(INoOfVariables)
     INTEGER(IKIND),INTENT(INOUT) :: Iter
-    INTEGER(IKIND),INTENT(OUT) :: IThicknessIndex 
+    INTEGER(IKIND),INTENT(OUT) :: IThicknessIndex
     ! NB IThicknessIndex is calculated and used on rank 0 only
     INTEGER(IKIND),INTENT(OUT) :: IErr
     INTEGER(IKIND) :: ind,jnd, ILoc(2), IUniqueUgs
     REAL(RKIND) :: RCurrentG(3), RScatteringFactor
     COMPLEX(CKIND),DIMENSION(:,:),ALLOCATABLE :: CTempMat
 
-    IF (IRefineMode(1).EQ.1) THEN  ! Ug refinement; update structure factors 
+    IF (IRefineMode(1).EQ.1) THEN  ! Ug refinement; update structure factors
       ALLOCATE (CTempMat(INhkl,INhkl),STAT=IErr)
       IF(l_alert(IErr,"SimulateAndFit","allocate CTempMat")) RETURN
       ! Dummy Matrix to contain new iterative values
@@ -114,7 +114,7 @@ MODULE refinementcontrol_mod
           CUniqueUg(ind)=CMPLX(ZERO,RIndependentVariable(jnd))
           jnd=jnd+1
         ELSE ! should never happen
-          IErr=1; 
+          IErr=1;
           WRITE(SPrintString,*) ind
           IF(l_alert(IErr,"SimulateAndFit",&
               "zero structure factor, CUniqueUg element number="//TRIM(SPrintString))) RETURN
@@ -147,7 +147,7 @@ MODULE refinementcontrol_mod
       CALL Absorption(IErr)! calculates CUgMat = CUgMatNoAbs + CUgMatPrime
       IF(l_alert(IErr,"SimulateAndFit","Absorption")) RETURN
     END IF
-    
+
     WRITE(SPrintString,FMT='(A,I5)')"Iteration ",Iter
     CALL message(LS,SPrintString)
     CALL message( LM,dbg3, "Ug matrix3, with absorption (nm^-2)" )!LM, dbg3
@@ -155,7 +155,7 @@ MODULE refinementcontrol_mod
       WRITE(SPrintString,FMT='(3(I2,1X),A2,1X,6(F7.4,1X,F7.4,2X))') NINT(Rhkl(ind,:)),": ",100*CUgMat(ind,1:6)
       CALL message( LM,dbg3, SPrintString)
     END DO
-    
+
 
     IF (my_rank.EQ.0) THEN ! send current values to screen
       CALL PrintVariables(IErr)
@@ -164,7 +164,7 @@ MODULE refinementcontrol_mod
 
     ! simulate
     RSimulatedPatterns = ZERO ! Reset simulation
-    CALL Simulate(IErr) ! simulate 
+    CALL Simulate(IErr) ! simulate
     IF(l_alert(IErr,"SimulateAndFit","Simulate")) RETURN
 
     IF(my_rank.EQ.0) THEN
@@ -192,25 +192,26 @@ MODULE refinementcontrol_mod
   !! Procedure-description: Simulates and produces images for each thickness
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
-  !!  
+  !!
   SUBROUTINE Simulate(IErr)
 
     USE MyNumbers
     USE IConst, ONLY : ITHREE
     USE MyMPI
     USE message_mod
+    USE write_output_mod
 
     USE bloch_mod
 
     !global outputs
-    USE RPara, ONLY : RImageSimi, &       
+    USE RPara, ONLY : RImageSimi, &
                       RSimulatedPatterns
     ! RImageSimi(x_coordinate, y_coordinate y, LACBED_pattern_ID , thickness_ID )
     ! RSimulatedPatterns( Pixel_ID, LACBED_pattern_ID , thickness_ID )
     ! RSimulatedPatterns has a long list of pixel instead of a 2D image matrix
     USE RPARA, ONLY : RIndividualReflections
     USE IPara, ONLY : IInitialSimulationFLAG, IPixelComputed
-    
+
     !global inputs
     USE RPARA, ONLY : RBlurRadius
     USE IPARA, ONLY : ICount,IDisplacements,ILocalPixelCountMax,INoOfLacbedPatterns,&
@@ -218,17 +219,23 @@ MODULE refinementcontrol_mod
 
     IMPLICIT NONE
 
-    INTEGER(IKIND) :: IErr, ind,jnd,knd,pnd,IIterationFLAG
-!    REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RTempImage 
+    INTEGER(IKIND) :: IErr, ind,jnd,knd,pnd,IIterationFLAG,rank
+!    REAL(RKIND),DIMENSION(:,:),ALLOCATABLE :: RTempImage
 
-    ! Reset simuation   
+    ! Reset simuation
     RIndividualReflections = ZERO
 
     ! Simulation (different local pixels for each core)
     CALL message(LS,"Bloch wave calculation...")
+    ! CALL MPI_Comm_rank(MPI_COMM_WORLD,my_rank,IErr4)
     DO knd = ILocalPixelCountMin,ILocalPixelCountMax,1
       jnd = IPixelLocations(knd,1)
       ind = IPixelLocations(knd,2)
+      ! rank=my_rank
+      ! CALL message(LS,"rank",rank)
+      ! CALL message(LS,my_rank)
+      CALL message(LS,"ind=",ind)
+      CALL message(LS,"jnd=",jnd)
       ! fills array for each pixel number not x & y coordinates
       CALL BlochCoefficientCalculation(ind,jnd,knd,ILocalPixelCountMin,IErr)
       IF(l_alert(IErr,"Simulate","BlochCoefficientCalculation")) RETURN
@@ -274,20 +281,20 @@ MODULE refinementcontrol_mod
   !! matches best.
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
-  !!  
+  !!
   SUBROUTINE FigureOfMeritAndThickness(Iter,IBestThicknessIndex,IErr)
 
     !?? NB this is called on core 0 only
     USE MyNumbers
-    USE message_mod 
+    USE message_mod
 
     USE utilities_mod, ONLY : PhaseCorrelate, ResidualSumofSquares, &
           Normalised2DCrossCorrelation, MaskedCorrelation
-    
+
     ! global outputs
     USE RPARA, ONLY : RFigureofMerit
     USE SPARA, ONLY : SPrintString
-    
+
     ! global inputs
     USE IPARA, ONLY : INoOfLacbedPatterns,ICorrelationFLAG,IPixelCount,IThicknessCount, &
           IImageProcessingFLAG,IOutPutReflections
@@ -306,7 +313,7 @@ MODULE refinementcontrol_mod
     REAL(RKIND) :: RTotalCorrelation,RBestTotalCorrelation,RImageCorrelation,RBestThickness,&
          RThicknessRange,Rradius
     REAL(RKIND),DIMENSION(INoOfLacbedPatterns) :: RBestCorrelation
-    CHARACTER(20) :: Snum       
+    CHARACTER(20) :: Snum
 
     IF (ICorrelationFLAG.EQ.3) THEN ! allocate mask
       ALLOCATE(RMaskImage(2*IPixelCount,2*IPixelCount),STAT=IErr)
@@ -315,7 +322,7 @@ MODULE refinementcontrol_mod
     RBestCorrelation = TEN
     RBestTotalCorrelation = TEN ! The best mean of all correlations
     ! The thickness with the lowest figure of merit for each image
-    IBestImageThicknessIndex = 1 
+    IBestImageThicknessIndex = 1
 
     ! write out PatternFits.txt
 !    OPEN(UNIT=IChOut,FILE='PatternFits.txt',FORM='formatted',STATUS='unknown',POSITION='append')
@@ -330,7 +337,7 @@ MODULE refinementcontrol_mod
         IF (ICorrelationFLAG.EQ.3) THEN ! masked correlation, update mask
           RMaskImage=RImageMask(:,:,ind)
         END IF
-        
+
         ! image processing
         SELECT CASE (IImageProcessingFLAG)
         !CASE(0) !no processing
@@ -348,9 +355,9 @@ MODULE refinementcontrol_mod
           ELSEWHERE
             RExperimentalImage =  TINY
           END WHERE
-        
+
         END SELECT
-        
+
         ! Correlation type
         SELECT CASE (ICorrelationFLAG)
           CASE(0) ! Phase Correlation
@@ -367,7 +374,7 @@ MODULE refinementcontrol_mod
             IF (Iter.LE.0) THEN
             ! we are in baseline sim or simplex initialisation: do a normalised2D CC
               RImageCorrelation = ONE-&
-                    Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,IErr)   
+                    Normalised2DCrossCorrelation(RSimulatedImage,RExperimentalImage,IErr)
             ELSE ! we are refining: do a masked CC
               RImageCorrelation = ONE-& ! NB Perfect Correlation = 0 not 1
                     MaskedCorrelation(RSimulatedImage,RExperimentalImage,RMaskImage,IErr)
@@ -386,7 +393,7 @@ MODULE refinementcontrol_mod
 !        WRITE(IChOut,FMT='(3I5.1,F13.9)') NINT(Rhkl(IOutPutReflections(ind),:)),RImageCorrelation
 
         ! Determine which thickness matches best for each LACBED pattern
-        ! which is later used to find the range of viable thicknesses 
+        ! which is later used to find the range of viable thicknesses
         IF(RImageCorrelation.LT.RBestCorrelation(ind)) THEN
           RBestCorrelation(ind) = RImageCorrelation
           IBestImageThicknessIndex(ind) = jnd
@@ -394,7 +401,7 @@ MODULE refinementcontrol_mod
         RTotalCorrelation = RTotalCorrelation + RImageCorrelation
       END DO
       RTotalCorrelation=RTotalCorrelation/REAL(INoOfLacbedPatterns,RKIND)
-        
+
       ! Determines which thickness matches best
       IF(RTotalCorrelation.LT.RBestTotalCorrelation) THEN
         RBestTotalCorrelation = RTotalCorrelation
@@ -411,13 +418,13 @@ MODULE refinementcontrol_mod
     ! The figure of merit, global variable
     RFigureofMerit = RBestTotalCorrelation
 
-    !?? Alternative method below, RWeightingCoefficients not used and have been removed 
-    !?? assume that the best thickness is given by the mean of individual thicknesses  
+    !?? Alternative method below, RWeightingCoefficients not used and have been removed
+    !?? assume that the best thickness is given by the mean of individual thicknesses
     !IBestThicknessIndex = SUM(IBestImageThicknessIndex)/INoOfLacbedPatterns
     !RBestThickness = RInitialThickness + (IBestThicknessIndex-1)*RDeltaThickness
     !RFigureofMerit = SUM(RBestCorrelation*RWeightingCoefficients)/&
     !      REAL(INoOfLacbedPatterns,RKIND)
-    
+
     RBestThickness = RInitialThickness +(IBestThicknessIndex-1)*RDeltaThickness
     RThicknessRange=( MAXVAL(IBestImageThicknessIndex)-&
           MINVAL(IBestImageThicknessIndex) )*RDeltaThickness
@@ -440,14 +447,14 @@ MODULE refinementcontrol_mod
   !! variables for a new simulation, and recalculate dependent parts
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
-  !!  
+  !!
   SUBROUTINE UpdateVariables(RIndependentVariable,IErr)
 
     USE MyNumbers
-    USE message_mod 
+    USE message_mod
     USE crystallography_mod
     USE MyMPI
-    
+
     ! global inputs
     USE IPARA, ONLY : INoOfVariables, IRefineMode,IAtomMoveList,IIndependentVariableType,&
           IAtomsToRefine,IPixelCount
@@ -466,9 +473,9 @@ MODULE refinementcontrol_mod
     INTEGER(IKIND) :: IVectorID,IAtomID,IErr,ind,jnd,knd,lnd,mnd
     REAL(RKIND),DIMENSION(3) :: RdeltaR!uncertainty in atom coords
 
-    !--------------------------------------------------------------------  
-    ! first put independent variables back into the parameters 
-    !--------------------------------------------------------------------  
+    !--------------------------------------------------------------------
+    ! first put independent variables back into the parameters
+    !--------------------------------------------------------------------
     IVariableCheck=0
     jnd=1!counting indices for each refinement type
     knd=1
@@ -478,12 +485,12 @@ MODULE refinementcontrol_mod
     DO ind = 1,INoOfVariables!loop over variables
 
       !the type of variable is specified by the last digit of IIndependentVariableType
-      !other digits are used for options or extra information      
+      !other digits are used for options or extra information
       SELECT CASE (MOD(IIndependentVariableType(ind),10))
 
       CASE(1) ! A: structure factor refinement, do in UpdateStructureFactors
         IVariableCheck(1)=1
-        
+
       CASE(2) ! B: atomic coordinates
         IVariableCheck(2)=1
         ! The atom being moved
@@ -498,17 +505,17 @@ MODULE refinementcontrol_mod
           RBasisAtomDelta(IAtomID,:) = RBasisAtomDelta(IAtomID,:)+RVector(jnd,:)*RIndependentDelta(ind)
         END IF
         jnd=jnd+1
-            
+
       CASE(3) ! C: occupancy
         IVariableCheck(3)=1
         RBasisOccupancy(IAtomsToRefine(knd))=RIndependentVariable(ind)
         knd=knd+1
-        
+
       CASE(4) ! D: iso DWF
         IVariableCheck(4)=1
         RBasisIsoDW(IAtomsToRefine(lnd))=RIndependentVariable(ind)
         lnd=lnd+1
-        
+
       CASE(5) ! E: aniso DWF
         IVariableCheck(5)=1
         ! NOT CURRENTLY IMPLEMENTED
@@ -521,7 +528,7 @@ MODULE refinementcontrol_mod
         !first digit=1 is y (overwrites the above)
         !first digit=2 is z (overwrites the above)
         IVariableCheck(6)=1
-        !this should always come first & is the default 
+        !this should always come first & is the default
         !Default: y and z are the same as x
         !IF (my_rank.EQ.0) PRINT*, ind, "Variable type", IIndependentVariableType(ind)
         SELECT CASE(IIndependentVariableType(ind))
@@ -545,30 +552,30 @@ MODULE refinementcontrol_mod
         CASE(3)
           RGamma = RIndependentVariable(ind)
         END SELECT
-        
+
       CASE(8)
         IVariableCheck(8)=1
         RConvergenceAngle = RIndependentVariable(ind)
-        
+
       CASE(9)
         IVariableCheck(9)=1
         RAbsorptionPercentage = RIndependentVariable(ind)
-        
+
       CASE(10)
         IVariableCheck(10)=1
         RAcceleratingVoltage = RIndependentVariable(ind)
-        
+
       END SELECT
     END DO
-    
-    !--------------------------------------------------------------------  
-    ! now do appropriate recalculations 
-    !--------------------------------------------------------------------  
+
+    !--------------------------------------------------------------------
+    ! now do appropriate recalculations
+    !--------------------------------------------------------------------
     DO ind = 1,10!loop over the ten refinement types
       IF (IVariableCheck(ind).EQ.1) THEN
       SELECT CASE (ind)
         CASE(1) ! A: structure factor refinement, currently in UpdateStructureFactors but should come here
-      
+
         CASE(2) ! B: atomic coordinates
           !basis has changed, recalculate unit cell
           CALL UniqueAtomPositions(IErr)
@@ -606,16 +613,16 @@ MODULE refinementcontrol_mod
           IF(l_alert(IErr,"UpdateVariables","gVectors")) RETURN
           CALL UniqueAtomPositions(IErr)
           IF(l_alert(IErr,"UpdateVariables","UniqueAtomPositions")) RETURN
-        
+
         CASE(8) ! G: convergence angle
           ! recalculate resolution in k space
           IF (my_rank.EQ.0) RDeltaK = TWOPI*RConvergenceAngle/REAL(IPixelCount,RKIND)
-          CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)        
+          CALL MPI_BCAST(RDeltaK,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,IErr)
 
         END SELECT
       END IF
     END DO
-    
+
   END SUBROUTINE UpdateVariables
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -624,17 +631,17 @@ MODULE refinementcontrol_mod
   !! Procedure-description: Print variables
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
-  !! 
+  !!
   SUBROUTINE PrintVariables(IErr)
 
     USE MyNumbers
-    USE message_mod 
+    USE message_mod
     USE write_output_mod
     USE setup_space_group_mod!required for the subroutine ConvertSpaceGroupToNumber
     !These need restricting to variables used ONLY
     USE IConst; USE RConst; USE SConst
     USE IPara; USE RPara; USE CPara; USE SPara;
-    USE BlochPara 
+    USE BlochPara
 
     IMPLICIT NONE
 
@@ -704,7 +711,7 @@ MODULE refinementcontrol_mod
         CASE(5)
           CALL message(LS,"Current Anisotropic Debye Waller Factors")
           DO jnd = 1,SIZE(RAnisotropicDebyeWallerFactorTensor,DIM=1)
-            CALL message(LS, "Tensor index = ", jnd) 
+            CALL message(LS, "Tensor index = ", jnd)
             CALL message(LS, SBasisAtomLabel(jnd),RAnisotropicDebyeWallerFactorTensor(jnd,1:3,:) )
           END DO
 
@@ -752,14 +759,14 @@ MODULE refinementcontrol_mod
 
 
   !>
-  !! Procedure-description: Performs a 2D Gaussian blur on the input image using 
+  !! Procedure-description: Performs a 2D Gaussian blur on the input image using
   !! global variable RBlurRadius and renormalises the output image to have the
   !! same min and max as the input image
   !!
   !! Closed procedure, no access to global variables
   !!
   !! Major-Authors: Richard Beanland (2016)
-  !! 
+  !!
   SUBROUTINE BlurG(RImageToBlur,IPixelsCount,RBlurringRadius,IErr)
 
     USE MyNumbers
@@ -782,7 +789,7 @@ MODULE refinementcontrol_mod
     Rmin=MINVAL(RImageToBlur)
     Rmax=MAXVAL(RImageToBlur)
 
-    ! set up a 1D kernel of appropriate size  
+    ! set up a 1D kernel of appropriate size
     IKernelRadius=NINT(3*RBlurringRadius)
     ALLOCATE(RGauss1D(2*IKernelRadius+1),STAT=IErr)!ffs
     Rsum=0
@@ -790,10 +797,10 @@ MODULE refinementcontrol_mod
       Rind=REAL(ind)
       RGauss1D(ind+IKernelRadius+1)=EXP(-(Rind**2)/(2*(RBlurringRadius**2)))
       Rsum=Rsum+RGauss1D(ind+IKernelRadius+1)
-      IF(ind==0) IErr=78 
+      IF(ind==0) IErr=78
     END DO
     RGauss1D=RGauss1D/Rsum!normalise
-    RTempImage=RImageToBlur*0_RKIND !reset the temp image 
+    RTempImage=RImageToBlur*0_RKIND !reset the temp image
 
     ! apply the kernel in direction 1
     DO ind = -IKernelRadius,IKernelRadius
@@ -815,7 +822,7 @@ MODULE refinementcontrol_mod
     RImageToBlur=RTempImage
     RTempImage=RImageToBlur*0_RKIND ! reset the temp image
 
-    ! apply the kernel in direction 2  
+    ! apply the kernel in direction 2
     DO ind = -IKernelRadius,IKernelRadius
        IF (ind.LT.0) THEN
           RShiftImage(:,1:2*IPixelsCount+ind)=RImageToBlur(:,1-ind:2*IPixelsCount)
@@ -838,6 +845,6 @@ MODULE refinementcontrol_mod
     ! return the blurred image
     RImageToBlur=RTempImage;
 
-  END SUBROUTINE BlurG        
+  END SUBROUTINE BlurG
 
 END MODULE refinementcontrol_mod

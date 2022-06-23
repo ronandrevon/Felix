@@ -12,7 +12,7 @@
 # Status:  :RLSTATUS:
 # Build:   :BUILD:
 # Author:  :AUTHOR:
-# 
+#
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 # default EXE name
@@ -54,8 +54,8 @@ SAMPLES=$(MAIN).o
 #MYSTARTDIR=$(STARTDIR)
 
 # Linux
-#LIBS= -lblas -llapack -lfftw3
-
+LIBS= -lblas -llapack -lfftw3
+DEBUG= #-g
 # HP alpha
 #LIBS=-ljadamilu -llapack -lcxml -lblas -lm -lc -lfor
 
@@ -89,14 +89,14 @@ LIBCIFTBX=lib$(PRECISION)ciftbx.a
 
 $(PRECISION)%.o: %.f90
 #	@ echo --- --- compiling F90+ code
-	$(F90) $(F90FLAGS) -c -o $@ $<
+	$(F90) $(F90FLAGS) $(DEBUG) -c -o  $@ $<
 
 $(PRECISION)%.o: %.f
 #	@ echo --- --- compiling F77 code
-	$(FF) $(FFFLAGS) -c -o $@ $<
+	$(FF) $(FFFLAGS) $(DEBUG) -c -o $@ $<
 
 $(PRECISION)%.o: %.c
-	$(CC)  $(CCFLAGS)  -I$(INCDIR)  $(FORTRANNAMES) $(ARITHMETIC) $(LONGINTEGER) -c -o $@ $<
+	$(CC)  $(CCFLAGS) $(DEBUG) -I$(INCDIR)  $(FORTRANNAMES) $(ARITHMETIC) $(LONGINTEGER) -c -o $@ $<
 
 $(PRECISION)%.o: %.F
 	$(FCOMPILE)
@@ -106,5 +106,3 @@ $(PRECISION)%.o: %.F
 #$(STARTDIR)/$(MAIN).$(PLATFORM).$(PRECISION): $(FELIX)
 #	@ echo --- linking $(MAIN) executable
 #	$(LD) $(LDFLAGS) -o $@ $(FELIX) -L$(LIBDIR) -l$(LIBQUADPACK)  -l$(LIBCIFTBX)
-
-

@@ -12,19 +12,19 @@
 ! Status:  :RLSTATUS:
 ! Build:   :BUILD:
 ! Author:  :AUTHOR:
-! 
+!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 !
 !  Felix is free software: you can redistribute it and/or modify
 !  it under the terms of the GNU General Public License as published by
 !  the Free Software Foundation, either version 3 of the License, or
 !  (at your option) any later version.
-!  
+!
 !  Felix is distributed in the hope that it will be useful,
 !  but WITHOUT ANY WARRANTY; without even the implied warranty of
 !  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 !  GNU General Public License for more details.
-!  
+!
 !  You should have received a copy of the GNU General Public License
 !  along with Felix.  If not, see <http://www.gnu.org/licenses/>.
 !
@@ -36,7 +36,7 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 !>
-!! Module-description: 
+!! Module-description:
 !!
 MODULE setup_reflections_mod
 
@@ -51,7 +51,7 @@ MODULE setup_reflections_mod
   !! Procedure-description: Assign numbers to the different reflections in IOutputReflections
   !!
   !! Major-Authors: Keith Evans (2014), Richard Beanland (2016)
-  !!  
+  !!
   SUBROUTINE HKLList( IErr )
 
     ! This procedure is called once in felixrefine setup
@@ -67,7 +67,7 @@ MODULE setup_reflections_mod
     IMPLICIT NONE
 
     INTEGER(IKIND) :: IFind,IFound,ind,jnd,knd,IErr
-      
+
     IFind = 0
 
     DO ind = 1,SIZE(RInputHKLs,DIM=1)
@@ -98,15 +98,15 @@ MODULE setup_reflections_mod
         END IF
       END DO
     END DO
-       
+
     IF (IFind.LE.0) THEN
       IErr=1; IF(l_alert(IErr,"HKLList","No requested HKLs found")) RETURN
     END IF
-      
+
     INoOfLacbedPatterns = IFind
-    
+
   END SUBROUTINE HKLList
-  
+
   !!$%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !>
   !! Procedure-description: Checks a g-vector Ih,Ik,Il
@@ -114,16 +114,16 @@ MODULE setup_reflections_mod
   !! IFlag comes in as zero and goes out as 1 if it is an allowed reflection
   !!
   !! Major-Authors: Richard Beanland (2021)
-  !!  
+  !!
   SUBROUTINE SelectionRules(Ih, Ik, Il, ISel, IErr)
 
     ! This procedure is called from HKLMake
     USE MyNumbers
     USE message_mod
-    
+
     ! global inputs
     USE SPARA, ONLY : SSpaceGroupName
-    
+
     IMPLICIT NONE
 
     INTEGER (IKIND),INTENT(IN) :: Ih, Ik, Il
@@ -161,49 +161,50 @@ MODULE setup_reflections_mod
       IErr=1
       IF(l_alert(IErr,"HKLCount",&
           "SSpaceGroupName unrecognised")) RETURN
-          
+
     END SELECT
-     
+
   END SUBROUTINE SelectionRules
-  
-  
+
+
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   !>
   !! Procedure-description: Fills the list of reciprocal space vectors Rhkl
   !!
   !! Major-Authors: Richard Beanland (2021)
-  !!  
-  SUBROUTINE HKLMake(RGlimit, IErr)   
+  !!
+  SUBROUTINE HKLMake(RGlimit, IErr)
     ! This procedure is called once in felixrefine setup
 
     USE MyNumbers
     USE message_mod
-    
+
     ! global output Rhkl, input reciprocal lattice vectors & wave vector
     USE RPARA, ONLY : RzDirC, Rhkl, RarVecM, RbrVecM, RcrVecM, RInputHKLs,&
         RElectronWaveVectorMagnitude
-      
+
     ! global inputs
     USE SPARA, ONLY : SSpaceGroupName
     USE IPARA, ONLY : INhkl,INoOfLacbedPatterns
     USE Iconst
-    
+
     IMPLICIT NONE
 
-    REAL(RKIND),INTENT(IN) :: RGlimit   
+    REAL(RKIND),INTENT(IN) :: RGlimit
     INTEGER(IKIND) :: IErr, ISel, Ih, Ik, Il, inda,indb,indc, jnd, knd,lnd
     REAL(RKIND) :: RarMag, RbrMag, RcrMag, RShell, RGtestMag, RDev
-    REAL(RKIND),DIMENSION(ITHREE) :: Rk, RGtest, RGtestM, RGplusk 
-   
+    REAL(RKIND),DIMENSION(ITHREE) :: Rk, RGtest, RGtestM, RGplusk
+
     !The upper limit for g-vector magnitudes
     !If the g-vectors we are counting are bigger than this there is something wrong
     !probably the tolerance for proximity to the Ewald sphere needs increasing
     !could be an input in felix.inp
 !    RGlimit = 20.0*TWOPI  ! reciprocal Angstroms * 2pi
-    
+
     !the k-vector for the incident beam
     !we are working in the microscope reference frame so k is along z
-    Rk=(/ 0.0,0.0,RElectronWaveVectorMagnitude /)
+    ! One=1.0
+    Rk=(/ ZERO,ZERO,RElectronWaveVectorMagnitude /)
     !get the size of the reciprocal lattice basis vectors
     RarMag=SQRT(DOT_PRODUCT(RarVecM,RarVecM))!magnitude of a*
     RbrMag=SQRT(DOT_PRODUCT(RbrVecM,RbrVecM))!magnitude of b*
@@ -214,8 +215,8 @@ MODULE setup_reflections_mod
 
     !first g is always 000
     Rhkl(1,:)=(/ 0.0,0.0,0.0 /)
-    knd=1!number of reflections in the pool 
-    lnd=0!number of the shell 
+    knd=1!number of reflections in the pool
+    lnd=0!number of the shell
     !maximum a*,b*,c* limit is determined by the G magnitude limit
     inda=NINT(RGlimit/RarMag)
     indb=NINT(RGlimit/RbrMag)
@@ -248,7 +249,7 @@ MODULE setup_reflections_mod
                   ! Tolerance of 0.08 here is rather arbitrary, might need
                   ! revisiting
 !DBG    IF(my_rank.EQ.0)PRINT*,(/ Ih,Ik,Il /),RDev
-                  IF ((RDev-0.08).LT.TINY) THEN !it's near the ZOLZ 
+                  IF ((RDev-0.08).LT.TINY) THEN !it's near the ZOLZ
                     !add it to the pool and increment the counter
                     !need to check that we have space in Rhkl because the while doesn't
                     !kick in until we finish the do loops
@@ -295,10 +296,10 @@ MODULE setup_reflections_mod
 
     !--------------------------------------------------------------------
     !	Sort: is based on ShellSort from "Numerical Recipes", routine SHELL().
-    !---------------------------------------------------------------------  
+    !---------------------------------------------------------------------
 
     USE MyNumbers
-      
+
     USE SConst; USE IConst
     USE IPara; USE RPara
 
@@ -326,7 +327,7 @@ MODULE setup_reflections_mod
 3       CONTINUE
         L=I+M
         RhklSearch = LocalRhkl(L,1)*RarVecO + &
-           LocalRhkl(L,2)*RbrVecO+LocalRhkl(L,3)*RcrVecO    
+           LocalRhkl(L,2)*RbrVecO+LocalRhkl(L,3)*RcrVecO
         RhklCompare = LocalRhkl(I,1)*RarVecO + &
            LocalRhkl(I,2)*RbrVecO+LocalRhkl(I,3)*RcrVecO
         IF( DOT_PRODUCT(RhklSearch(:),RhklSearch(:)) .LT. &
@@ -341,9 +342,9 @@ MODULE setup_reflections_mod
         ENDIF
       ENDDO
     ENDDO
-    
+
     RETURN
 
   END SUBROUTINE HKLSort
-  
+
 END MODULE setup_reflections_mod

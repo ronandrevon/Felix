@@ -1,0 +1,5 @@
+*.o
+*.mod
+**/samples
+**/lib
+src/felix.OPT64NGNU.d
